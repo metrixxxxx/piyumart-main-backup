@@ -15,46 +15,23 @@ export default function SellPage() {
   const [categories, setCategories] = useState([]);
   const [attributeDefs, setAttributeDefs] = useState([]);
   const [form, setForm] = useState({
-    name: "",
-    description: "",
-    price: "",
-    category_id: "",
-    stock: 0,
-    is_visible: 1,
+    name: "", description: "", price: "", category_id: "", stock: 0, is_visible: 1,
   });
   const [attrValues, setAttrValues] = useState({});
+  const [mainImages, setMainImages] = useState([]);
+  const [variants, setVariants] = useState([]);
 
-  // --- Image & Variant State ---
-  const [mainImages, setMainImages] = useState([]);   // [{ file, preview }]
-  const [variants, setVariants] = useState([]);        // [{ label, file, preview }]
-
-  // --- Main Images ---
   const handleMainImages = (e) => {
     const files = Array.from(e.target.files);
     const previews = files.map((file) => ({ file, preview: URL.createObjectURL(file) }));
     setMainImages((prev) => [...prev, ...previews]);
   };
 
-  const removeMainImage = (index) => {
-    setMainImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  // --- Variants ---
+  const removeMainImage = (index) => setMainImages((prev) => prev.filter((_, i) => i !== index));
   const addVariant = () => setVariants((prev) => [...prev, { label: "", file: null, preview: null }]);
-
-  const updateVariantLabel = (index, label) => {
-    setVariants((prev) => prev.map((v, i) => i === index ? { ...v, label } : v));
-  };
-
-  const updateVariantImage = (index, file) => {
-    setVariants((prev) => prev.map((v, i) =>
-      i === index ? { ...v, file, preview: URL.createObjectURL(file) } : v
-    ));
-  };
-
-  const removeVariant = (index) => {
-    setVariants((prev) => prev.filter((_, i) => i !== index));
-  };
+  const updateVariantLabel = (index, label) => setVariants((prev) => prev.map((v, i) => i === index ? { ...v, label } : v));
+  const updateVariantImage = (index, file) => setVariants((prev) => prev.map((v, i) => i === index ? { ...v, file, preview: URL.createObjectURL(file) } : v));
+  const removeVariant = (index) => setVariants((prev) => prev.filter((_, i) => i !== index));
 
   async function fetchCategories() {
     const res = await fetch("/api/categories");
@@ -85,7 +62,6 @@ export default function SellPage() {
       attribute_definition_id: def.id,
       value: attrValues[def.id] || "",
     }));
-
     const formData = new FormData();
     formData.append("name", form.name);
     formData.append("description", form.description);
@@ -94,24 +70,14 @@ export default function SellPage() {
     formData.append("stock", form.stock);
     formData.append("is_visible", form.is_visible);
     formData.append("attributes", JSON.stringify(attributes));
-
     if (editProduct) formData.append("id", editProduct.id);
-
-    // Append main images
     mainImages.forEach((img) => formData.append("images", img.file));
-
-    // Append variants
     variants.forEach((v, i) => {
       formData.append(`variant_label_${i}`, v.label);
       if (v.file) formData.append(`variant_image_${i}`, v.file);
     });
     formData.append("variant_count", variants.length);
-
-    const res = await fetch("/api/sell", {
-      method: editProduct ? "PUT" : "POST",
-      body: formData,
-    });
-
+    const res = await fetch("/api/sell", { method: editProduct ? "PUT" : "POST", body: formData });
     const data = await res.json();
     if (data.success) {
       alert(editProduct ? "Updated!" : "Posted!");
@@ -134,21 +100,14 @@ export default function SellPage() {
   function handleEdit(product) {
     setEditProduct(product);
     setForm({
-      name: product.name,
-      description: product.description,
-      price: product.price,
-      category_id: product.category_id || "",
-      stock: product.stock ?? 0,
-      is_visible: product.is_visible ?? 1,
+      name: product.name, description: product.description, price: product.price,
+      category_id: product.category_id || "", stock: product.stock ?? 0, is_visible: product.is_visible ?? 1,
     });
-    // Pre-fill existing images as previews (no file object — already saved)
     setMainImages(
-      product.images?.map((url) => ({ file: null, preview: url })) || 
+      product.images?.map((url) => ({ file: null, preview: url })) ||
       (product.image_url ? [{ file: null, preview: product.image_url }] : [])
     );
-    setVariants(
-      product.variants?.map((v) => ({ label: v.label, file: null, preview: v.image_url })) || []
-    );
+    setVariants(product.variants?.map((v) => ({ label: v.label, file: null, preview: v.image_url })) || []);
     setShowForm(true);
   }
 
@@ -166,24 +125,18 @@ export default function SellPage() {
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
     if (status !== "authenticated") return;
-    async function init() {
-      await fetchMyProducts();
-      await fetchCategories();
-    }
+    async function init() { await fetchMyProducts(); await fetchCategories(); }
     init();
   }, [status]);
 
   useEffect(() => {
     const socket = getSocket();
     socket.on("products:new", (product) => {
-      if (String(product.seller_id) === String(session?.user?.id)) {
+      if (String(product.seller_id) === String(session?.user?.id))
         setProducts((prev) => [product, ...prev]);
-      }
     });
     socket.on("products:updated", (updated) => {
-      setProducts((prev) =>
-        prev.map((p) => String(p.id) === String(updated.id) ? { ...p, ...updated } : p)
-      );
+      setProducts((prev) => prev.map((p) => String(p.id) === String(updated.id) ? { ...p, ...updated } : p));
     });
     socket.on("products:deleted", ({ id }) => {
       setProducts((prev) => prev.filter((p) => String(p.id) !== String(id)));
@@ -196,287 +149,251 @@ export default function SellPage() {
   }, [session?.user?.id]);
 
   if (status === "loading" || loading)
-    return <p className="p-8">Loading...</p>;
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f]">
+        <p className="text-sm text-[#1a1060]/50 dark:text-[#f0ede8]/40">Loading...</p>
+      </div>
+    );
 
   return (
-    <main style={{ background: "#f8f7f4", minHeight: "100vh" }}>
+    <main className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] transition-colors duration-300">
 
-      <section style={{ background: "#1a1a2e", color: "#fff", padding: "50px 20px", textAlign: "center" }}>
-        <h1 style={{ fontSize: "32px", fontWeight: "700" }}>Sell Your Items</h1>
-        <p style={{ opacity: 0.6, marginTop: "6px" }}>
-          What are you selling today? Add and manage your products here.
-        </p>
+      {/* HERO */}
+      <section className="bg-[#9D6BFF] dark:bg-[#12121a] text-white text-center px-5 py-12">
+        <h1 className="text-3xl font-bold">Sell Your Items</h1>
+        <p className="text-white/60 mt-1.5 text-sm">What are you selling today? Add and manage your products here.</p>
       </section>
 
-      <div className="card flex items-center mb-6">
-        <div className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center font-bold">
-          {session?.user?.name?.charAt(0)?.toUpperCase() || "S"}
+      <div className="max-w-[960px] mx-auto px-5 py-6">
+
+        {/* SELLER CARD */}
+        <div className="bg-white dark:bg-[#12121a] border border-[#e8e5f0] dark:border-white/[0.07] rounded-2xl p-4 flex items-center mb-6 shadow-sm">
+          <div className="w-11 h-11 rounded-full bg-[#6d4aff] dark:bg-[#c9a96e] flex items-center justify-center text-white dark:text-[#0a0a0f] font-bold text-sm shrink-0">
+            {session?.user?.name?.charAt(0)?.toUpperCase() || "S"}
+          </div>
+          <div className="ml-3">
+            <h2 className="font-semibold text-sm text-[#1a1060] dark:text-[#f0ede8]">{session?.user?.name}</h2>
+            <p className="text-xs text-[#1a1060]/45 dark:text-[#f0ede8]/40">{session?.user?.email}</p>
+          </div>
+          <button
+            onClick={() => { setEditProduct(null); resetForm(); setShowForm(true); }}
+            className="ml-auto text-xs font-semibold px-4 py-2 rounded-xl bg-[#1a1060] dark:bg-[#c9a96e] text-white dark:text-[#0a0a0f] hover:opacity-90 transition"
+          >
+            + Add Product
+          </button>
         </div>
-        <div className="ml-3">
-          <h2 className="font-semibold">{session?.user?.name}</h2>
-          <p className="text-sm text-gray-500">{session?.user?.email}</p>
-        </div>
-        <button
-          onClick={() => { setEditProduct(null); resetForm(); setShowForm(true); }}
-          className="btn btn-primary ml-auto"
-        >
-          + Add Product
-        </button>
-      </div>
 
-      {showForm && (
-        <div className="card mb-6">
-          <h3 className="font-semibold mb-4">{editProduct ? "Edit Product" : "Add Product"}</h3>
-          <div className="grid gap-3">
+        {/* FORM */}
+        {showForm && (
+          <div className="bg-white dark:bg-[#12121a] border border-[#e8e5f0] dark:border-white/[0.07] rounded-2xl p-6 mb-6 shadow-sm">
+            <h3 className="font-semibold text-sm mb-4 text-[#1a1060] dark:text-[#f0ede8]">
+              {editProduct ? "Edit Product" : "Add Product"}
+            </h3>
+            <div className="grid gap-3">
 
-            <input className="input" placeholder="Name" value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <input
+                className="w-full px-3 py-2.5 rounded-xl border border-[#e8e5f0] dark:border-white/10 bg-[#f5f3ff] dark:bg-white/[0.04] text-[#1a1060] dark:text-[#f0ede8] placeholder:text-[#1a1060]/30 dark:placeholder:text-[#f0ede8]/30 text-sm outline-none focus:border-[#6d4aff] dark:focus:border-[#c9a96e] transition-colors"
+                placeholder="Name" value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+              />
 
-            <textarea className="input" placeholder="Description" value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })} />
+              <textarea
+                className="w-full px-3 py-2.5 rounded-xl border border-[#e8e5f0] dark:border-white/10 bg-[#f5f3ff] dark:bg-white/[0.04] text-[#1a1060] dark:text-[#f0ede8] placeholder:text-[#1a1060]/30 dark:placeholder:text-[#f0ede8]/30 text-sm outline-none focus:border-[#6d4aff] dark:focus:border-[#c9a96e] transition-colors resize-none"
+                placeholder="Description" value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+              />
 
-            <input className="input" type="number" placeholder="Price" value={form.price}
-              onChange={(e) => setForm({ ...form, price: e.target.value })} />
+              <input
+                className="w-full px-3 py-2.5 rounded-xl border border-[#e8e5f0] dark:border-white/10 bg-[#f5f3ff] dark:bg-white/[0.04] text-[#1a1060] dark:text-[#f0ede8] placeholder:text-[#1a1060]/30 dark:placeholder:text-[#f0ede8]/30 text-sm outline-none focus:border-[#6d4aff] dark:focus:border-[#c9a96e] transition-colors"
+                type="number" placeholder="Price" value={form.price}
+                onChange={(e) => setForm({ ...form, price: e.target.value })}
+              />
 
-            <select className="input" value={form.category_id}
-              onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
-              <option value="">Select Category</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-
-            {attributeDefs.length > 0 && (
-              <div className="grid gap-3">
-                {attributeDefs.map((def) => (
-                  <div key={def.id}>
-                    <label className="text-sm text-gray-500 mb-1 block">{def.name}</label>
-                    <input
-                      className="input"
-                      placeholder={def.name}
-                      value={attrValues[def.id] || ""}
-                      onChange={(e) => setAttrValues({ ...attrValues, [def.id]: e.target.value })}
-                    />
-                  </div>
+              <select
+                className="w-full px-3 py-2.5 rounded-xl border border-[#e8e5f0] dark:border-white/10 bg-[#f5f3ff] dark:bg-white/[0.04] text-[#1a1060] dark:text-[#f0ede8] text-sm outline-none focus:border-[#6d4aff] dark:focus:border-[#c9a96e] transition-colors"
+                value={form.category_id}
+                onChange={(e) => setForm({ ...form, category_id: e.target.value })}
+              >
+                <option value="">Select Category</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
+              </select>
+
+              {attributeDefs.length > 0 && (
+                <div className="grid gap-3">
+                  {attributeDefs.map((def) => (
+                    <div key={def.id}>
+                      <label className="text-xs text-[#1a1060]/50 dark:text-[#f0ede8]/40 mb-1 block">{def.name}</label>
+                      <input
+                        className="w-full px-3 py-2.5 rounded-xl border border-[#e8e5f0] dark:border-white/10 bg-[#f5f3ff] dark:bg-white/[0.04] text-[#1a1060] dark:text-[#f0ede8] placeholder:text-[#1a1060]/30 dark:placeholder:text-[#f0ede8]/30 text-sm outline-none focus:border-[#6d4aff] dark:focus:border-[#c9a96e] transition-colors"
+                        placeholder={def.name}
+                        value={attrValues[def.id] || ""}
+                        onChange={(e) => setAttrValues({ ...attrValues, [def.id]: e.target.value })}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <input
+                className="w-full px-3 py-2.5 rounded-xl border border-[#e8e5f0] dark:border-white/10 bg-[#f5f3ff] dark:bg-white/[0.04] text-[#1a1060] dark:text-[#f0ede8] placeholder:text-[#1a1060]/30 dark:placeholder:text-[#f0ede8]/30 text-sm outline-none focus:border-[#6d4aff] dark:focus:border-[#c9a96e] transition-colors"
+                type="number" min="0" placeholder="Stock quantity" value={form.stock}
+                onChange={(e) => setForm({ ...form, stock: parseInt(e.target.value) || 0 })}
+              />
+
+              {/* PRODUCT PHOTOS */}
+              <div>
+                <p className="text-xs font-semibold text-[#1a1060]/70 dark:text-[#f0ede8]/50 mb-2">Product Photos</p>
+                <div className="flex flex-wrap gap-2.5 items-center">
+                  {mainImages.map((img, i) => (
+                    <div key={i} className="relative w-20 h-20">
+                      <img src={img.preview} className="w-full h-full object-cover rounded-xl border border-[#e8e5f0] dark:border-white/10" />
+                      <button
+                        onClick={() => removeMainImage(i)}
+                        className="absolute -top-1.5 -right-1.5 bg-[#e94560] text-white border-none rounded-full w-[18px] h-[18px] text-[10px] font-bold cursor-pointer flex items-center justify-center"
+                      >✕</button>
+                    </div>
+                  ))}
+                  <label className="w-20 h-20 border-2 border-dashed border-[#d1d5db] dark:border-white/20 rounded-xl flex flex-col items-center justify-center cursor-pointer text-[#9ca3af] dark:text-[#f0ede8]/30 text-[11px] gap-0.5 hover:border-[#6d4aff] dark:hover:border-[#c9a96e] transition-colors">
+                    <span className="text-xl">+</span>
+                    Add photo
+                    <input type="file" accept="image/*" multiple onChange={handleMainImages} className="hidden" />
+                  </label>
+                </div>
               </div>
-            )}
 
-            <input className="input" type="number" min="0" placeholder="Stock quantity"
-              value={form.stock}
-              onChange={(e) => setForm({ ...form, stock: parseInt(e.target.value) || 0 })} />
-
-            {/* --- PRODUCT PHOTOS --- */}
-            <div>
-              <p style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "8px" }}>
-                Product Photos
-              </p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
-                {mainImages.map((img, i) => (
-                  <div key={i} style={{ position: "relative", width: "80px", height: "80px" }}>
-                    <img src={img.preview} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px", border: "1px solid #e5e7eb" }} />
-                    <button
-                      onClick={() => removeMainImage(i)}
-                      style={{
-                        position: "absolute", top: "-6px", right: "-6px",
-                        background: "#e94560", color: "#fff", border: "none",
-                        borderRadius: "50%", width: "18px", height: "18px",
-                        fontSize: "10px", cursor: "pointer", fontWeight: "700",
-                        display: "flex", alignItems: "center", justifyContent: "center"
-                      }}
-                    >✕</button>
-                  </div>
-                ))}
-                <label style={{
-                  width: "80px", height: "80px", border: "2px dashed #d1d5db",
-                  borderRadius: "8px", display: "flex", flexDirection: "column",
-                  alignItems: "center", justifyContent: "center",
-                  cursor: "pointer", color: "#9ca3af", fontSize: "11px", gap: "2px"
-                }}>
-                  <span style={{ fontSize: "20px" }}>+</span>
-                  Add photo
-                  <input type="file" accept="image/*" multiple onChange={handleMainImages} style={{ display: "none" }} />
-                </label>
+              {/* VARIANTS */}
+              <div>
+                <p className="text-xs font-semibold text-[#1a1060]/70 dark:text-[#f0ede8]/50 mb-2">
+                  Variants <span className="font-normal text-[#1a1060]/35 dark:text-[#f0ede8]/30">(color, size, etc.)</span>
+                </p>
+                <div className="flex flex-col gap-2">
+                  {variants.map((variant, i) => (
+                    <div key={i} className="flex items-center gap-2.5 bg-[#f9fafb] dark:bg-white/[0.04] rounded-xl px-3 py-2 border border-[#f3f4f6] dark:border-white/[0.06]">
+                      <label className="cursor-pointer shrink-0">
+                        {variant.preview ? (
+                          <img src={variant.preview} className="w-[52px] h-[52px] object-cover rounded-lg border border-[#e5e7eb] dark:border-white/10" />
+                        ) : (
+                          <div className="w-[52px] h-[52px] border-2 border-dashed border-[#d1d5db] dark:border-white/20 rounded-lg flex items-center justify-center text-[#9ca3af] dark:text-[#f0ede8]/30 text-lg">+</div>
+                        )}
+                        <input type="file" accept="image/*" onChange={(e) => updateVariantImage(i, e.target.files[0])} className="hidden" />
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Red - Large"
+                        value={variant.label}
+                        onChange={(e) => updateVariantLabel(i, e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-lg border border-[#e5e7eb] dark:border-white/10 bg-white dark:bg-white/[0.04] text-[#1a1060] dark:text-[#f0ede8] placeholder:text-[#1a1060]/30 dark:placeholder:text-[#f0ede8]/30 text-sm outline-none focus:border-[#6d4aff] dark:focus:border-[#c9a96e] transition-colors"
+                      />
+                      <button onClick={() => removeVariant(i)} className="bg-transparent border-none text-[#e94560] cursor-pointer text-lg leading-none">✕</button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={addVariant}
+                    className="flex items-center gap-1.5 bg-transparent border border-dashed border-[#d1d5db] dark:border-white/20 rounded-xl px-3.5 py-2 text-[#6b7280] dark:text-[#f0ede8]/40 text-xs cursor-pointer w-fit hover:border-[#6d4aff] dark:hover:border-[#c9a96e] hover:text-[#6d4aff] dark:hover:text-[#c9a96e] transition-colors"
+                  >
+                    + Add variant
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* --- VARIANTS --- */}
-            <div>
-              <p style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "8px" }}>
-                Variants <span style={{ fontSize: "11px", fontWeight: "400", color: "#9ca3af" }}>(color, size, etc.)</span>
-              </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {variants.map((variant, i) => (
-                  <div key={i} style={{
-                    display: "flex", alignItems: "center", gap: "10px",
-                    background: "#f9fafb", borderRadius: "10px",
-                    padding: "8px 12px", border: "1px solid #f3f4f6"
-                  }}>
-                    <label style={{ cursor: "pointer", flexShrink: 0 }}>
-                      {variant.preview ? (
-                        <img src={variant.preview} style={{ width: "52px", height: "52px", objectFit: "cover", borderRadius: "8px", border: "1px solid #e5e7eb" }} />
-                      ) : (
-                        <div style={{
-                          width: "52px", height: "52px", border: "2px dashed #d1d5db",
-                          borderRadius: "8px", display: "flex", alignItems: "center",
-                          justifyContent: "center", color: "#9ca3af", fontSize: "18px"
-                        }}>+</div>
-                      )}
-                      <input type="file" accept="image/*"
-                        onChange={(e) => updateVariantImage(i, e.target.files[0])}
-                        style={{ display: "none" }} />
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Red - Large"
-                      value={variant.label}
-                      onChange={(e) => updateVariantLabel(i, e.target.value)}
-                      style={{
-                        flex: 1, padding: "8px 12px", borderRadius: "8px",
-                        border: "1px solid #e5e7eb", fontSize: "13px",
-                        outline: "none", background: "white"
-                      }}
-                    />
-                    <button
-                      onClick={() => removeVariant(i)}
-                      style={{ background: "none", border: "none", color: "#e94560", cursor: "pointer", fontSize: "18px" }}
-                    >✕</button>
-                  </div>
-                ))}
-                <button
-                  onClick={addVariant}
-                  style={{
-                    display: "flex", alignItems: "center", gap: "6px",
-                    background: "none", border: "1px dashed #d1d5db",
-                    borderRadius: "10px", padding: "8px 14px",
-                    color: "#6b7280", fontSize: "13px", cursor: "pointer",
-                    width: "fit-content"
-                  }}
+              {/* VISIBILITY TOGGLE */}
+              <label className="flex items-center gap-2.5 cursor-pointer text-sm text-[#1a1060]/70 dark:text-[#f0ede8]/55">
+                <div
+                  onClick={() => setForm({ ...form, is_visible: form.is_visible ? 0 : 1 })}
+                  className={`relative w-[42px] h-6 rounded-full transition-colors duration-200 cursor-pointer
+                    ${form.is_visible ? "bg-[#6d4aff] dark:bg-[#c9a96e]" : "bg-[#d1d5db] dark:bg-white/20"}`}
                 >
-                  + Add variant
+                  <div className={`absolute top-[3px] w-[18px] h-[18px] rounded-full bg-white transition-all duration-200
+                    ${form.is_visible ? "left-[21px]" : "left-[3px]"}`}
+                  />
+                </div>
+                {form.is_visible ? "Visible to buyers" : "Hidden from buyers"}
+              </label>
+
+              <div className="flex gap-2">
+                <button onClick={handleSubmit}
+                  className="flex-1 py-2.5 rounded-xl bg-[#1a1060] dark:bg-[#c9a96e] text-white dark:text-[#0a0a0f] text-sm font-semibold hover:opacity-90 transition border-none cursor-pointer">
+                  {editProduct ? "Save" : "Post"}
+                </button>
+                <button onClick={() => { setShowForm(false); setEditProduct(null); resetForm(); }}
+                  className="flex-1 py-2.5 rounded-xl border border-[#e8e5f0] dark:border-white/10 text-sm text-[#1a1060]/60 dark:text-[#f0ede8]/50 hover:bg-[#f5f3ff] dark:hover:bg-white/[0.04] transition bg-transparent cursor-pointer">
+                  Cancel
                 </button>
               </div>
-            </div>
-
-            {/* --- VISIBILITY TOGGLE --- */}
-            <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontSize: "14px" }}>
-              <div
-                onClick={() => setForm({ ...form, is_visible: form.is_visible ? 0 : 1 })}
-                style={{
-                  width: "42px", height: "24px", borderRadius: "999px",
-                  background: form.is_visible ? "#1a1a2e" : "#ccc",
-                  position: "relative", transition: "background 0.2s", cursor: "pointer",
-                }}
-              >
-                <div style={{
-                  position: "absolute", top: "3px",
-                  left: form.is_visible ? "21px" : "3px",
-                  width: "18px", height: "18px",
-                  borderRadius: "50%", background: "#fff",
-                  transition: "left 0.2s",
-                }} />
-              </div>
-              {form.is_visible ? "Visible to buyers" : "Hidden from buyers"}
-            </label>
-
-            <div className="flex gap-2">
-              <button onClick={handleSubmit} className="btn btn-primary w-full">
-                {editProduct ? "Save" : "Post"}
-              </button>
-              <button onClick={() => { setShowForm(false); setEditProduct(null); resetForm(); }}
-                className="btn btn-outline w-full">
-                Cancel
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <h3 className="font-semibold mb-4">My Products</h3>
-      {products.length === 0 ? (
-        <div className="card text-center text-gray-400 py-10">No products yet</div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {products.map((product) => (
-            <div
-              key={product.id}
-              className="card cursor-pointer"
-              onClick={() => handleEdit(product)}
-              style={{ opacity: product.is_visible ? 1 : 0.6 }}
-            >
-              <div style={{ position: "relative" }}>
-                <img
-                  src={
-                    product.images?.[0] ||
-                    product.image_url ||
-                    "/placeholder.png"
-                  }
-                  className="h-40 w-full object-cover rounded-lg"
-                />
-                {product.images?.length > 1 && (
-                  <span style={{
-                    position: "absolute", bottom: "6px", right: "6px",
-                    background: "rgba(0,0,0,0.55)", color: "#fff",
-                    fontSize: "11px", padding: "2px 8px", borderRadius: "999px"
-                  }}>
-                    +{product.images.length - 1} photos
-                  </span>
-                )}
-                {!product.is_visible && (
-                  <div style={{
-                    position: "absolute", inset: 0, borderRadius: "8px",
-                    background: "rgba(0,0,0,0.4)", display: "flex",
-                    alignItems: "center", justifyContent: "center",
-                  }}>
-                    <span style={{ color: "#fff", fontSize: "12px", fontWeight: "700", background: "#555", padding: "3px 10px", borderRadius: "999px" }}>
-                      Hidden
+        {/* MY PRODUCTS */}
+        <h3 className="font-semibold text-sm mb-4 text-[#1a1060] dark:text-[#f0ede8]">My Products</h3>
+        {products.length === 0 ? (
+          <div className="bg-white dark:bg-[#12121a] border border-[#e8e5f0] dark:border-white/[0.07] rounded-2xl text-center text-[#1a1060]/35 dark:text-[#f0ede8]/30 py-10 text-sm">
+            No products yet
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {products.map((product) => (
+              <div
+                key={product.id}
+                onClick={() => handleEdit(product)}
+                className={`bg-white dark:bg-[#12121a] border border-[#e8e5f0] dark:border-white/[0.07] rounded-2xl p-4 cursor-pointer hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(109,74,255,0.1)] dark:hover:shadow-[0_8px_24px_rgba(201,169,110,0.08)] transition-all duration-200
+                  ${product.is_visible ? "opacity-100" : "opacity-60"}`}
+              >
+                {/* Image */}
+                <div className="relative">
+                  <img
+                    src={product.images?.[0] || product.image_url || "/placeholder.png"}
+                    className="h-40 w-full object-cover rounded-xl"
+                  />
+                  {product.images?.length > 1 && (
+                    <span className="absolute bottom-1.5 right-1.5 bg-black/55 text-white text-[11px] px-2 py-0.5 rounded-full">
+                      +{product.images.length - 1} photos
                     </span>
-                  </div>
-                )}
-                {product.stock === 0 && product.is_visible && (
-                  <div style={{
-                    position: "absolute", inset: 0, borderRadius: "8px",
-                    background: "rgba(0,0,0,0.3)", display: "flex",
-                    alignItems: "center", justifyContent: "center",
-                  }}>
-                    <span style={{ color: "#fff", fontSize: "12px", fontWeight: "700", background: "#e94560", padding: "3px 10px", borderRadius: "999px" }}>
-                      Out of Stock
-                    </span>
-                  </div>
-                )}
-              </div>
+                  )}
+                  {!product.is_visible && (
+                    <div className="absolute inset-0 rounded-xl bg-black/40 flex items-center justify-center">
+                      <span className="text-white text-xs font-bold bg-[#555] px-3 py-1 rounded-full">Hidden</span>
+                    </div>
+                  )}
+                  {product.stock === 0 && product.is_visible && (
+                    <div className="absolute inset-0 rounded-xl bg-black/30 flex items-center justify-center">
+                      <span className="text-white text-xs font-bold bg-[#e94560] px-3 py-1 rounded-full">Out of Stock</span>
+                    </div>
+                  )}
+                </div>
 
-              <div className="mt-3">
-                <h4 className="font-semibold">{product.name}</h4>
-                <p className="text-black font-bold">₱{Number(product.price).toLocaleString()}</p>
-                <p style={{ fontSize: "12px", color: product.stock === 0 ? "#e94560" : "#16a34a" }}>
-                  {product.stock === 0 ? "Out of stock" : `${product.stock} in stock`}
-                </p>
-                {product.variants?.length > 0 && (
-                  <p style={{ fontSize: "11px", color: "#9ca3af", marginTop: "2px" }}>
-                    {product.variants.length} variant{product.variants.length > 1 ? "s" : ""}
+                {/* Info */}
+                <div className="mt-3">
+                  <h4 className="font-semibold text-sm text-[#1a1060] dark:text-[#f0ede8]">{product.name}</h4>
+                  <p className="text-sm font-bold text-[#6d4aff] dark:text-[#c9a96e]">₱{Number(product.price).toLocaleString()}</p>
+                  <p className={`text-xs mt-0.5 font-medium ${product.stock === 0 ? "text-[#e94560]" : "text-[#16a34a]"}`}>
+                    {product.stock === 0 ? "Out of stock" : `${product.stock} in stock`}
                   </p>
-                )}
-              </div>
+                  {product.variants?.length > 0 && (
+                    <p className="text-[11px] text-[#1a1060]/35 dark:text-[#f0ede8]/30 mt-0.5">
+                      {product.variants.length} variant{product.variants.length > 1 ? "s" : ""}
+                    </p>
+                  )}
+                </div>
 
-              <div className="flex gap-2 mt-3">
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleEdit(product); }}
-                  className="btn btn-primary w-full"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleDelete(product.id); }}
-                  className="btn btn-red w-full"
-                >
-                  Delete
-                </button>
+                {/* Buttons */}
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleEdit(product); }}
+                    className="flex-1 py-2 rounded-xl bg-[#1a1060] dark:bg-[#c9a96e] text-white dark:text-[#0a0a0f] text-xs font-semibold hover:opacity-90 transition border-none cursor-pointer"
+                  >Edit</button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDelete(product.id); }}
+                    className="flex-1 py-2 rounded-xl bg-[#e94560] text-white text-xs font-semibold hover:opacity-90 transition border-none cursor-pointer"
+                  >Delete</button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
     </main>
   );
 }

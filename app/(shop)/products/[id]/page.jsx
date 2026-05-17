@@ -87,99 +87,61 @@ export default function ProductDetailPage() {
   }
 
   if (loading) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#f0eeea" }}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ width: "40px", height: "40px", border: "3px solid #e5e7eb", borderTop: "3px solid #2563eb", borderRadius: "50%", margin: "0 auto 16px", animation: "spin 0.8s linear infinite" }} />
-        <p style={{ color: "#9ca3af", fontSize: "15px" }}>Loading product...</p>
+    <div className="flex items-center justify-center min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f]">
+      <div className="text-center">
+        <div className="w-10 h-10 border-[3px] border-[#e5e7eb] border-t-[#6d4aff] dark:border-t-[#c9a96e] rounded-full mx-auto mb-4 animate-spin" />
+        <p className="text-[#1a1060]/50 dark:text-[#f0ede8]/40 text-sm">Loading product...</p>
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 
   if (!product) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#f0eeea" }}>
-      <p style={{ color: "#9ca3af", fontSize: "18px" }}>Product not found.</p>
+    <div className="flex items-center justify-center min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f]">
+      <p className="text-[#1a1060]/50 dark:text-[#f0ede8]/40 text-lg">Product not found.</p>
     </div>
   );
 
   const isOutOfStock = product.stock === 0;
 
-  // Build full image list from product.images[] or fallback to image_url
   const allImages = product.images?.length > 0
     ? product.images
     : product.image_url
     ? [product.image_url]
     : ["/placeholder.png"];
 
-  // Active image: if a variant is selected AND has its own image, show that
-  // otherwise show whichever thumbnail was clicked
-  const activeImage = (selectedVariant?.image_url) || allImages[selectedImageIndex] || "/placeholder.png";
-
+  const activeImage = selectedVariant?.image_url || allImages[selectedImageIndex] || "/placeholder.png";
   const hasVariants = product.variants?.length > 0;
 
   return (
-    <div style={{ background: "#f0eeea", minHeight: "100vh" }}>
+    <div className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] transition-colors duration-300">
 
-      {/* HERO BREADCRUMB */}
-      <div style={{ background: "#1a1a2e", padding: "16px 24px" }}>
-        <div style={{ maxWidth: "960px", margin: "0 auto", display: "flex", alignItems: "center", gap: "8px" }}>
-          <button onClick={() => router.push("/products")}
-            style={{ background: "none", border: "none", color: "rgba(255,255,255,0.5)", cursor: "pointer", fontSize: "13px", padding: 0 }}>
-            Products
-          </button>
-          <span style={{ color: "rgba(255,255,255,0.3)", fontSize: "13px" }}>›</span>
-          <span style={{ color: "rgba(255,255,255,0.9)", fontSize: "13px", fontWeight: "500" }}>
-            {product.name}
-          </span>
-        </div>
-      </div>
-
-      <div style={{ maxWidth: "960px", margin: "0 auto", padding: "32px 20px" }}>
+      
+      <div className="max-w-[960px] mx-auto px-5 py-8">
 
         {/* DETAIL CARD */}
-        <div style={{
-          backgroundColor: "white",
-          borderRadius: "20px",
-          border: "1px solid #e8e8e8",
-          overflow: "hidden",
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          boxShadow: "0 4px 24px rgba(0,0,0,0.07)",
-        }} className="product-detail-grid">
+        <div className="bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07] overflow-hidden grid grid-cols-1 md:grid-cols-2 shadow-[0_4px_24px_rgba(0,0,0,0.07)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
 
           {/* LEFT — Image Gallery */}
-          <div style={{ display: "flex", flexDirection: "column", background: "#fafafa" }}>
+          <div className="flex flex-col bg-[#fafafa] dark:bg-white/[0.02]">
 
             {/* Main image */}
-            <div style={{ position: "relative", aspectRatio: "1 / 1", overflow: "hidden" }}>
+            <div className="relative aspect-square overflow-hidden">
               <img
                 key={activeImage}
                 src={activeImage}
                 alt={product.name}
-                style={{
-                  width: "100%", height: "100%", objectFit: "cover", display: "block",
-                  transition: "opacity 0.2s ease",
-                }}
+                className="w-full h-full object-cover block transition-opacity duration-200"
               />
 
-              {/* Image counter badge */}
               {allImages.length > 1 && (
-                <div style={{
-                  position: "absolute", top: "12px", right: "12px",
-                  background: "rgba(0,0,0,0.5)", color: "#fff",
-                  fontSize: "12px", padding: "3px 10px", borderRadius: "999px",
-                  backdropFilter: "blur(4px)",
-                }}>
+                <div className="absolute top-3 right-3 bg-black/50 text-white text-xs px-3 py-1 rounded-full backdrop-blur-sm">
                   {selectedVariant ? "variant" : `${selectedImageIndex + 1} / ${allImages.length}`}
                 </div>
               )}
 
               {isOutOfStock && (
-                <div style={{
-                  position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}>
-                  <span style={{ background: "#e94560", color: "#fff", padding: "8px 24px", borderRadius: "999px", fontSize: "15px", fontWeight: "700", letterSpacing: "0.5px" }}>
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <span className="bg-[#e94560] text-white px-6 py-2 rounded-full text-sm font-bold tracking-wide">
                     Out of Stock
                   </span>
                 </div>
@@ -188,27 +150,20 @@ export default function ProductDetailPage() {
 
             {/* Thumbnails */}
             {allImages.length > 1 && (
-              <div style={{
-                display: "flex", gap: "8px", padding: "12px",
-                overflowX: "auto", borderTop: "1px solid #f0f0f0",
-              }}>
+              <div className="flex gap-2 p-3 overflow-x-auto border-t border-[#f0f0f0] dark:border-white/[0.05]">
                 {allImages.map((img, i) => {
                   const isActive = !selectedVariant && selectedImageIndex === i;
                   return (
                     <div
                       key={i}
                       onClick={() => { setSelectedImageIndex(i); setSelectedVariant(null); }}
-                      style={{
-                        width: "60px", height: "60px", flexShrink: 0,
-                        borderRadius: "10px", overflow: "hidden",
-                        cursor: "pointer",
-                        border: isActive ? "2.5px solid #2563eb" : "2.5px solid transparent",
-                        boxShadow: isActive ? "0 0 0 1px #bfdbfe" : "none",
-                        transition: "all 0.15s",
-                        opacity: isActive ? 1 : 0.55,
-                      }}
+                      className={`w-[60px] h-[60px] shrink-0 rounded-xl overflow-hidden cursor-pointer transition-all duration-150
+                        ${isActive
+                          ? "border-[2.5px] border-[#6d4aff] dark:border-[#c9a96e] opacity-100 shadow-[0_0_0_1px_#c4b5fd] dark:shadow-[0_0_0_1px_#c9a96e]"
+                          : "border-[2.5px] border-transparent opacity-50"
+                        }`}
                     >
-                      <img src={img} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                      <img src={img} className="w-full h-full object-cover block" />
                     </div>
                   );
                 })}
@@ -217,61 +172,55 @@ export default function ProductDetailPage() {
           </div>
 
           {/* RIGHT — Info */}
-          <div style={{ padding: "32px 28px", display: "flex", flexDirection: "column", gap: "16px", overflowY: "auto" }}>
+          <div className="p-7 flex flex-col gap-4 overflow-y-auto">
 
             {/* Category badge */}
             {product.category_name && (
-              <span style={{
-                display: "inline-block", width: "fit-content",
-                background: "#eff6ff", color: "#2563eb",
-                fontSize: "11px", fontWeight: "600", padding: "3px 10px",
-                borderRadius: "999px", letterSpacing: "0.3px",
-              }}>
+              <span className="inline-block w-fit bg-[#ede9ff] dark:bg-[#c9a96e]/10 text-[#6d4aff] dark:text-[#c9a96e] text-[11px] font-semibold px-3 py-1 rounded-full tracking-wide">
                 {product.category_name}
               </span>
             )}
 
-            <h1 style={{ fontSize: "22px", fontWeight: "700", color: "#111827", margin: 0, lineHeight: "1.3" }}>
+            <h1 className="text-[22px] font-bold text-[#1a1060] dark:text-[#f0ede8] leading-snug m-0">
               {product.name}
             </h1>
 
-            <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
-              <p style={{ fontSize: "28px", fontWeight: "800", color: "#2563eb", margin: 0 }}>
-                ₱{Number(product.price).toLocaleString()}
-              </p>
-            </div>
+            <p className="text-[28px] font-extrabold text-[#6d4aff] dark:text-[#c9a96e] m-0">
+              ₱{Number(product.price).toLocaleString()}
+            </p>
 
-            {/* Stock + Seller row */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{
-                fontSize: "12px", fontWeight: "600", padding: "3px 10px", borderRadius: "999px",
-                background: isOutOfStock ? "#fef2f2" : "#f0fdf4",
-                color: isOutOfStock ? "#e94560" : "#16a34a",
-              }}>
+            {/* Stock + Seller */}
+            <div className="flex items-center justify-between">
+              <span className={`text-xs font-semibold px-3 py-1 rounded-full
+                ${isOutOfStock
+                  ? "bg-red-50 dark:bg-red-500/10 text-[#e94560]"
+                  : "bg-green-50 dark:bg-green-500/10 text-[#16a34a]"
+                }`}>
                 {isOutOfStock ? "Out of Stock" : `${product.stock} in stock`}
               </span>
-              <span style={{ fontSize: "12px", color: "#9ca3af" }}>
-                by <strong style={{ color: "#6b7280" }}>{product.seller_name || "Unknown"}</strong>
+              <span className="text-xs text-[#1a1060]/40 dark:text-[#f0ede8]/35">
+                by <strong className="text-[#1a1060]/60 dark:text-[#f0ede8]/55">{product.seller_name || "Unknown"}</strong>
               </span>
             </div>
 
+            {/* Description */}
             {product.description && (
-              <p style={{ fontSize: "14px", color: "#6b7280", margin: 0, lineHeight: "1.75", borderTop: "1px solid #f3f4f6", paddingTop: "14px" }}>
+              <p className="text-sm text-[#1a1060]/55 dark:text-[#f0ede8]/45 leading-relaxed border-t border-[#f3f4f6] dark:border-white/[0.06] pt-3 m-0">
                 {product.description}
               </p>
             )}
 
             {/* Attributes */}
             {product.attributes?.length > 0 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <p style={{ fontSize: "12px", fontWeight: "700", color: "#374151", margin: 0, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+              <div className="flex flex-col gap-2">
+                <p className="text-[11px] font-bold text-[#1a1060]/60 dark:text-[#f0ede8]/40 uppercase tracking-wider m-0">
                   Product Details
                 </p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                <div className="grid grid-cols-2 gap-2">
                   {product.attributes.map((attr) => (
-                    <div key={attr.name} style={{ backgroundColor: "#f9fafb", borderRadius: "10px", padding: "8px 12px", border: "1px solid #f0f0f0" }}>
-                      <p style={{ fontSize: "10px", color: "#9ca3af", margin: 0, textTransform: "uppercase", letterSpacing: "0.4px" }}>{attr.label}</p>
-                      <p style={{ fontSize: "13px", fontWeight: "600", color: "#111827", margin: "2px 0 0" }}>{attr.value}</p>
+                    <div key={attr.name} className="bg-[#f9fafb] dark:bg-white/[0.04] rounded-xl px-3 py-2 border border-[#f0f0f0] dark:border-white/[0.06]">
+                      <p className="text-[10px] text-[#1a1060]/40 dark:text-[#f0ede8]/35 uppercase tracking-wide m-0">{attr.label}</p>
+                      <p className="text-[13px] font-semibold text-[#1a1060] dark:text-[#f0ede8] mt-0.5 m-0">{attr.value}</p>
                     </div>
                   ))}
                 </div>
@@ -280,41 +229,31 @@ export default function ProductDetailPage() {
 
             {/* Variants */}
             {hasVariants && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <p style={{ fontSize: "12px", fontWeight: "700", color: "#374151", margin: 0, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+              <div className="flex flex-col gap-2.5">
+                <p className="text-[11px] font-bold text-[#1a1060]/60 dark:text-[#f0ede8]/40 uppercase tracking-wider m-0">
                   Variants
                   {selectedVariant && (
-                    <span style={{ fontWeight: "500", color: "#2563eb", marginLeft: "8px", textTransform: "none", letterSpacing: 0 }}>
+                    <span className="font-medium text-[#6d4aff] dark:text-[#c9a96e] ml-2 normal-case tracking-normal">
                       — {selectedVariant.label}
                     </span>
                   )}
                 </p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                <div className="flex flex-wrap gap-2">
                   {product.variants.map((variant, i) => {
                     const isSelected = selectedVariant?.label === variant.label;
                     return (
                       <button
                         key={i}
-                        onClick={() => {
-                          setSelectedVariant(isSelected ? null : variant);
-                          // Don't reset selectedImageIndex so gallery stays where it was
-                        }}
-                        style={{
-                          display: "flex", alignItems: "center", gap: "7px",
-                          padding: variant.image_url ? "5px 12px 5px 5px" : "7px 14px",
-                          borderRadius: "10px", cursor: "pointer", fontSize: "13px",
-                          fontWeight: "500", transition: "all 0.15s",
-                          border: isSelected ? "2px solid #2563eb" : "1.5px solid #e5e7eb",
-                          background: isSelected ? "#eff6ff" : "#f9fafb",
-                          color: isSelected ? "#2563eb" : "#374151",
-                          boxShadow: isSelected ? "0 0 0 3px #bfdbfe" : "none",
-                        }}
+                        onClick={() => setSelectedVariant(isSelected ? null : variant)}
+                        className={`flex items-center gap-1.5 rounded-xl text-sm font-medium transition-all duration-150 cursor-pointer
+                          ${variant.image_url ? "pl-1.5 pr-3 py-1.5" : "px-3.5 py-2"}
+                          ${isSelected
+                            ? "border-2 border-[#6d4aff] dark:border-[#c9a96e] bg-[#ede9ff] dark:bg-[#c9a96e]/10 text-[#6d4aff] dark:text-[#c9a96e] shadow-[0_0_0_3px_#c4b5fd] dark:shadow-[0_0_0_3px_#c9a96e33]"
+                            : "border border-[#e5e7eb] dark:border-white/10 bg-[#f9fafb] dark:bg-white/[0.04] text-[#1a1060]/70 dark:text-[#f0ede8]/60"
+                          }`}
                       >
                         {variant.image_url && (
-                          <img
-                            src={variant.image_url}
-                            style={{ width: "30px", height: "30px", objectFit: "cover", borderRadius: "6px", flexShrink: 0 }}
-                          />
+                          <img src={variant.image_url} className="w-7 h-7 object-cover rounded-md shrink-0" />
                         )}
                         {variant.label}
                       </button>
@@ -324,42 +263,39 @@ export default function ProductDetailPage() {
               </div>
             )}
 
-            <hr style={{ border: "none", borderTop: "1px solid #f3f4f6", margin: "2px 0" }} />
+            <hr className="border-none border-t border-[#f3f4f6] dark:border-white/[0.06] my-0" />
 
             {/* Quantity */}
             {!isOutOfStock && (
-              <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                <span style={{ fontSize: "13px", color: "#6b7280", fontWeight: "600" }}>Qty</span>
-                <div style={{ display: "flex", alignItems: "center", border: "1.5px solid #e5e7eb", borderRadius: "12px", overflow: "hidden" }}>
+              <div className="flex items-center gap-3.5">
+                <span className="text-sm text-[#1a1060]/60 dark:text-[#f0ede8]/50 font-semibold">Qty</span>
+                <div className="flex items-center border border-[#e5e7eb] dark:border-white/10 rounded-xl overflow-hidden">
                   <button
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    style={{ padding: "8px 18px", background: "none", border: "none", cursor: "pointer", fontSize: "18px", fontWeight: "600", color: "#374151" }}>−</button>
-                  <span style={{ padding: "8px 18px", fontWeight: "700", fontSize: "15px", borderLeft: "1.5px solid #e5e7eb", borderRight: "1.5px solid #e5e7eb", minWidth: "48px", textAlign: "center" }}>{quantity}</span>
+                    className="px-4 py-2 bg-transparent border-none cursor-pointer text-lg font-semibold text-[#1a1060] dark:text-[#f0ede8] hover:bg-[#f5f3ff] dark:hover:bg-white/[0.04] transition-colors"
+                  >−</button>
+                  <span className="px-4 py-2 font-bold text-sm border-x border-[#e5e7eb] dark:border-white/10 min-w-[48px] text-center text-[#1a1060] dark:text-[#f0ede8]">
+                    {quantity}
+                  </span>
                   <button
                     onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))}
-                    style={{ padding: "8px 18px", background: "none", border: "none", cursor: "pointer", fontSize: "18px", fontWeight: "600", color: "#374151" }}>+</button>
+                    className="px-4 py-2 bg-transparent border-none cursor-pointer text-lg font-semibold text-[#1a1060] dark:text-[#f0ede8] hover:bg-[#f5f3ff] dark:hover:bg-white/[0.04] transition-colors"
+                  >+</button>
                 </div>
-                <span style={{ fontSize: "12px", color: "#9ca3af" }}>max {product.stock}</span>
+                <span className="text-xs text-[#1a1060]/35 dark:text-[#f0ede8]/30">max {product.stock}</span>
               </div>
             )}
 
             {/* Action buttons */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "4px" }}>
+            <div className="flex flex-col gap-2.5 mt-1">
               <button
                 onClick={handleAddToCart}
                 disabled={addingToCart || isOutOfStock}
-                style={{
-                  width: "100%", padding: "13px",
-                  backgroundColor: isOutOfStock ? "#e5e7eb" : "#2563eb",
-                  color: isOutOfStock ? "#9ca3af" : "white",
-                  borderRadius: "12px", border: "none",
-                  fontSize: "15px", fontWeight: "700",
-                  cursor: isOutOfStock ? "not-allowed" : "pointer",
-                  opacity: addingToCart ? 0.7 : 1,
-                  transition: "background 0.15s, transform 0.1s",
-                }}
-                onMouseEnter={(e) => { if (!isOutOfStock) e.target.style.background = "#1d4ed8"; }}
-                onMouseLeave={(e) => { if (!isOutOfStock) e.target.style.background = "#2563eb"; }}
+                className={`w-full py-3.5 rounded-xl border-none text-sm font-bold transition-all duration-150
+                  ${isOutOfStock
+                    ? "bg-[#e5e7eb] dark:bg-white/[0.06] text-[#9ca3af] cursor-not-allowed"
+                    : "bg-[#6d4aff] dark:bg-[#c9a96e] text-white dark:text-[#0a0a0f] cursor-pointer hover:opacity-90"
+                  } ${addingToCart ? "opacity-70" : ""}`}
               >
                 {addingToCart ? "Adding to cart..." : "🛒 Add to Cart"}
               </button>
@@ -367,17 +303,11 @@ export default function ProductDetailPage() {
               <button
                 onClick={handleBuyNow}
                 disabled={isOutOfStock}
-                style={{
-                  width: "100%", padding: "13px",
-                  backgroundColor: isOutOfStock ? "#f3f4f6" : "#111827",
-                  color: isOutOfStock ? "#9ca3af" : "white",
-                  borderRadius: "12px", border: "none",
-                  fontSize: "15px", fontWeight: "700",
-                  cursor: isOutOfStock ? "not-allowed" : "pointer",
-                  transition: "background 0.15s",
-                }}
-                onMouseEnter={(e) => { if (!isOutOfStock) e.target.style.background = "#1f2937"; }}
-                onMouseLeave={(e) => { if (!isOutOfStock) e.target.style.background = "#111827"; }}
+                className={`w-full py-3.5 rounded-xl border-none text-sm font-bold transition-all duration-150
+                  ${isOutOfStock
+                    ? "bg-[#f3f4f6] dark:bg-white/[0.04] text-[#9ca3af] cursor-not-allowed"
+                    : "bg-[#1a1060] dark:bg-[#f0ede8] text-white dark:text-[#0a0a0f] cursor-pointer hover:opacity-90"
+                  }`}
               >
                 ⚡ Buy Now
               </button>
@@ -387,35 +317,16 @@ export default function ProductDetailPage() {
 
         {/* MORE PRODUCTS */}
         {allProducts.length > 0 && (
-          <div style={{ marginTop: "56px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
-              <h2 style={{ fontSize: "20px", fontWeight: "700", color: "#1a1a2e", margin: 0 }}>
-                More Products
-              </h2>
-              <div style={{ flex: 1, height: "1px", background: "#e5e7eb" }} />
+          <div className="mt-14">
+            <div className="flex items-center gap-3 mb-5">
+              <h2 className="text-xl font-bold text-[#1a1060] dark:text-[#f0ede8] m-0">More Products</h2>
+              <div className="flex-1 h-px bg-[#e5e7eb] dark:bg-white/[0.07]" />
             </div>
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-              gap: "16px",
-            }}>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4">
               {allProducts.map((p) => (
                 <div
                   key={p.id}
-                  onClick={() => router.push(`/products/${p.id}`)}
-                  style={{
-                    background: "#fff", borderRadius: "14px",
-                    border: "1px solid #e8e8e8", overflow: "hidden",
-                    cursor: "pointer", transition: "box-shadow 0.2s, transform 0.2s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.1)";
-                    e.currentTarget.style.transform = "translateY(-2px)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = "none";
-                    e.currentTarget.style.transform = "translateY(0)";
-                  }}
+                  className="bg-white dark:bg-white/[0.04] rounded-[14px] border border-[#e8e5f0] dark:border-white/[0.07] overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(109,74,255,0.12)] dark:hover:shadow-[0_8px_24px_rgba(201,169,110,0.1)]"
                 >
                   <ProductCard product={p} />
                 </div>
@@ -425,40 +336,32 @@ export default function ProductDetailPage() {
         )}
       </div>
 
-      <style>{`
-        @media (max-width: 640px) {
-          .product-detail-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
-
-      {/* Login Modal */}
+      {/* LOGIN MODAL */}
       {showModal && (
-        <div onClick={() => setShowModal(false)} style={{
-          position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.6)",
-          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50,
-          backdropFilter: "blur(4px)",
-        }}>
-          <div onClick={(e) => e.stopPropagation()} style={{
-            backgroundColor: "white", borderRadius: "20px", padding: "36px",
-            width: "320px", textAlign: "center",
-            boxShadow: "0 24px 60px rgba(0,0,0,0.2)",
-          }}>
-            <div style={{ fontSize: "40px", marginBottom: "14px" }}>🔒</div>
-            <h2 style={{ fontSize: "18px", fontWeight: "700", marginBottom: "8px", color: "#111827" }}>Sign in to continue</h2>
-            <p style={{ fontSize: "13px", color: "#6b7280", marginBottom: "24px", lineHeight: "1.6" }}>
+        <div
+          onClick={() => setShowModal(false)}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white dark:bg-[#12121a] rounded-2xl p-9 w-[320px] text-center border border-[#e8e5f0] dark:border-white/[0.07] shadow-[0_24px_60px_rgba(0,0,0,0.2)]"
+          >
+            <div className="text-4xl mb-3.5">🔒</div>
+            <h2 className="text-lg font-bold mb-2 text-[#1a1060] dark:text-[#f0ede8]">Sign in to continue</h2>
+            <p className="text-xs text-[#1a1060]/50 dark:text-[#f0ede8]/45 mb-6 leading-relaxed">
               You need to be logged in to add items or buy.
             </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div className="flex flex-col gap-2.5">
               <button
                 onClick={() => router.push("/login")}
-                style={{ backgroundColor: "#2563eb", color: "white", padding: "12px", borderRadius: "12px", border: "none", fontWeight: "700", cursor: "pointer", fontSize: "14px" }}>
+                className="w-full py-3 rounded-xl bg-[#6d4aff] dark:bg-[#c9a96e] text-white dark:text-[#0a0a0f] font-bold text-sm cursor-pointer hover:opacity-90 transition border-none"
+              >
                 Sign in
               </button>
               <button
                 onClick={() => setShowModal(false)}
-                style={{ backgroundColor: "white", color: "#6b7280", padding: "12px", borderRadius: "12px", border: "1px solid #e5e7eb", cursor: "pointer", fontSize: "14px" }}>
+                className="w-full py-3 rounded-xl border border-[#e5e7eb] dark:border-white/10 text-sm text-[#1a1060]/60 dark:text-[#f0ede8]/50 cursor-pointer hover:bg-[#f5f3ff] dark:hover:bg-white/[0.04] transition bg-transparent"
+              >
                 Continue browsing
               </button>
             </div>

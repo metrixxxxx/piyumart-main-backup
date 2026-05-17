@@ -3,10 +3,9 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 
-// Ownership check helper
 async function ownsProduct(userId, productId) {
   const [rows] = await db.query(
-    "SELECT id FROM products WHERE id = ? AND seller_id = ?",
+    "SELECT id FROM products WHERE id=$1 AND seller_id=$2",
     [productId, userId]
   );
   return rows.length > 0;
@@ -20,11 +19,7 @@ export async function DELETE(req, { params }) {
   if (!(await ownsProduct(session.user.id, id)))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
- // DELETE
-await db.query(
-  "DELETE FROM products WHERE id = ? AND seller_id = ?",
-  [id, session.user.id]
-);
+  await db.query("DELETE FROM products WHERE id=$1 AND seller_id=$2", [id, session.user.id]);
   return NextResponse.json({ success: true });
 }
 
@@ -38,8 +33,8 @@ export async function PATCH(req, { params }) {
 
   const { is_visible } = await req.json();
   await db.query(
-  "UPDATE products SET is_visible = ? WHERE id = ? AND seller_id = ?",
-  [is_visible, id, session.user.id]
-);
+    "UPDATE products SET is_visible=$1 WHERE id=$2 AND seller_id=$3",
+    [is_visible, id, session.user.id]
+  );
   return NextResponse.json({ success: true });
 }

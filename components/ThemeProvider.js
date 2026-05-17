@@ -7,39 +7,43 @@ import NotificationBell from "@/components/NotificationBell";
 
 // ── THEME TOGGLE ──────────────────────────────────────────────────────────────
 function ThemeToggle() {
-  const [state, setState] = useState({ dark: false, mounted: false });
-
-  useEffect(() => {
+  const [dark, setDark] = useState(() => {
+    if (typeof window === "undefined") return false;
     const stored = localStorage.getItem("theme");
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const isDark = stored === "dark" || (!stored && prefersDark);
-    document.documentElement.classList.toggle("dark", isDark);
-    setState({ dark: isDark, mounted: true }); // ← single setState call
-  }, []);
+    return stored === "dark" || (!stored && prefersDark);
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", dark);
+  }, [dark]);
 
   const toggle = () => {
-    const next = !state.dark;
-    setState((prev) => ({ ...prev, dark: next }));
+    const next = !dark;
+    setDark(next);
     localStorage.setItem("theme", next ? "dark" : "light");
-    document.documentElement.classList.toggle("dark", next);
   };
-
-  if (!state.mounted) return null;
 
   return (
     <button
       onClick={toggle}
       aria-label="Toggle dark mode"
       className={`relative w-11 h-6 rounded-full border transition-all duration-300 flex items-center px-0.5 shrink-0
-        ${state.dark ? "bg-[#c9a96e] border-[#c9a96e]" : "bg-[#ede9ff] border-[#6d4aff]/30"}`}
+        ${dark
+          ? "bg-[#c9a96e] border-[#c9a96e]"
+          : "bg-[#ede9ff] border-[#6d4aff]/30"
+        }`}
     >
-      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] bg-white shadow-sm transition-all duration-300
-        ${state.dark ? "translate-x-5" : "translate-x-0"}`}>
-        {state.dark ? "🌙" : "☀️"}
+      <span
+        className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] bg-white shadow-sm transition-all duration-300
+          ${dark ? "translate-x-5" : "translate-x-0"}`}
+      >
+        {dark ? "🌙" : "☀️"}
       </span>
     </button>
   );
 }
+
 // ── NAVBAR ────────────────────────────────────────────────────────────────────
 export default function Navbar() {
   const { data: session } = useSession();
@@ -47,13 +51,14 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  const isActive = (path) => pathname === path || pathname.startsWith(path + "/");
+  const isActive = (path) =>
+    pathname === path || pathname.startsWith(path + "/");
 
   const linkClass = (path) =>
-    `text-xs font-semibold tracking-wide transition-colors duration-150
+    `text-xs font-medium tracking-wide transition-colors duration-150
     ${isActive(path)
       ? "text-[#6d4aff] dark:text-[#c9a96e]"
-      : "text-[#1a1060]/50 dark:text-[#f0ede8]/50 hover:text-[#6d4aff] dark:hover:text-[#c9a96e]"
+      : "text-[#1a1060]/60 dark:text-[#f0ede8]/50 hover:text-[#6d4aff] dark:hover:text-[#c9a96e]"
     }`;
 
   useEffect(() => {
@@ -67,14 +72,15 @@ export default function Navbar() {
   }, []);
 
   return (
-    <nav className="sticky top-0 z-50 bg-[#edeaff] dark:bg-[#0a0a0f] border-b border-[#d9d4f5] dark:border-white/[0.07] px-8 py-5 flex justify-between items-center transition-colors duration-300 shadow-sm">
+    <nav className="sticky top-0 z-50 bg-white dark:bg-[#0a0a0f] border-b border-[#e8e5f0] dark:border-white/[0.07] px-6 py-3.5 flex justify-between items-center transition-colors duration-300">
 
       {/* Logo */}
-      <h1 className="text-lg font-extrabold tracking-tight text-[#1a1060] dark:text-[#f0ede8]">
+      <h1 className="text-base font-extrabold tracking-tight text-[#1a1060] dark:text-[#f0ede8]">
         PIYU<span className="text-[#6d4aff] dark:text-[#c9a96e]">MART</span>
       </h1>
 
-      <div className="flex items-center gap-6">
+      {/* Nav items */}
+      <div className="flex items-center gap-5">
         <Link href="/" className={linkClass("/")}>Home</Link>
         <Link href="/cart" className={linkClass("/cart")}>Cart</Link>
         <Link href="/my-orders" className={linkClass("/my-orders")}>My Orders</Link>
@@ -83,7 +89,7 @@ export default function Navbar() {
 
         <ThemeToggle />
 
-        {/* Authenticated */}
+        {/* Authenticated: avatar + dropdown */}
         {session ? (
           <div className="relative" ref={dropdownRef}>
 
@@ -96,14 +102,14 @@ export default function Navbar() {
                 <img
                   src={session.user.image}
                   alt="avatar"
-                  className="w-9 h-9 rounded-full object-cover border-2 border-[#6d4aff] dark:border-[#c9a96e]"
+                  className="w-8 h-8 rounded-full object-cover border-2 border-[#6d4aff] dark:border-[#c9a96e]"
                 />
               ) : (
-                <div className="w-9 h-9 rounded-full bg-[#6d4aff] dark:bg-[#c9a96e] flex items-center justify-center text-xs font-bold text-white dark:text-[#0a0a0f]">
+                <div className="w-8 h-8 rounded-full bg-[#6d4aff] dark:bg-[#c9a96e] flex items-center justify-center text-xs font-bold text-white dark:text-[#0a0a0f]">
                   {session.user.name?.charAt(0).toUpperCase()}
                 </div>
               )}
-              <span className="text-xs font-medium text-[#1a1060]/60 dark:text-[#f0ede8]/50">
+              <span className="text-xs text-[#1a1060]/60 dark:text-[#f0ede8]/50">
                 {session.user.name}
               </span>
               <svg
@@ -166,10 +172,10 @@ export default function Navbar() {
           </div>
 
         ) : (
-          /* Guest */
+          /* Guest: login button */
           <Link
             href="/login"
-            className="text-xs font-semibold px-4 py-2 rounded-full bg-[#6d4aff] dark:bg-[#c9a96e] text-white dark:text-[#0a0a0f] hover:opacity-90 transition"
+            className="text-xs font-semibold px-4 py-1.5 rounded-full bg-[#6d4aff] dark:bg-[#c9a96e] text-white dark:text-[#0a0a0f] hover:opacity-90 transition"
           >
             Login
           </Link>

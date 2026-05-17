@@ -9,30 +9,27 @@ export async function GET() {
 
   const userId = session.user.id;
 
-  // To this
-const [products] = await db.query(
-  "SELECT * FROM products WHERE seller_id = ? ORDER BY created_at DESC",
-  [userId]
-);
+  const [products] = await db.query(
+    "SELECT * FROM products WHERE seller_id=$1 ORDER BY created_at DESC",
+    [userId]
+  );
 
-  // To this
-const [orderStats] = await db.query(
-  `SELECT 
-    COUNT(DISTINCT o.id) as totalOrders,
-    COALESCE(SUM(oi.quantity * oi.price), 0) as revenue
-   FROM orders o
-   JOIN order_items oi ON oi.order_id = o.id
-   JOIN products p ON p.id = oi.product_id
-   WHERE p.seller_id = ?`,
-  [userId]
-);
+  const [orderStats] = await db.query(
+    `SELECT 
+      COUNT(DISTINCT o.id) as totalOrders,
+      COALESCE(SUM(oi.quantity * oi.price), 0) as revenue
+     FROM orders o
+     JOIN order_items oi ON oi.order_id = o.id
+     JOIN products p ON p.id = oi.product_id
+     WHERE p.seller_id=$1`,
+    [userId]
+  );
 
   const stats = {
     total: products.length,
-    active: products.filter((p) => p.is_visible === 1).length,
-    totalOrders: orderStats[0]?.totalOrders || 0,
+    active: products.filter((p) => p.is_visible === true).length,
+    totalOrders: orderStats[0]?.totalorders || 0,
     revenue: orderStats[0]?.revenue || 0,
-    
   };
 
   return NextResponse.json({ products, stats });

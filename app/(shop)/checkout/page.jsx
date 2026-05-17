@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -60,258 +59,201 @@ function CheckoutContent() {
   }, [status, isBuyNow, productId, session, searchParams]);
 
   const items = isBuyNow && product ? [{ ...product, quantity }] : cartItems;
-  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const total = items.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
 
- async function handleSubmit() {
-  if (!name || !email || !address) return alert("Please fill in all fields!");
-  if (!email.endsWith("@lspu.edu.ph")) return alert("Please use your LSPU email!");
-  if (items.length === 0) return alert("No items to checkout!");
-
-  setSubmitting(true);
-  try {
-    for (const item of items) {
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name, email, address,
-          payment_method: paymentMethod,
-          total: item.price * item.quantity,
-          items: [{ product_id: item.product_id || item.id, quantity: item.quantity || 1, price: item.price }],
-        }),
-      });
-
-      // ✅ Catch stock errors from the server
-      if (!res.ok) {
-        const err = await res.json();
-        alert(err.error || "Something went wrong.");
-        setSubmitting(false);
-        return;
+  async function handleSubmit() {
+    if (!name || !email || !address) return alert("Please fill in all fields!");
+    if (!email.endsWith("@lspu.edu.ph")) return alert("Please use your LSPU email!");
+    if (items.length === 0) return alert("No items to checkout!");
+    setSubmitting(true);
+    try {
+      for (const item of items) {
+        const res = await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name, email, address, payment_method: paymentMethod,
+            total: item.price * item.quantity,
+           items: [{ product_id: item.product_id ?? item.id, quantity: item.quantity || 1, price: parseFloat(item.price) }],
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          alert(err.error || "Something went wrong.");
+          setSubmitting(false);
+          return;
+        }
       }
+      setOrderDone(true);
+      setTimeout(() => router.push("/my-orders"), 2500);
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong.");
+    } finally {
+      setSubmitting(false);
     }
-
-    setOrderDone(true);
-    setTimeout(() => router.push("/my-orders"), 2500);
-  } catch (err) {
-    console.error(err);
-    alert("Something went wrong.");
-  } finally {
-    setSubmitting(false);
   }
-}
+
+  const inputClass = "w-full py-2.5 px-3.5 rounded-xl border-[1.5px] border-[#e8e5f0] dark:border-white/10 bg-[#f5f3ff] dark:bg-white/[0.06] text-[#1a1060] dark:text-[#f0ede8] placeholder:text-[#1a1060]/30 dark:placeholder:text-[#f0ede8]/30 text-sm outline-none focus:border-[#6d4aff] dark:focus:border-[#c9a96e] transition-colors";
 
   if (status === "loading" || loading) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#f8f7f4" }}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ width: "40px", height: "40px", border: "3px solid #e5e7eb", borderTop: "3px solid #1a1a2e", borderRadius: "50%", margin: "0 auto 16px", animation: "spin 0.8s linear infinite" }} />
-        <p style={{ color: "#9ca3af", fontSize: "14px" }}>Loading checkout...</p>
+    <div className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-10 h-10 border-[3px] border-[#e8e5f0] dark:border-white/10 border-t-[#6d4aff] dark:border-t-[#c9a96e] rounded-full mx-auto mb-4 animate-spin" />
+        <p className="text-sm text-[#1a1060]/50 dark:text-[#f0ede8]/40">Loading checkout...</p>
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 
-  // ✅ Success screen
   if (orderDone) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#f8f7f4" }}>
-      <div style={{ textAlign: "center", padding: "48px", background: "#fff", borderRadius: "24px", border: "1px solid #e8e8e8", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
-        <div style={{ fontSize: "56px", marginBottom: "16px" }}>🎉</div>
-        <h2 style={{ fontSize: "22px", fontWeight: "700", color: "#111827", marginBottom: "8px" }}>Order Placed!</h2>
-        <p style={{ color: "#9ca3af", fontSize: "14px" }}>Redirecting to your orders...</p>
+    <div className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] flex items-center justify-center">
+      <div className="text-center px-12 py-14 bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07]">
+        <div className="text-5xl mb-4">🎉</div>
+        <h2 className="text-xl font-bold text-[#1a1060] dark:text-[#f0ede8] mb-2">Order Placed!</h2>
+        <p className="text-sm text-[#1a1060]/50 dark:text-[#f0ede8]/40">Redirecting to your orders...</p>
       </div>
     </div>
   );
 
   return (
-    <main style={{ background: "#f8f7f4", minHeight: "100vh" }}>
+    <main className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] transition-colors duration-300">
 
       {/* HERO */}
-      <section style={{ background: "#1a1a2e", color: "#fff", padding: "50px 20px", textAlign: "center" }}>
-        <h1 style={{ fontSize: "32px", fontWeight: "700", margin: 0 }}>Checkout</h1>
-        <p style={{ opacity: 0.5, marginTop: "8px", fontSize: "14px" }}>
+      <section className="bg-white dark:bg-[#0a0a0f] border-b border-[#e8e5f0] dark:border-white/[0.07] px-5 py-12 text-center">
+        <div className="inline-flex items-center gap-2 bg-[#ede9ff] dark:bg-[#c9a96e]/10 text-[#6d4aff] dark:text-[#c9a96e] text-[11px] font-bold px-4 py-1.5 rounded-full mb-4 uppercase tracking-wider">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#6d4aff] dark:bg-[#c9a96e]" />
+          Secure Checkout
+        </div>
+        <h1 className="text-3xl font-extrabold tracking-tight text-[#1a1060] dark:text-[#f0ede8]">Checkout</h1>
+        <p className="mt-2 text-sm text-[#1a1060]/50 dark:text-[#f0ede8]/45">
           {items.length} item{items.length !== 1 ? "s" : ""} · ₱{total.toLocaleString()} total
         </p>
       </section>
 
-      <section style={{ maxWidth: "960px", margin: "0 auto", padding: "32px 20px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "24px", alignItems: "start" }} className="checkout-grid">
+      <section className="max-w-[960px] mx-auto px-5 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
 
           {/* LEFT — Delivery Details */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div className="flex flex-col gap-4">
 
-            {/* Section: Contact */}
-            <div style={{ background: "#fff", borderRadius: "16px", border: "1px solid #e8e8e8", padding: "24px", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
-                <div style={{ width: "28px", height: "28px", borderRadius: "8px", background: "#1a1a2e", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontWeight: "700", color: "#fff" }}>1</div>
-                <h2 style={{ fontSize: "15px", fontWeight: "700", color: "#111827", margin: 0 }}>Contact Information</h2>
+            {/* Contact */}
+            <div className="bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07] p-6">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-7 h-7 rounded-lg bg-[#6d4aff] dark:bg-[#c9a96e] flex items-center justify-center text-xs font-bold text-white dark:text-[#0a0a0f]">1</div>
+                <h2 className="text-sm font-bold text-[#1a1060] dark:text-[#f0ede8]">Contact Information</h2>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div className="flex flex-col gap-3">
                 <div>
-                  <label style={{ fontSize: "12px", fontWeight: "600", color: "#6b7280", display: "block", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Full Name</label>
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Juan dela Cruz"
-                    style={inputStyle}
-                  />
+                  <label className="text-[11px] font-semibold text-[#1a1060]/50 dark:text-[#f0ede8]/40 uppercase tracking-wider block mb-1.5">Full Name</label>
+                  <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Juan dela Cruz" className={inputClass} />
                 </div>
                 <div>
-                  <label style={{ fontSize: "12px", fontWeight: "600", color: "#6b7280", display: "block", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>LSPU Email</label>
-                  <input
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="yourname@lspu.edu.ph"
-                    style={inputStyle}
-                  />
+                  <label className="text-[11px] font-semibold text-[#1a1060]/50 dark:text-[#f0ede8]/40 uppercase tracking-wider block mb-1.5">LSPU Email</label>
+                  <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="yourname@lspu.edu.ph" className={inputClass} />
                 </div>
               </div>
             </div>
 
-            {/* Section: Delivery */}
-            <div style={{ background: "#fff", borderRadius: "16px", border: "1px solid #e8e8e8", padding: "24px", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
-                <div style={{ width: "28px", height: "28px", borderRadius: "8px", background: "#1a1a2e", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontWeight: "700", color: "#fff" }}>2</div>
-                <h2 style={{ fontSize: "15px", fontWeight: "700", color: "#111827", margin: 0 }}>Delivery Address</h2>
+            {/* Delivery */}
+            <div className="bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07] p-6">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-7 h-7 rounded-lg bg-[#6d4aff] dark:bg-[#c9a96e] flex items-center justify-center text-xs font-bold text-white dark:text-[#0a0a0f]">2</div>
+                <h2 className="text-sm font-bold text-[#1a1060] dark:text-[#f0ede8]">Delivery Address</h2>
               </div>
               <div>
-                <label style={{ fontSize: "12px", fontWeight: "600", color: "#6b7280", display: "block", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Full Address</label>
-                <textarea
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Building, Street, Barangay, City, Province"
-                  rows={3}
-                  style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }}
-                />
+                <label className="text-[11px] font-semibold text-[#1a1060]/50 dark:text-[#f0ede8]/40 uppercase tracking-wider block mb-1.5">Full Address</label>
+                <textarea value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Building, Street, Barangay, City, Province" rows={3} className={`${inputClass} resize-y font-[inherit]`} />
               </div>
             </div>
 
-            {/* Section: Payment */}
-            <div style={{ background: "#fff", borderRadius: "16px", border: "1px solid #e8e8e8", padding: "24px", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
-                <div style={{ width: "28px", height: "28px", borderRadius: "8px", background: "#1a1a2e", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontWeight: "700", color: "#fff" }}>3</div>
-                <h2 style={{ fontSize: "15px", fontWeight: "700", color: "#111827", margin: 0 }}>Payment Method</h2>
+            {/* Payment */}
+            <div className="bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07] p-6">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-7 h-7 rounded-lg bg-[#6d4aff] dark:bg-[#c9a96e] flex items-center justify-center text-xs font-bold text-white dark:text-[#0a0a0f]">3</div>
+                <h2 className="text-sm font-bold text-[#1a1060] dark:text-[#f0ede8]">Payment Method</h2>
               </div>
-              <div
-                style={{
-                  display: "flex", alignItems: "center", gap: "14px",
-                  padding: "14px 16px", borderRadius: "12px",
-                  border: "1.5px solid #1a1a2e", background: "#f8f7f4",
-                  cursor: "pointer",
-                }}
-              >
-                <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "#1a1a2e", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }}>💵</div>
+              <div className="flex items-center gap-3 p-4 rounded-xl border-[1.5px] border-[#6d4aff] dark:border-[#c9a96e] bg-[#f5f3ff] dark:bg-[#c9a96e]/5 cursor-pointer">
+                <div className="w-9 h-9 rounded-lg bg-[#6d4aff] dark:bg-[#c9a96e] flex items-center justify-center text-lg shrink-0">💵</div>
                 <div>
-                  <p style={{ fontSize: "14px", fontWeight: "600", color: "#111827", margin: 0 }}>Cash on Delivery</p>
-                  <p style={{ fontSize: "12px", color: "#9ca3af", margin: 0 }}>Pay when your order arrives</p>
+                  <p className="text-sm font-semibold text-[#1a1060] dark:text-[#f0ede8]">Cash on Delivery</p>
+                  <p className="text-xs text-[#1a1060]/50 dark:text-[#f0ede8]/40">Pay when your order arrives</p>
                 </div>
-                <div style={{ marginLeft: "auto", width: "18px", height: "18px", borderRadius: "50%", background: "#1a1a2e", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#fff" }} />
+                <div className="ml-auto w-4 h-4 rounded-full bg-[#6d4aff] dark:bg-[#c9a96e] flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white dark:bg-[#0a0a0f]" />
                 </div>
               </div>
             </div>
           </div>
 
           {/* RIGHT — Order Summary */}
-          <div style={{ position: "sticky", top: "24px", display: "flex", flexDirection: "column", gap: "14px" }}>
-            <div style={{ background: "#fff", borderRadius: "16px", border: "1px solid #e8e8e8", padding: "20px", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
-              <h3 style={{ fontSize: "15px", fontWeight: "700", color: "#111827", margin: "0 0 16px" }}>Order Summary</h3>
+          <div className="sticky top-6 flex flex-col gap-3">
+            <div className="bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07] p-5">
+              <h3 className="text-sm font-bold text-[#1a1060] dark:text-[#f0ede8] mb-4">Order Summary</h3>
 
               {items.length === 0 ? (
-                <p style={{ color: "#9ca3af", fontSize: "14px" }}>No items to checkout.</p>
+                <p className="text-sm text-[#1a1060]/50 dark:text-[#f0ede8]/40">No items to checkout.</p>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "16px" }}>
+                <div className="flex flex-col gap-3 mb-4">
                   {items.map((item, idx) => (
-                    <div key={idx} style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                      <img
-                        src={item.image_url || "/placeholder.png"}
-                        alt={item.name}
-                        style={{ width: "52px", height: "52px", objectFit: "cover", borderRadius: "10px", flexShrink: 0, border: "1px solid #f0f0f0" }}
-                      />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: "13px", fontWeight: "600", color: "#111827", margin: "0 0 2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</p>
-                        <p style={{ fontSize: "12px", color: "#9ca3af", margin: 0 }}>Qty: {item.quantity}</p>
+                    <div key={idx} className="flex gap-3 items-center">
+                      <img src={item.image_url || "/placeholder.png"} alt={item.name} className="w-12 h-12 object-cover rounded-xl shrink-0 border border-[#e8e5f0] dark:border-white/[0.07]" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-[#1a1060] dark:text-[#f0ede8] truncate">{item.name}</p>
+                        <p className="text-[11px] text-[#1a1060]/50 dark:text-[#f0ede8]/40">Qty: {item.quantity}</p>
                       </div>
-                      <p style={{ fontSize: "13px", fontWeight: "700", color: "#111827", margin: 0, flexShrink: 0 }}>
-                        ₱{(item.price * item.quantity).toLocaleString()}
-                      </p>
+                      <p className="text-xs font-bold text-[#1a1060] dark:text-[#f0ede8] shrink-0">₱{(item.price * item.quantity).toLocaleString()}</p>
                     </div>
                   ))}
                 </div>
               )}
 
-              <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#6b7280" }}>
-                  <span>Subtotal</span>
-                  <span>₱{total.toLocaleString()}</span>
+              <div className="border-t border-[#e8e5f0] dark:border-white/[0.07] pt-3 flex flex-col gap-2">
+                <div className="flex justify-between text-xs text-[#1a1060]/50 dark:text-[#f0ede8]/40">
+                  <span>Subtotal</span><span>₱{total.toLocaleString()}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#6b7280" }}>
-                  <span>Shipping</span>
-                  <span style={{ color: "#16a34a", fontWeight: "600" }}>Free</span>
+                <div className="flex justify-between text-xs">
+                  <span className="text-[#1a1060]/50 dark:text-[#f0ede8]/40">Shipping</span>
+                  <span className="text-green-500 font-semibold">Free</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "16px", fontWeight: "700", color: "#111827", marginTop: "4px" }}>
-                  <span>Total</span>
-                  <span>₱{total.toLocaleString()}</span>
+                <div className="flex justify-between text-sm font-bold text-[#1a1060] dark:text-[#f0ede8] mt-1">
+                  <span>Total</span><span>₱{total.toLocaleString()}</span>
                 </div>
               </div>
 
               <button
                 onClick={handleSubmit}
                 disabled={submitting || items.length === 0}
-                style={{
-                  width: "100%", marginTop: "16px",
-                  background: submitting || items.length === 0 ? "#9ca3af" : "#1a1a2e",
-                  color: "#fff", border: "none", borderRadius: "12px",
-                  padding: "14px", fontSize: "14px", fontWeight: "700",
-                  cursor: submitting || items.length === 0 ? "not-allowed" : "pointer",
-                  transition: "background 0.2s",
-                }}
+                className={`w-full mt-4 rounded-xl py-3.5 text-sm font-bold transition
+                  ${submitting || items.length === 0
+                    ? "bg-[#e8e5f0] dark:bg-white/10 text-[#1a1060]/30 dark:text-[#f0ede8]/30 cursor-not-allowed"
+                    : "bg-[#6d4aff] dark:bg-[#c9a96e] text-white dark:text-[#0a0a0f] hover:opacity-90"}`}
               >
                 {submitting ? "Placing Order..." : `Place Order · ₱${total.toLocaleString()}`}
               </button>
 
-              <p style={{ fontSize: "11px", color: "#9ca3af", textAlign: "center", marginTop: "10px", lineHeight: "1.5" }}>
+              <p className="text-[11px] text-[#1a1060]/40 dark:text-[#f0ede8]/30 text-center mt-3 leading-relaxed">
                 🔒 Secured checkout · Cash on Delivery only
               </p>
             </div>
 
             <button
               onClick={() => router.back()}
-              style={{ background: "none", border: "none", color: "#6b7280", fontSize: "13px", cursor: "pointer", textAlign: "center" }}
+              className="text-xs text-[#1a1060]/50 dark:text-[#f0ede8]/40 hover:text-[#6d4aff] dark:hover:text-[#c9a96e] transition text-center"
             >
               ← Back to Cart
             </button>
           </div>
-
         </div>
       </section>
-
-      <style>{`
-        @media (max-width: 700px) {
-          .checkout-grid { grid-template-columns: 1fr !important; }
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
     </main>
   );
 }
 
-const inputStyle = {
-  width: "100%",
-  padding: "10px 14px",
-  borderRadius: "10px",
-  border: "1.5px solid #e5e7eb",
-  fontSize: "14px",
-  color: "#111827",
-  outline: "none",
-  boxSizing: "border-box",
-  background: "#fafafa",
-  transition: "border 0.15s",
-};
-
 export default function CheckoutPage() {
   return (
     <Suspense fallback={
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#f8f7f4" }}>
-        <p style={{ color: "#9ca3af" }}>Loading checkout...</p>
+      <div className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] flex items-center justify-center">
+        <p className="text-sm text-[#1a1060]/50 dark:text-[#f0ede8]/40">Loading checkout...</p>
       </div>
     }>
       <CheckoutContent />

@@ -11,7 +11,7 @@ export async function GET(req) {
     }
 
     const [rows] = await db.query(
-      "SELECT * FROM attribute_definitions WHERE category_id = ?",
+      "SELECT * FROM attribute_definitions WHERE category_id=$1",
       [category_id]
     );
 

@@ -4,11 +4,10 @@ export async function POST(req) {
   try {
     const { id } = await req.json();
 
-    // toggle featured ON/OFF
-    await db.query(
-      "UPDATE products SET is_featured = IF(is_featured = 1, 0, 1) WHERE id = ?",
-      [id]
-    );
+    const [rows] = await db.query("SELECT is_featured FROM products WHERE id=$1", [id]);
+    const current = rows[0]?.is_featured;
+
+    await db.query("UPDATE products SET is_featured=$1 WHERE id=$2", [!current, id]);
 
     return Response.json({ success: true });
   } catch (err) {

@@ -10,13 +10,13 @@ export async function GET() {
     let rows;
     if (session?.user?.id) {
       const [loggedInRows] = await db.query(
-        "SELECT *, STOCK as stock FROM products WHERE seller_id != ? AND is_visible = 1",
+        "SELECT * FROM products WHERE seller_id != $1 AND is_visible = true",
         [session.user.id]
       );
       rows = loggedInRows;
     } else {
       const [guestRows] = await db.query(
-        "SELECT *, STOCK as stock FROM products WHERE is_visible = 1"
+        "SELECT * FROM products WHERE is_visible = true"
       );
       rows = guestRows;
     }

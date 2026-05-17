@@ -17,19 +17,12 @@ export const authOptions = {
         const email = credentials.email.trim().toLowerCase();
         const password = credentials.password.trim();
 
-        if (!email.endsWith("@lspu.edu.ph")) {
-          throw new Error("Only LSPU email allowed");
-        }
+        if (!email.endsWith("@lspu.edu.ph")) throw new Error("Only LSPU email allowed");
 
-        const [rows] = await db.query(
-          "SELECT * FROM users WHERE email = ?",
-          [email]
-        );
-
+        const [rows] = await db.query("SELECT * FROM users WHERE email=$1", [email]);
         if (rows.length === 0) return null;
 
         const user = rows[0];
-
         const isValid = await bcrypt.compare(password, user.password);
         if (!isValid) return null;
 
@@ -47,8 +40,7 @@ export const authOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user, trigger, session }) {
-      // On login, store everything in the token
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;
         token.role = user.role;
@@ -58,12 +50,8 @@ export const authOptions = {
         token.address = user.address;
       }
 
-      // When update() is called from the profile page, re-fetch from DB
       if (trigger === "update") {
-        const [rows] = await db.query(
-          "SELECT * FROM users WHERE id = ?",
-          [token.id]
-        );
+        const [rows] = await db.query("SELECT * FROM users WHERE id=$1", [token.id]);
         if (rows[0]) {
           const u = rows[0];
           token.name = u.name;
@@ -87,9 +75,7 @@ export const authOptions = {
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
-  pages: {
-    signIn: "/login",
-  },
+  pages: { signIn: "/login" },
 };
 
 const handler = NextAuth(authOptions);

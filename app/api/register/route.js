@@ -10,14 +10,15 @@ export async function POST(req) {
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  try {
+ try {
     await db.query(
-      "INSERT INTO users (name, last_name, email, password, contact_number, address) VALUES (?, ?, ?, ?, ?, ?)",
+      "INSERT INTO users (name, last_name, email, password, contact_number, address) VALUES ($1, $2, $3, $4, $5, $6)",
       [firstName, lastName, email, hashedPassword, contactNumber, address]
     );
 
     return Response.json({ message: "User created" });
   } catch (err) {
-    return Response.json({ message: "Email already exists" }, { status: 400 });
+    console.error("Register error:", err.message); // ← add this
+    return Response.json({ message: err.message }, { status: 400 }); // ← show real error
   }
 }

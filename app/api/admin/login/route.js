@@ -6,9 +6,8 @@ export async function POST(req) {
   try {
     const { email, password } = await req.json();
 
-    // 1. Find user
     const [rows] = await db.query(
-      "SELECT * FROM users WHERE email = ?", [email]
+      "SELECT * FROM users WHERE email = $1", [email]
     );
 
     if (rows.length === 0) {
@@ -17,18 +16,15 @@ export async function POST(req) {
 
     const user = rows[0];
 
-    // 2. Check if admin
     if (user.role !== "admin") {
       return Response.json({ error: "Access denied — not an admin" }, { status: 403 });
     }
 
-    // 3. Check password
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) {
       return Response.json({ error: "Wrong password" }, { status: 401 });
     }
 
-    // 4. Set admin cookie
     const cookieStore = await cookies();
     cookieStore.set("admin_session", JSON.stringify({
       id: user.id,
@@ -38,11 +34,12 @@ export async function POST(req) {
     }), {
       httpOnly: true,
       path: "/",
-      maxAge: 60 * 60 * 24, // 1 day
+      maxAge: 60 * 60 * 24,
     });
 
     return Response.json({ success: true });
   } catch (err) {
+    console.error("Admin login error:", err.message);
     return Response.json({ error: err.message }, { status: 500 });
   }
 }

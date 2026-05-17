@@ -12,30 +12,29 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [rows] = await db.query(
-      `SELECT o.*, 
-        (SELECT JSON_ARRAYAGG(
-          JSON_OBJECT(
-            'product_id', oi.product_id,
-            'quantity', oi.quantity,
-            'price', oi.price,
-            'name', p.name,
-            'image_url', COALESCE(
-              (SELECT pi.image_url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order ASC LIMIT 1),
-              p.image_url
-            )
-          )
-        ) FROM order_items oi 
-        LEFT JOIN products p ON p.id = oi.product_id
-        WHERE oi.order_id = o.id
-        ) AS items
-       FROM orders o
-       WHERE o.user_id = ?
-       ORDER BY o.id DESC`,
+    const [orders] = await db.query(
+      `SELECT * FROM orders WHERE user_id = $1 ORDER BY id DESC`,
       [session.user.id]
     );
 
-    return NextResponse.json(rows);
+    const ordersWithItems = await Promise.all(
+      orders.map(async (order) => {
+        const [items] = await db.query(
+          `SELECT oi.product_id, oi.quantity, oi.price, p.name,
+            COALESCE(
+              (SELECT pi.image_url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order ASC LIMIT 1),
+              p.image_url
+            ) AS image_url
+           FROM order_items oi
+           LEFT JOIN products p ON p.id = oi.product_id
+           WHERE oi.order_id = $1`,
+          [order.id]
+        );
+        return { ...order, items };
+      })
+    );
+
+    return NextResponse.json(ordersWithItems);
   } catch (err) {
     console.error("Orders GET error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
@@ -55,10 +54,9 @@ export async function POST(req) {
       return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
     }
 
-    // 1. Check stock for all items BEFORE doing anything
     for (const item of items) {
       const [rows] = await db.query(
-        `SELECT name, stock FROM products WHERE id = ?`,
+        `SELECT name, stock FROM products WHERE id = $1`,
         [item.product_id]
       );
       if (!rows[0]) {
@@ -72,46 +70,42 @@ export async function POST(req) {
       }
     }
 
-    // 2. Create order — status starts as 'pending' (seller must approve)
     const [result] = await db.query(
       `INSERT INTO orders (user_id, name, email, address, payment_method, total, status)
-       VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
+       VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+       RETURNING id`,
       [session.user.id, name, email, address, payment_method, total]
     );
 
-    const orderId = result.insertId;
+    const orderId = result[0].id;
 
-    // 3. Insert order items
     for (const item of items) {
       await db.query(
         `INSERT INTO order_items (order_id, product_id, quantity, price)
-         VALUES (?, ?, ?, ?)`,
+         VALUES ($1, $2, $3, $4)`,
         [orderId, item.product_id, item.quantity, item.price]
       );
     }
 
-    // 4. Deduct stock + notify sellers
     for (const item of items) {
       await db.query(
-        `UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?`,
+        `UPDATE products SET stock = stock - $1 WHERE id = $2 AND stock >= $3`,
         [item.quantity, item.product_id, item.quantity]
       );
 
       const [productRows] = await db.query(
-        `SELECT seller_id, name, stock FROM products WHERE id = ?`,
+        `SELECT seller_id, name, stock FROM products WHERE id = $1`,
         [item.product_id]
       );
       const product = productRows[0];
       if (!product) continue;
 
-      // Notify seller — new order needs their approval
       await notify({
         userId: product.seller_id,
         type: "order",
         message: `New order #${orderId} for "${product.name}" x${item.quantity} — please approve it in My Listings.`,
       });
 
-      // Notify seller — low stock warning
       if (product.stock <= 5) {
         await notify({
           userId: product.seller_id,
@@ -121,7 +115,6 @@ export async function POST(req) {
       }
     }
 
-    // 5. Notify buyer — order placed, waiting for seller
     await notify({
       userId: session.user.id,
       type: "order_placed",

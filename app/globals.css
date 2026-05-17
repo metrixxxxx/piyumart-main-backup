@@ -1,34 +1,42 @@
 @import "tailwindcss";
 
+/* ── DARK MODE (Tailwind v4) ── */
+@variant dark (&:where(.dark, .dark *));
+
+/* ── CSS VARIABLES ── */
 :root {
   --bg: #f8f7f4;
   --card: #ffffff;
   --text: #171717;
   --muted: #6b7280;
-  --primary: #111827;   /* dark neutral */
-  --accent: #2563eb;    /* blue */
+  --primary: #111827;
+  --accent: #2563eb;
   --danger: #ef4444;
   --success: #16a34a;
 }
 
-/* GLOBAL RESET */
-body {
-  /* globals.css */
+/* ── GLOBAL RESET ── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
+html,
+body {
   height: 100%;
   margin: 0;
-
   background-color: var(--bg);
   color: var(--text);
   font-family: system-ui, sans-serif;
 }
 
-/* CARDS */
+/* ── CARDS ── */
 .card {
   @apply bg-white border border-gray-200 rounded-xl p-4 shadow-sm;
 }
 
-/* BUTTONS */
+/* ── BUTTONS ── */
 .btn {
   @apply px-4 py-2 rounded-lg text-sm font-medium transition;
 }
@@ -49,7 +57,7 @@ body {
   @apply border border-gray-300 hover:bg-gray-100;
 }
 
-/* INPUTS */
+/* ── INPUTS ── */
 .input {
   @apply border border-gray-300 rounded-lg px-3 py-2 w-full outline-none focus:ring-2 focus:ring-blue-500;
 }
