@@ -19,17 +19,17 @@ export async function GET() {
 
     const ordersWithItems = await Promise.all(
       orders.map(async (order) => {
-        const [items] = await db.query(
-          `SELECT oi.product_id, oi.quantity, oi.price, p.name,
-            COALESCE(
-              (SELECT pi.image_url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order ASC LIMIT 1),
-              p.image_url
-            ) AS image_url
-           FROM order_items oi
-           LEFT JOIN products p ON p.id = oi.product_id
-           WHERE oi.order_id = $1`,
-          [order.id]
-        );
+       const [items] = await db.query(
+  `SELECT oi.product_id, oi.quantity, oi.price, p.name, p.seller_name,
+    COALESCE(
+      (SELECT pi.image_url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order ASC LIMIT 1),
+      p.image_url
+    ) AS image_url
+   FROM order_items oi
+   LEFT JOIN products p ON p.id = oi.product_id
+   WHERE oi.order_id = $1`,
+  [order.id]
+);
         return { ...order, items };
       })
     );

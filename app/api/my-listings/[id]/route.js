@@ -31,7 +31,13 @@ export async function PATCH(req, { params }) {
   if (!(await ownsProduct(session.user.id, id)))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { is_visible } = await req.json();
+  const payload = await req.json();
+  const is_visible =
+    payload.is_visible === true ||
+    payload.is_visible === 1 ||
+    payload.is_visible === "1" ||
+    String(payload.is_visible).toLowerCase() === "true";
+
   await db.query(
     "UPDATE products SET is_visible=$1 WHERE id=$2 AND seller_id=$3",
     [is_visible, id, session.user.id]

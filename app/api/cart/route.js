@@ -107,3 +107,30 @@ export async function DELETE(req) {
     return Response.json({ error: err.message }, { status: 500 });
   }
 }
+
+export async function PATCH(req) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return Response.json({ error: "Not logged in" }, { status: 401 });
+    }
+
+    const { cart_item_id, quantity } = await req.json();
+
+    if (!cart_item_id || quantity < 1) {
+      return Response.json({ error: "Invalid input" }, { status: 400 });
+    }
+
+    await db.query(
+      `UPDATE cart_items SET quantity = $1
+       WHERE id = $2
+         AND cart_id = (SELECT id FROM carts WHERE user_id = $3)`,
+      [quantity, cart_item_id, session.user.id]
+    );
+
+    return Response.json({ success: true });
+  } catch (err) {
+    console.error("PATCH /api/cart error:", err);
+    return Response.json({ error: err.message }, { status: 500 });
+  }
+}

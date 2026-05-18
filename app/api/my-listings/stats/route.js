@@ -21,7 +21,7 @@ export async function GET() {
   );
 
   return NextResponse.json({
-    totalOrders: result[0]?.totalOrders || 0,
+    totalOrders: result[0]?.totalorders || 0,
     revenue: result[0]?.revenue || 0,
   });
 }

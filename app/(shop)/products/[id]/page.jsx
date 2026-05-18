@@ -199,7 +199,19 @@ export default function ProductDetailPage() {
                 {isOutOfStock ? "Out of Stock" : `${product.stock} in stock`}
               </span>
               <span className="text-xs text-[#1a1060]/40 dark:text-[#f0ede8]/35">
-                by <strong className="text-[#1a1060]/60 dark:text-[#f0ede8]/55">{product.seller_name || "Unknown"}</strong>
+                by {
+                  product.seller_id ? (
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/seller/${product.seller_id}`)}
+                      className="font-semibold text-[#1a1060]/80 dark:text-[#f0ede8]/70 hover:text-[#6d4aff] dark:hover:text-[#c9a96e] transition-colors"
+                    >
+                      {product.seller_name || "Unknown"}
+                    </button>
+                  ) : (
+                    <strong className="text-[#1a1060]/60 dark:text-[#f0ede8]/55">{product.seller_name || "Unknown"}</strong>
+                  )
+                }
               </span>
             </div>
 

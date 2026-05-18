@@ -39,6 +39,13 @@ export default function ProductCard({ product }) {
     router.push(`/checkout?productId=${product.id}`);
   }
 
+  function handleSellerClick(e) {
+    e.stopPropagation();
+    if (product.seller_id) {
+      router.push(`/seller/${product.seller_id}`);
+    }
+  }
+
   return (
     <>
       {/* CARD */}
@@ -141,7 +148,18 @@ export default function ProductCard({ product }) {
               ₱{Number(product.price).toLocaleString()}
             </p>
             <p style={{ fontSize: "11px", color: "#999" }}>
-              Sold by: {product.seller_name || "Unknown"}
+              Sold by: <button
+                type="button"
+                onClick={handleSellerClick}
+                style={{
+                  all: "unset",
+                  cursor: product.seller_id ? "pointer" : "default",
+                  color: product.seller_id ? "#1f3c88" : "#999",
+                  textDecoration: product.seller_id ? "underline" : "none",
+                }}
+              >
+                {product.seller_name || "Unknown"}
+              </button>
             </p>
             {/* STOCK INDICATOR */}
             <p style={{ fontSize: "11px", marginTop: "2px", color: isOutOfStock ? "#e94560" : "#16a34a", fontWeight: "500" }}>

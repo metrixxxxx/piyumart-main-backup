@@ -61,29 +61,37 @@ function CheckoutContent() {
   const items = isBuyNow && product ? [{ ...product, quantity }] : cartItems;
   const total = items.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
 
+  // ✅ FIXED: single POST with all items instead of one POST per item
   async function handleSubmit() {
     if (!name || !email || !address) return alert("Please fill in all fields!");
     if (!email.endsWith("@lspu.edu.ph")) return alert("Please use your LSPU email!");
     if (items.length === 0) return alert("No items to checkout!");
     setSubmitting(true);
     try {
-      for (const item of items) {
-        const res = await fetch("/api/orders", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name, email, address, payment_method: paymentMethod,
-            total: item.price * item.quantity,
-           items: [{ product_id: item.product_id ?? item.id, quantity: item.quantity || 1, price: parseFloat(item.price) }],
-          }),
-        });
-        if (!res.ok) {
-          const err = await res.json();
-          alert(err.error || "Something went wrong.");
-          setSubmitting(false);
-          return;
-        }
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          email,
+          address,
+          payment_method: paymentMethod,
+          total,
+          items: items.map((item) => ({
+            product_id: item.product_id ?? item.id,
+            quantity: item.quantity || 1,
+            price: parseFloat(item.price),
+          })),
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error || "Something went wrong.");
+        setSubmitting(false);
+        return;
       }
+
       setOrderDone(true);
       setTimeout(() => router.push("/my-orders"), 2500);
     } catch (err) {

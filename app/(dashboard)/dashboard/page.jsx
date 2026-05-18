@@ -115,15 +115,7 @@ export default function AdminDashboard() {
     fetchData();
   }
 
-  async function handleUpdateOrderStatus(id, status) {
-    await fetch("/api/admin/orders", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status }),
-    });
-    setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status } : o));
-  }
-
+  
   function markAllRead() {
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: 1 })));
   }
@@ -347,19 +339,16 @@ export default function AdminDashboard() {
                       <td className="px-4 py-3 font-bold text-white">₱{Number(order.total).toLocaleString()}</td>
                       <td className="px-4 py-3 uppercase text-xs text-gray-400">{order.payment_method}</td>
                       <td className="px-4 py-3">
-                        <select
-                          value={order.status}
-                          onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
-                          className={`border rounded-lg px-2 py-1 text-xs font-medium bg-transparent ${
-                            order.status === "pending" ? "border-yellow-600 text-yellow-400"
-                            : order.status === "otw" ? "border-blue-600 text-blue-400"
-                            : "border-green-600 text-green-400"
-                          }`}
-                        >
-                          <option value="pending">Pending</option>
-                          <option value="otw">OTW</option>
-                          <option value="delivered">Delivered</option>
-                        </select>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+  order.status === "pending"    ? "bg-yellow-900/50 text-yellow-400"
+  : order.status === "confirmed"  ? "bg-purple-900/50 text-purple-400"
+  : order.status === "processing" ? "bg-blue-900/50 text-blue-400"
+  : order.status === "shipped"    ? "bg-indigo-900/50 text-indigo-400"
+  : order.status === "completed"  ? "bg-green-900/50 text-green-400"
+  : "bg-red-900/50 text-red-400"
+}`}>
+  {order.status}
+</span>
                       </td>
                     </tr>
                   ))}

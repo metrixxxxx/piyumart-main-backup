@@ -3,7 +3,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { io } from "socket.io-client";
+import { getSocket } from "@/lib/socket";
 
 function StatCard({ label, value, accent }) {
   return (
@@ -26,6 +26,7 @@ export default function MyListingsPage() {
   useEffect(() => {
     if (!session) return;
     let mounted = true;
+
     const loadData = async () => {
       const [productsRes, statsRes, ordersRes] = await Promise.all([
         fetch("/api/sell"),
@@ -42,10 +43,14 @@ export default function MyListingsPage() {
         setLoading(false);
       }
     };
+
     loadData();
-    const socket = io();
+
+    const socket = getSocket(session.user.id);
+
     socket.on("products:new", (product) => {
-      if (String(product.seller_id) === String(session.user.id)) setProducts((prev) => [product, ...prev]);
+      if (String(product.seller_id) === String(session.user.id))
+        setProducts((prev) => [product, ...prev]);
     });
     socket.on("products:updated", (updated) => {
       setProducts((prev) => prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)));
@@ -58,12 +63,44 @@ export default function MyListingsPage() {
         setOrders((prev) => [{ ...order, id: order.orderId, status: "pending" }, ...prev]);
       }
     });
-    return () => { mounted = false; socket.disconnect(); };
+    socket.on("orders:updated", ({ id, status, tracking_number, courier }) => {
+      setOrders((prev) =>
+        prev.map((o) =>
+          Number(o.id) === Number(id)
+            ? { ...o, status, _loading: false, ...(tracking_number && { tracking_number }), ...(courier && { courier }) }
+            : o
+        )
+      );
+    });
+
+    return () => {
+      mounted = false;
+      socket.off("products:new");
+      socket.off("products:updated");
+      socket.off("products:deleted");
+      socket.off("orders:new");
+      socket.off("orders:updated");
+    };
   }, [session?.user?.id]);
 
   async function handleOrderStatus(id, status) {
-    await fetch(`/api/seller/orders/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
+    // optimistically set loading
+    setOrders((prev) =>
+      prev.map((o) => (Number(o.id) === Number(id) ? { ...o, _loading: true } : o))
+    );
+    const res = await fetch(`/api/seller/orders/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setOrders((prev) =>
+        prev.map((o) => (Number(o.id) === Number(id) ? { ...o, _loading: false } : o))
+      );
+      return alert(data.error || "Failed to update order");
+    }
+    // success — state update handled by socket orders:updated
   }
 
   async function handleDelete(id) {
@@ -73,25 +110,42 @@ export default function MyListingsPage() {
   }
 
   async function toggleVisibility(id, current) {
-    await fetch(`/api/my-listings/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ is_visible: current ? 0 : 1 }) });
-    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, is_visible: current ? 0 : 1 } : p)));
+    const newVisibility = !Boolean(current);
+    await fetch(`/api/my-listings/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_visible: newVisibility }),
+    });
+    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, is_visible: newVisibility } : p)));
   }
 
-  const stats = { total: products.length, active: products.filter((p) => p.is_visible === 1).length, totalOrders: orderStats.totalOrders, revenue: orderStats.revenue };
-  const filtered = filter === "all" ? products : products.filter((p) => filter === "visible" ? p.is_visible === 1 : p.is_visible === 0);
+  const stats = {
+    total: products.length,
+    active: products.filter((p) => Number(p.is_visible) === 1).length,
+    totalOrders: orderStats.totalOrders,
+    revenue: orderStats.revenue,
+  };
+  const filtered =
+    filter === "all"
+      ? products
+      : products.filter((p) => (filter === "visible" ? Number(p.is_visible) === 1 : Number(p.is_visible) === 0));
   const pendingOrders = orders.filter((o) => o.status === "pending").length;
 
-  if (!session) return <div className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] flex items-center justify-center text-sm text-[#1a1060]/50 dark:text-[#f0ede8]/40">Please log in.</div>;
-  if (loading) return (
-    <div className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] flex items-center justify-center">
-      <div className="w-10 h-10 border-[3px] border-[#e8e5f0] dark:border-white/10 border-t-[#6d4aff] dark:border-t-[#c9a96e] rounded-full animate-spin" />
-    </div>
-  );
+  if (!session)
+    return (
+      <div className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] flex items-center justify-center text-sm text-[#1a1060]/50 dark:text-[#f0ede8]/40">
+        Please log in.
+      </div>
+    );
+  if (loading)
+    return (
+      <div className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] flex items-center justify-center">
+        <div className="w-10 h-10 border-[3px] border-[#e8e5f0] dark:border-white/10 border-t-[#6d4aff] dark:border-t-[#c9a96e] rounded-full animate-spin" />
+      </div>
+    );
 
   return (
     <main className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] transition-colors duration-300">
-
-      {/* HERO */}
       <section className="bg-white dark:bg-[#0a0a0f] border-b border-[#e8e5f0] dark:border-white/[0.07] px-5 py-12 text-center">
         <div className="inline-flex items-center gap-2 bg-[#ede9ff] dark:bg-[#c9a96e]/10 text-[#6d4aff] dark:text-[#c9a96e] text-[11px] font-bold px-4 py-1.5 rounded-full mb-4 uppercase tracking-wider">
           <span className="w-1.5 h-1.5 rounded-full bg-[#6d4aff] dark:bg-[#c9a96e]" />
@@ -102,8 +156,6 @@ export default function MyListingsPage() {
       </section>
 
       <div className="max-w-5xl mx-auto px-5 py-8">
-
-        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
           <StatCard label="Total Listings" value={stats.total} />
           <StatCard label="Active" value={stats.active} accent="text-green-500" />
@@ -111,27 +163,21 @@ export default function MyListingsPage() {
           <StatCard label="Revenue" value={`₱${Number(stats.revenue).toLocaleString()}`} accent="text-[#6d4aff] dark:text-[#c9a96e]" />
         </div>
 
-        {/* Add Product */}
         <div className="flex justify-end mb-5">
           <Link href="/sell" className="bg-[#6d4aff] dark:bg-[#c9a96e] text-white dark:text-[#0a0a0f] text-xs font-bold px-4 py-2 rounded-xl hover:opacity-90 transition">
             + Add Product
           </Link>
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-1 mb-6 border-b border-[#e8e5f0] dark:border-white/[0.07]">
-          <button
-            onClick={() => setActiveTab("listings")}
+          <button onClick={() => setActiveTab("listings")}
             className={`px-4 py-2.5 text-xs font-semibold border-b-2 -mb-px transition
-              ${activeTab === "listings" ? "border-[#6d4aff] dark:border-[#c9a96e] text-[#6d4aff] dark:text-[#c9a96e]" : "border-transparent text-[#1a1060]/50 dark:text-[#f0ede8]/40 hover:text-[#1a1060] dark:hover:text-[#f0ede8]"}`}
-          >
+              ${activeTab === "listings" ? "border-[#6d4aff] dark:border-[#c9a96e] text-[#6d4aff] dark:text-[#c9a96e]" : "border-transparent text-[#1a1060]/50 dark:text-[#f0ede8]/40 hover:text-[#1a1060] dark:hover:text-[#f0ede8]"}`}>
             Listings
           </button>
-          <button
-            onClick={() => setActiveTab("orders")}
+          <button onClick={() => setActiveTab("orders")}
             className={`px-4 py-2.5 text-xs font-semibold border-b-2 -mb-px flex items-center gap-2 transition
-              ${activeTab === "orders" ? "border-[#6d4aff] dark:border-[#c9a96e] text-[#6d4aff] dark:text-[#c9a96e]" : "border-transparent text-[#1a1060]/50 dark:text-[#f0ede8]/40 hover:text-[#1a1060] dark:hover:text-[#f0ede8]"}`}
-          >
+              ${activeTab === "orders" ? "border-[#6d4aff] dark:border-[#c9a96e] text-[#6d4aff] dark:text-[#c9a96e]" : "border-transparent text-[#1a1060]/50 dark:text-[#f0ede8]/40 hover:text-[#1a1060] dark:hover:text-[#f0ede8]"}`}>
             Orders
             {pendingOrders > 0 && (
               <span className="text-[10px] bg-amber-400 text-black px-1.5 py-0.5 rounded-full font-bold">{pendingOrders}</span>
@@ -146,9 +192,7 @@ export default function MyListingsPage() {
               {["all", "visible", "hidden"].map((f) => (
                 <button key={f} onClick={() => setFilter(f)}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium capitalize transition
-                    ${filter === f
-                      ? "bg-[#6d4aff] dark:bg-[#c9a96e] text-white dark:text-[#0a0a0f] font-bold"
-                      : "bg-white dark:bg-white/[0.04] border border-[#e8e5f0] dark:border-white/[0.07] text-[#1a1060]/60 dark:text-[#f0ede8]/50 hover:border-[#6d4aff] dark:hover:border-[#c9a96e]"}`}>
+                    ${filter === f ? "bg-[#6d4aff] dark:bg-[#c9a96e] text-white dark:text-[#0a0a0f] font-bold" : "bg-white dark:bg-white/[0.04] border border-[#e8e5f0] dark:border-white/[0.07] text-[#1a1060]/60 dark:text-[#f0ede8]/50 hover:border-[#6d4aff] dark:hover:border-[#c9a96e]"}`}>
                   {f}
                 </button>
               ))}
@@ -243,10 +287,11 @@ export default function MyListingsPage() {
                         <td className="px-4 py-3 font-bold text-[#1a1060] dark:text-[#f0ede8]">₱{Number(o.total).toLocaleString()}</td>
                         <td className="px-4 py-3">
                           <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold
-                            ${o.status === "pending"   ? "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                            : o.status === "confirmed" ? "bg-[#ede9ff] dark:bg-[#6d4aff]/10 text-[#6d4aff] dark:text-[#c9a96e]"
-                            : o.status === "rejected"  ? "bg-red-50 dark:bg-red-500/10 text-red-500"
-                            : o.status === "shipped"   ? "bg-purple-50 dark:bg-purple-500/10 text-purple-500"
+                            ${o.status === "pending"    ? "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                            : o.status === "confirmed"  ? "bg-[#ede9ff] dark:bg-[#6d4aff]/10 text-[#6d4aff] dark:text-[#c9a96e]"
+                            : o.status === "processing" ? "bg-blue-50 dark:bg-blue-500/10 text-blue-500"
+                            : o.status === "shipped"    ? "bg-purple-50 dark:bg-purple-500/10 text-purple-500"
+                            : o.status === "cancelled"  ? "bg-red-50 dark:bg-red-500/10 text-red-500"
                             : "bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400"}`}>
                             {o.status}
                           </span>
@@ -254,11 +299,36 @@ export default function MyListingsPage() {
                         <td className="px-4 py-3">
                           <div className="flex gap-1.5 flex-wrap">
                             {o.status === "pending" && (<>
-                              <button onClick={() => handleOrderStatus(o.id, "confirmed")} className="px-2 py-1 rounded-lg bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-100 transition text-[11px] font-semibold">✅ Confirm</button>
-                              <button onClick={() => handleOrderStatus(o.id, "rejected")} className="px-2 py-1 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 transition text-[11px] font-semibold">❌ Reject</button>
+                              <button disabled={o._loading} onClick={() => handleOrderStatus(o.id, "confirmed")}
+                                className="px-2 py-1 rounded-lg bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-100 transition text-[11px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed">
+                                {o._loading ? "..." : "✅ Confirm"}
+                              </button>
+                              <button disabled={o._loading} onClick={() => handleOrderStatus(o.id, "cancelled")}
+                                className="px-2 py-1 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 transition text-[11px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed">
+                                {o._loading ? "..." : "❌ Cancel"}
+                              </button>
                             </>)}
-                            {o.status === "confirmed" && <button onClick={() => handleOrderStatus(o.id, "shipped")} className="px-2 py-1 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-500 hover:bg-purple-100 transition text-[11px] font-semibold">🚚 Ship</button>}
-                            {o.status === "shipped" && <button onClick={() => handleOrderStatus(o.id, "completed")} className="px-2 py-1 rounded-lg bg-[#ede9ff] dark:bg-[#6d4aff]/10 text-[#6d4aff] dark:text-[#c9a96e] hover:bg-[#e0dbff] transition text-[11px] font-semibold">✔ Complete</button>}
+                            {o.status === "confirmed" && (<>
+                              <button disabled={o._loading} onClick={() => handleOrderStatus(o.id, "processing")}
+                                className="px-2 py-1 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-500 hover:bg-blue-100 transition text-[11px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed">
+                                {o._loading ? "..." : "📦 Process"}
+                              </button>
+                              <button disabled={o._loading} onClick={() => handleOrderStatus(o.id, "cancelled")}
+                                className="px-2 py-1 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 transition text-[11px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed">
+                                {o._loading ? "..." : "❌ Cancel"}
+                              </button>
+                            </>)}
+                            {o.status === "processing" && (
+                              <button disabled={o._loading} onClick={() => handleOrderStatus(o.id, "shipped")}
+                                className="px-2 py-1 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-500 hover:bg-purple-100 transition text-[11px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed">
+                                {o._loading ? "..." : "🚚 Ship"}
+                              </button>
+                            )}
+                            {(o.status === "shipped" || o.status === "completed" || o.status === "cancelled") && (
+                              <span className="text-[11px] text-[#1a1060]/30 dark:text-[#f0ede8]/30 italic">
+                                {o.status === "shipped" ? "Awaiting buyer confirmation" : o.status === "completed" ? "Order complete" : "Cancelled"}
+                              </span>
+                            )}
                           </div>
                         </td>
                       </tr>

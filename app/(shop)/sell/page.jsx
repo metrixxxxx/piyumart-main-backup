@@ -57,35 +57,48 @@ export default function SellPage() {
     setVariants([]);
   }
 
-  async function handleSubmit() {
-    const attributes = attributeDefs.map((def) => ({
-      attribute_definition_id: def.id,
-      value: attrValues[def.id] || "",
-    }));
-    const formData = new FormData();
-    formData.append("name", form.name);
-    formData.append("description", form.description);
-    formData.append("price", form.price);
-    formData.append("category_id", form.category_id);
-    formData.append("stock", form.stock);
-    formData.append("is_visible", form.is_visible);
-    formData.append("attributes", JSON.stringify(attributes));
-    if (editProduct) formData.append("id", editProduct.id);
-    mainImages.forEach((img) => formData.append("images", img.file));
-    variants.forEach((v, i) => {
-      formData.append(`variant_label_${i}`, v.label);
-      if (v.file) formData.append(`variant_image_${i}`, v.file);
-    });
-    formData.append("variant_count", variants.length);
-    const res = await fetch("/api/sell", { method: editProduct ? "PUT" : "POST", body: formData });
-    const data = await res.json();
-    if (data.success) {
-      alert(editProduct ? "Updated!" : "Posted!");
-      setShowForm(false);
-      setEditProduct(null);
-      resetForm();
+ async function handleSubmit() {
+  const attributes = attributeDefs.map((def) => ({
+    attribute_definition_id: def.id,
+    value: attrValues[def.id] || "",
+  }));
+  const formData = new FormData();
+  formData.append("name", form.name);
+  formData.append("description", form.description);
+  formData.append("price", form.price);
+  formData.append("category_id", form.category_id);
+  formData.append("stock", form.stock);
+  formData.append("is_visible", form.is_visible);
+  formData.append("attributes", JSON.stringify(attributes));
+  if (editProduct) formData.append("id", editProduct.id);
+
+  // ✅ FIX 1: separate new files from existing URLs
+  const existingUrls = [];
+  mainImages.forEach((img) => {
+    if (img.file) {
+      formData.append("images", img.file);
+    } else {
+      existingUrls.push(img.preview);
     }
+  });
+  formData.append("existing_image_urls", JSON.stringify(existingUrls));
+
+  variants.forEach((v, i) => {
+    formData.append(`variant_label_${i}`, v.label);
+    if (v.file) formData.append(`variant_image_${i}`, v.file);
+    else if (v.preview) formData.append(`variant_existing_image_${i}`, v.preview);
+  });
+  formData.append("variant_count", variants.length);
+
+  const res = await fetch("/api/sell", { method: editProduct ? "PUT" : "POST", body: formData });
+  const data = await res.json();
+  if (data.success) {
+    alert(editProduct ? "Updated!" : "Posted!");
+    setShowForm(false);
+    setEditProduct(null);
+    resetForm();
   }
+}
 
   async function handleDelete(id) {
     if (!confirm("Delete product?")) return;
@@ -98,29 +111,38 @@ export default function SellPage() {
   }
 
   function handleEdit(product) {
-    setEditProduct(product);
-    setForm({
-      name: product.name, description: product.description, price: product.price,
-      category_id: product.category_id || "", stock: product.stock ?? 0, is_visible: product.is_visible ?? 1,
-    });
-    setMainImages(
-      product.images?.map((url) => ({ file: null, preview: url })) ||
-      (product.image_url ? [{ file: null, preview: product.image_url }] : [])
-    );
-    setVariants(product.variants?.map((v) => ({ label: v.label, file: null, preview: v.image_url })) || []);
-    setShowForm(true);
-  }
+  setEditProduct(product);
+  setForm({
+    name: product.name, description: product.description, price: product.price,
+    category_id: product.category_id || "", stock: product.stock ?? 0, is_visible: product.is_visible ?? 1,
+  });
+
+  // ✅ FIX 2: pre-populate existing attribute values
+  const existingAttrs = {};
+  product.attributes?.forEach((a) => {
+    existingAttrs[a.attribute_definition_id] = a.value;
+  });
+  setAttrValues(existingAttrs);
+
+  setMainImages(
+    product.images?.map((url) => ({ file: null, preview: url })) ||
+    (product.image_url ? [{ file: null, preview: product.image_url }] : [])
+  );
+  setVariants(product.variants?.map((v) => ({ label: v.label, file: null, preview: v.image_url })) || []);
+  setShowForm(true);
+}
 
   useEffect(() => {
-    if (!form.category_id) return;
-    async function fetchAttrs() {
-      const res = await fetch(`/api/attributes?category_id=${form.category_id}`);
-      const data = await res.json();
-      setAttributeDefs(Array.isArray(data) ? data : []);
-      setAttrValues({});
-    }
-    fetchAttrs();
-  }, [form.category_id]);
+  if (!form.category_id) return;
+  async function fetchAttrs() {
+    const res = await fetch(`/api/attributes?category_id=${form.category_id}`);
+    const data = await res.json();
+    setAttributeDefs(Array.isArray(data) ? data : []);
+    // ✅ FIX 2: only reset attr values when adding new product, not editing
+    if (!editProduct) setAttrValues({});
+  }
+  fetchAttrs();
+}, [form.category_id]);
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
@@ -159,7 +181,7 @@ export default function SellPage() {
     <main className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] transition-colors duration-300">
 
       {/* HERO */}
-      <section className="bg-[#9D6BFF] dark:bg-[#12121a] text-white text-center px-5 py-12">
+      <section className="bg-[#beafdd] dark:bg-[#12121a] text-white text-center px-5 py-12">
         <h1 className="text-3xl font-bold">Sell Your Items</h1>
         <p className="text-white/60 mt-1.5 text-sm">What are you selling today? Add and manage your products here.</p>
       </section>

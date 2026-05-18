@@ -3,16 +3,42 @@
 /* ── DARK MODE (Tailwind v4) ── */
 @variant dark (&:where(.dark, .dark *));
 
-/* ── CSS VARIABLES ── */
+/* ── LSPU COLOR PALETTE ──
+   Navy Blue  : #1a2a6c
+   Green      : #1a6c2a
+   Gold       : #c9a028
+   White      : #ffffff
+   Light BG   : #f0f4ff
+── */
+
 :root {
-  --bg: #f8f7f4;
+  --bg: #f0f4ff;
   --card: #ffffff;
-  --text: #171717;
-  --muted: #6b7280;
-  --primary: #111827;
-  --accent: #2563eb;
+  --text: #0e1a3d;
+  --muted: #4a5a7a;
+  --primary: #1a2a6c;
+  --primary-hover: #142060;
+  --secondary: #1a6c2a;
+  --secondary-hover: #145520;
+  --accent: #c9a028;
+  --accent-hover: #b08a1a;
   --danger: #ef4444;
   --success: #16a34a;
+}
+
+.dark {
+  --bg: #0a0e1f;
+  --card: #111827;
+  --text: #e8edf8;
+  --muted: #6b7a9a;
+  --primary: #2a3f9c;
+  --primary-hover: #3450c0;
+  --secondary: #1e7a32;
+  --secondary-hover: #25a040;
+  --accent: #d4aa40;
+  --accent-hover: #e0bf60;
+  --danger: #ef4444;
+  --success: #22c55e;
 }
 
 /* ── GLOBAL RESET ── */
@@ -33,7 +59,7 @@ body {
 
 /* ── CARDS ── */
 .card {
-  @apply bg-white border border-gray-200 rounded-xl p-4 shadow-sm;
+  @apply bg-white border border-blue-100 rounded-xl p-4 shadow-sm;
 }
 
 /* ── BUTTONS ── */
@@ -41,12 +67,39 @@ body {
   @apply px-4 py-2 rounded-lg text-sm font-medium transition;
 }
 
+/* Navy blue — primary actions */
 .btn-primary {
-  @apply bg-black text-white hover:bg-gray-800;
+  background-color: var(--primary);
+  color: #ffffff;
+}
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+
+/* Green — secondary/confirm actions */
+.btn-green {
+  background-color: var(--secondary);
+  color: #ffffff;
+}
+.btn-green:hover {
+  background-color: var(--secondary-hover);
+}
+
+/* Gold — accent/highlight actions */
+.btn-gold {
+  background-color: var(--accent);
+  color: #0e1a3d;
+}
+.btn-gold:hover {
+  background-color: var(--accent-hover);
 }
 
 .btn-blue {
-  @apply bg-blue-600 text-white hover:bg-blue-700;
+  background-color: var(--primary);
+  color: #ffffff;
+}
+.btn-blue:hover {
+  background-color: var(--primary-hover);
 }
 
 .btn-red {
@@ -54,10 +107,19 @@ body {
 }
 
 .btn-outline {
-  @apply border border-gray-300 hover:bg-gray-100;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+}
+.btn-outline:hover {
+  background-color: #e8edf8;
 }
 
 /* ── INPUTS ── */
 .input {
-  @apply border border-gray-300 rounded-lg px-3 py-2 w-full outline-none focus:ring-2 focus:ring-blue-500;
+  @apply border rounded-lg px-3 py-2 w-full outline-none transition;
+  border-color: #c5cfe8;
+}
+.input:focus {
+  ring: 2px solid var(--primary);
+  border-color: var(--primary);
 }

@@ -16,22 +16,3 @@ export async function GET() {
   return Response.json(rows);
 }
 
-export async function PUT(req) {
-  const { id, status } = await req.json();
-  await db.query("UPDATE orders SET status=$1 WHERE id=$2", [status, id]);
-
-  const [orderRows] = await db.query("SELECT user_id FROM orders WHERE id=$1", [id]);
-
-  if (orderRows[0]) {
-    const statusLabels = { pending: "Pending", otw: "On the way", delivered: "Delivered" };
-    await notify({
-      userId: orderRows[0].user_id,
-      type: "order_status",
-      message: `Your order #${id} is now ${statusLabels[status] || status}.`,
-    });
-  }
-
-  if (global.io) global.io.emit("orders:updated", { id, status });
-
-  return Response.json({ success: true });
-}

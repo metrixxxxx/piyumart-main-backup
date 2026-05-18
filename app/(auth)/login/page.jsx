@@ -107,6 +107,13 @@ export default function LoginPage() {
             >
               Login
             </button>
+<button
+  type="button"
+  onClick={() => signIn("google", { callbackUrl: "/set-password" })}
+  className="mt-3 h-10 w-full rounded-full border border-[#4f8ef7] bg-transparent text-xs font-semibold uppercase tracking-widest text-[#4f8ef7] transition hover:bg-[#4f8ef7]/10 active:scale-95"
+>
+  Sign in with Google
+</button>
 
             {/* Footer */}
             <div className="mt-3 flex items-center justify-between">
@@ -114,17 +121,11 @@ export default function LoginPage() {
                 <input type="checkbox" className="h-3 w-3 accent-[#4f8ef7]" />
                 Remember me
               </label>
-              <button type="button" className="text-[11px] text-[#4f8ef7] hover:underline">
-                Forgot password?
-              </button>
+              
             </div>
           </form>
 
-          {/* Register */}
-          <p className="mt-3.5 text-center text-[11px] text-[#4a5080]">
-            No account yet?{" "}
-            <a href="/register" className="text-[#4f8ef7] hover:underline">Register</a>
-          </p>
+         
 
           {/* Dots */}
           <div className="mt-auto flex justify-center gap-1.5 pt-6">
@@ -156,10 +157,7 @@ export default function LoginPage() {
             <p className="mb-3 max-w-[200px] text-xs leading-relaxed text-[#4a5080]">
               Discover student deals on campus. Sign in with your LSPU email.
             </p>
-            <p className="text-[11px] text-[#4a5080]">
-              No account yet?{" "}
-              <a href="/register" className="text-[#4f8ef7] hover:underline">Register here.</a>
-            </p>
+            
           </div>
         </div>
 

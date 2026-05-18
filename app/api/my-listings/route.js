@@ -27,7 +27,7 @@ export async function GET() {
 
   const stats = {
     total: products.length,
-    active: products.filter((p) => p.is_visible === true).length,
+    active: products.filter((p) => Number(p.is_visible) === 1).length,
     totalOrders: orderStats[0]?.totalorders || 0,
     revenue: orderStats[0]?.revenue || 0,
   };
