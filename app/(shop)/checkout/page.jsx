@@ -11,6 +11,7 @@ function CheckoutContent() {
   const productId = searchParams.get("productId");
   const isBuyNow = Boolean(productId);
   const quantity = parseInt(searchParams.get("quantity") || "1");
+  const variantParam = searchParams.get("variant") || null;
 
   const [product, setProduct] = useState(null);
   const [cartItems, setCartItems] = useState([]);
@@ -33,10 +34,19 @@ function CheckoutContent() {
       setLoading(true);
       try {
         if (isBuyNow) {
-          const res = await fetch(`/api/products/${productId}`);
-          const data = await res.json();
-          setProduct(data);
-        } else {
+  const res = await fetch(`/api/products/${productId}`);
+  const data = await res.json();
+
+  // Find the matching variant object so we get its image_url too
+  if (variantParam && data.variants?.length > 0) {
+    const matchedVariant = data.variants.find(v => v.label === variantParam);
+    if (matchedVariant?.image_url) {
+      data.image_url = matchedVariant.image_url; // use variant image in summary
+    }
+  }
+
+  setProduct(data);
+} else {
           const source = searchParams.get("source");
           if (source === "selected") {
             const stored = sessionStorage.getItem("selectedCartItems");
@@ -58,7 +68,9 @@ function CheckoutContent() {
     load();
   }, [status, isBuyNow, productId, session, searchParams]);
 
-  const items = isBuyNow && product ? [{ ...product, quantity }] : cartItems;
+ const items = isBuyNow && product
+  ? [{ ...product, quantity, variant: variantParam }]
+  : cartItems;
   const total = items.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
 
   // ✅ FIXED: single POST with all items instead of one POST per item
@@ -114,8 +126,8 @@ function CheckoutContent() {
   );
 
   if (orderDone) return (
-    <div className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] flex items-center justify-center">
-      <div className="text-center px-12 py-14 bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07]">
+    <div className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] flex items-center justify-center p-4">
+      <div className="text-center px-6 sm:px-12 py-10 sm:py-14 bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07]">
         <div className="text-5xl mb-4">🎉</div>
         <h2 className="text-xl font-bold text-[#1a1060] dark:text-[#f0ede8] mb-2">Order Placed!</h2>
         <p className="text-sm text-[#1a1060]/50 dark:text-[#f0ede8]/40">Redirecting to your orders...</p>
@@ -127,7 +139,7 @@ function CheckoutContent() {
     <main className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] transition-colors duration-300">
 
       {/* HERO */}
-      <section className="bg-white dark:bg-[#0a0a0f] border-b border-[#e8e5f0] dark:border-white/[0.07] px-5 py-12 text-center">
+      <section className="bg-white dark:bg-[#0a0a0f] border-b border-[#e8e5f0] dark:border-white/[0.07] px-4 sm:px-5 py-10 sm:py-12 text-center">
         <div className="inline-flex items-center gap-2 bg-[#ede9ff] dark:bg-[#c9a96e]/10 text-[#6d4aff] dark:text-[#c9a96e] text-[11px] font-bold px-4 py-1.5 rounded-full mb-4 uppercase tracking-wider">
           <span className="w-1.5 h-1.5 rounded-full bg-[#6d4aff] dark:bg-[#c9a96e]" />
           Secure Checkout
@@ -138,14 +150,14 @@ function CheckoutContent() {
         </p>
       </section>
 
-      <section className="max-w-[960px] mx-auto px-5 py-8">
+      <section className="max-w-[960px] mx-auto px-4 sm:px-5 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
 
           {/* LEFT — Delivery Details */}
           <div className="flex flex-col gap-4">
 
             {/* Contact */}
-            <div className="bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07] p-6">
+            <div className="bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07] p-5 sm:p-6">
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-7 h-7 rounded-lg bg-[#6d4aff] dark:bg-[#c9a96e] flex items-center justify-center text-xs font-bold text-white dark:text-[#0a0a0f]">1</div>
                 <h2 className="text-sm font-bold text-[#1a1060] dark:text-[#f0ede8]">Contact Information</h2>
@@ -163,7 +175,7 @@ function CheckoutContent() {
             </div>
 
             {/* Delivery */}
-            <div className="bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07] p-6">
+            <div className="bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07] p-5 sm:p-6">
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-7 h-7 rounded-lg bg-[#6d4aff] dark:bg-[#c9a96e] flex items-center justify-center text-xs font-bold text-white dark:text-[#0a0a0f]">2</div>
                 <h2 className="text-sm font-bold text-[#1a1060] dark:text-[#f0ede8]">Delivery Address</h2>
@@ -175,7 +187,7 @@ function CheckoutContent() {
             </div>
 
             {/* Payment */}
-            <div className="bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07] p-6">
+            <div className="bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07] p-5 sm:p-6">
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-7 h-7 rounded-lg bg-[#6d4aff] dark:bg-[#c9a96e] flex items-center justify-center text-xs font-bold text-white dark:text-[#0a0a0f]">3</div>
                 <h2 className="text-sm font-bold text-[#1a1060] dark:text-[#f0ede8]">Payment Method</h2>
@@ -194,7 +206,7 @@ function CheckoutContent() {
           </div>
 
           {/* RIGHT — Order Summary */}
-          <div className="sticky top-6 flex flex-col gap-3">
+          <div className="lg:sticky lg:top-6 flex flex-col gap-3">
             <div className="bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07] p-5">
               <h3 className="text-sm font-bold text-[#1a1060] dark:text-[#f0ede8] mb-4">Order Summary</h3>
 

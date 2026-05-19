@@ -44,7 +44,7 @@ export default function HeroSlider() {
 
   if (products.length === 0) {
     return (
-      <div className="h-[400px] flex items-center justify-center text-gray-400">
+      <div className="h-[260px] sm:h-[320px] lg:h-[400px] flex items-center justify-center text-gray-400">
         Loading featured products...
       </div>
     );
@@ -71,7 +71,7 @@ export default function HeroSlider() {
         }
       `}</style>
 
-      <div className="relative w-full h-[400px] overflow-hidden rounded-xl">
+      <div className="relative w-full h-[260px] sm:h-[320px] lg:h-[400px] overflow-hidden rounded-xl">
 
         {/* IMAGE — re-keyed to trigger animation on change */}
        <img
@@ -94,11 +94,11 @@ export default function HeroSlider() {
         {/* OVERLAY — centered content */}
         <div
           key={`overlay-${index}`}
-          className={`absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-center px-10 ${
+          className={`absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-center px-4 sm:px-10 ${
             direction === "next" ? "slide-enter-next" : "slide-enter-prev"
           }`}
         >
-          <h1 className="text-3xl font-bold text-white">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">
             {product.name}
           </h1>
 

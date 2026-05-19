@@ -1,0 +1,44 @@
+[
+  {
+    "id": 3,
+    "product_id": 3,
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/products/1779029427084-IMG_5337.jpeg",
+    "sort_order": 0
+  },
+  {
+    "id": 6,
+    "product_id": 6,
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/products/1779030401286-java-rice.jpg",
+    "sort_order": 0
+  },
+  {
+    "id": 10,
+    "product_id": 2,
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/products/1779025954105-dog11.jpg",
+    "sort_order": 0
+  },
+  {
+    "id": 11,
+    "product_id": 9,
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/products/1779106824424-dandelion.jpg",
+    "sort_order": 0
+  },
+  {
+    "id": 12,
+    "product_id": 10,
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/products/1779106827854-dandelion.jpg",
+    "sort_order": 0
+  },
+  {
+    "id": 13,
+    "product_id": 11,
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/products/1779121512256-marijane.jpg",
+    "sort_order": 0
+  },
+  {
+    "id": 16,
+    "product_id": 8,
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/products/1779096043746-manok.jpg",
+    "sort_order": 0
+  }
+]

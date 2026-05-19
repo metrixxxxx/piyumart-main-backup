@@ -87,20 +87,31 @@ const orderId = Number(id);
     }
 
     // PREVENT DOUBLE FINALIZATION
-    if (!isAdmin) {
-
-      if (
-        order.status === "cancelled" ||
-        order.status === "completed"
-      ) {
-        return NextResponse.json(
-          { error: "Order already finalized" },
-          { status: 400 }
-        );
-      }
+    if (
+      order.status === "cancelled" ||
+      order.status === "completed"
+    ) {
+      return NextResponse.json(
+        { error: "Order already finalized" },
+        { status: 400 }
+      );
     }
 
     await db.query("BEGIN");
+
+    // INCREMENT SOLD COUNT ONLY WHEN MARKING COMPLETED
+    if (status === "completed" && order.status !== "completed") {
+      const [items] = await db.query(
+        `SELECT product_id, quantity FROM order_items WHERE order_id = $1`,
+        [orderId]
+      );
+      for (const item of items) {
+        await db.query(
+          `UPDATE products SET sold_count = sold_count + $1 WHERE id = $2`,
+          [item.quantity, item.product_id]
+        );
+      }
+    }
 
     // RESTORE STOCKS WHEN CANCELLED
     if (status === "cancelled") {

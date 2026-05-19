@@ -5,7 +5,12 @@ export async function GET(req, { params }) {
     const { id } = await params;
 
     const [rows] = await db.query(
-      "SELECT * FROM products WHERE id = $1",
+      `SELECT p.*, 
+        COALESCE(p.average_rating, 0) as average_rating,
+        COALESCE(p.total_ratings, 0) as total_ratings,
+        COALESCE(p.sold_count, 0) as sold_count
+       FROM products p 
+       WHERE p.id = $1`,
       [id]
     );
 

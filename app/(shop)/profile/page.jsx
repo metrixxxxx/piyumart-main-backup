@@ -143,7 +143,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-[#f0f2f5] dark:bg-[#050712]">
       {/* Top bar */}
       <div className="bg-[#1a2744] dark:bg-[#0f1831] px-6 py-4 shadow-md">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
+        <div className="max-w-4xl mx-auto flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-xl font-bold text-white">My Account</h1>
             <p className="text-sm text-white/50">
@@ -151,11 +151,11 @@ export default function ProfilePage() {
             </p>
           </div>
           {!editing && !editingPassword && (
-            <div className="flex items-center gap-2">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
               <button
                 type="button"
                 onClick={handleChangePasswordClick}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1976d2] hover:bg-[#1565c0] active:scale-[0.98] text-white text-sm font-semibold transition-all"
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#1976d2] hover:bg-[#1565c0] active:scale-[0.98] text-white text-sm font-semibold transition-all"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -166,7 +166,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={handleEditClick}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4caf50] hover:bg-[#43a047] active:scale-[0.98] text-white text-sm font-semibold transition-all"
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#4caf50] hover:bg-[#43a047] active:scale-[0.98] text-white text-sm font-semibold transition-all"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -180,7 +180,7 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={handleChangePasswordClick}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1976d2] hover:bg-[#1565c0] active:scale-[0.98] text-white text-sm font-semibold transition-all"
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#1976d2] hover:bg-[#1565c0] active:scale-[0.98] text-white text-sm font-semibold transition-all"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -193,7 +193,7 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={handleEditClick}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4caf50] hover:bg-[#43a047] active:scale-[0.98] text-white text-sm font-semibold transition-all"
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#4caf50] hover:bg-[#43a047] active:scale-[0.98] text-white text-sm font-semibold transition-all"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -220,7 +220,7 @@ export default function ProfilePage() {
             <div className="h-24 bg-[#1a2744] dark:bg-[#0f1831]" />
 
             <div className="px-6 pb-6">
-              <div className="flex items-end justify-between -mt-12 mb-4">
+              <div className="flex items-end justify-between gap-3 -mt-12 mb-4">
                 {/* Avatar */}
                 <div
                   className={`relative ${editing ? "cursor-pointer" : ""}`}
@@ -352,7 +352,7 @@ export default function ProfilePage() {
 
           {/* Action buttons */}
           {(editing || editingPassword) && (
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 type="button"
                 onClick={handleCancel}

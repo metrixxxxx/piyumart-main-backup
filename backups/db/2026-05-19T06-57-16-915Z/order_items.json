@@ -1,0 +1,234 @@
+[
+  {
+    "id": 1,
+    "order_id": 1,
+    "product_id": 1,
+    "quantity": 1,
+    "price": 1232,
+    "created_at": "2026-05-17T13:40:19.398822"
+  },
+  {
+    "id": 2,
+    "order_id": 2,
+    "product_id": 1,
+    "quantity": 1,
+    "price": 1232,
+    "created_at": "2026-05-17T13:40:44.068051"
+  },
+  {
+    "id": 3,
+    "order_id": 3,
+    "product_id": 1,
+    "quantity": 1,
+    "price": 1232,
+    "created_at": "2026-05-17T13:44:10.212605"
+  },
+  {
+    "id": 4,
+    "order_id": 4,
+    "product_id": 2,
+    "quantity": 1,
+    "price": 23232,
+    "created_at": "2026-05-17T13:52:47.513451"
+  },
+  {
+    "id": 5,
+    "order_id": 5,
+    "product_id": 2,
+    "quantity": 1,
+    "price": 23232,
+    "created_at": "2026-05-17T13:54:18.703263"
+  },
+  {
+    "id": 6,
+    "order_id": 6,
+    "product_id": 2,
+    "quantity": 1,
+    "price": 23232,
+    "created_at": "2026-05-17T14:21:34.296867"
+  },
+  {
+    "id": 7,
+    "order_id": 7,
+    "product_id": 2,
+    "quantity": 1,
+    "price": 23232,
+    "created_at": "2026-05-17T14:47:05.518024"
+  },
+  {
+    "id": 8,
+    "order_id": 8,
+    "product_id": 6,
+    "quantity": 1,
+    "price": 30,
+    "created_at": "2026-05-17T15:08:44.063908"
+  },
+  {
+    "id": 9,
+    "order_id": 9,
+    "product_id": 6,
+    "quantity": 1,
+    "price": 30,
+    "created_at": "2026-05-17T15:10:31.403287"
+  },
+  {
+    "id": 10,
+    "order_id": 10,
+    "product_id": 3,
+    "quantity": 1,
+    "price": 4000,
+    "created_at": "2026-05-18T07:40:58.598425"
+  },
+  {
+    "id": 11,
+    "order_id": 11,
+    "product_id": 8,
+    "quantity": 1,
+    "price": 4000,
+    "created_at": "2026-05-18T09:21:28.747669"
+  },
+  {
+    "id": 12,
+    "order_id": 12,
+    "product_id": 8,
+    "quantity": 1,
+    "price": 4000,
+    "created_at": "2026-05-18T10:27:24.372609"
+  },
+  {
+    "id": 13,
+    "order_id": 13,
+    "product_id": 2,
+    "quantity": 1,
+    "price": 23232,
+    "created_at": "2026-05-18T10:56:25.353735"
+  },
+  {
+    "id": 14,
+    "order_id": 14,
+    "product_id": 3,
+    "quantity": 1,
+    "price": 4000,
+    "created_at": "2026-05-18T11:02:39.724504"
+  },
+  {
+    "id": 15,
+    "order_id": 15,
+    "product_id": 3,
+    "quantity": 3,
+    "price": 4000,
+    "created_at": "2026-05-18T11:12:18.01841"
+  },
+  {
+    "id": 16,
+    "order_id": 16,
+    "product_id": 3,
+    "quantity": 1,
+    "price": 4000,
+    "created_at": "2026-05-18T12:11:33.73754"
+  },
+  {
+    "id": 17,
+    "order_id": 17,
+    "product_id": 11,
+    "quantity": 1,
+    "price": 4500,
+    "created_at": "2026-05-18T16:26:49.484367"
+  },
+  {
+    "id": 18,
+    "order_id": 18,
+    "product_id": 8,
+    "quantity": 1,
+    "price": 4000,
+    "created_at": "2026-05-18T17:36:54.439099"
+  },
+  {
+    "id": 19,
+    "order_id": 19,
+    "product_id": 8,
+    "quantity": 1,
+    "price": 4000,
+    "created_at": "2026-05-18T17:37:13.684227"
+  },
+  {
+    "id": 20,
+    "order_id": 20,
+    "product_id": 8,
+    "quantity": 1,
+    "price": 4000,
+    "created_at": "2026-05-18T17:39:41.152117"
+  },
+  {
+    "id": 21,
+    "order_id": 21,
+    "product_id": 8,
+    "quantity": 1,
+    "price": 4000,
+    "created_at": "2026-05-18T17:42:05.134632"
+  },
+  {
+    "id": 22,
+    "order_id": 22,
+    "product_id": 8,
+    "quantity": 1,
+    "price": 4000,
+    "created_at": "2026-05-18T17:44:37.617096"
+  },
+  {
+    "id": 23,
+    "order_id": 23,
+    "product_id": 8,
+    "quantity": 1,
+    "price": 4000,
+    "created_at": "2026-05-18T17:46:50.436664"
+  },
+  {
+    "id": 24,
+    "order_id": 24,
+    "product_id": 8,
+    "quantity": 1,
+    "price": 4000,
+    "created_at": "2026-05-18T17:48:04.412164"
+  },
+  {
+    "id": 25,
+    "order_id": 25,
+    "product_id": 8,
+    "quantity": 1,
+    "price": 4000,
+    "created_at": "2026-05-18T18:49:08.37302"
+  },
+  {
+    "id": 26,
+    "order_id": 26,
+    "product_id": 8,
+    "quantity": 1,
+    "price": 4000,
+    "created_at": "2026-05-19T03:17:28.68114"
+  },
+  {
+    "id": 27,
+    "order_id": 27,
+    "product_id": 8,
+    "quantity": 1,
+    "price": 4000,
+    "created_at": "2026-05-19T03:18:10.962315"
+  },
+  {
+    "id": 28,
+    "order_id": 28,
+    "product_id": 8,
+    "quantity": 1,
+    "price": 4000,
+    "created_at": "2026-05-19T03:26:21.675285"
+  },
+  {
+    "id": 29,
+    "order_id": 29,
+    "product_id": 8,
+    "quantity": 1,
+    "price": 4000,
+    "created_at": "2026-05-19T03:29:04.124767"
+  }
+]

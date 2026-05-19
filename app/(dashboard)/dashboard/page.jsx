@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 const NAV = [
   { key: "overview", label: "Overview", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
@@ -17,6 +18,7 @@ export default function AdminDashboard() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedProducts, setSelectedProducts] = useState([]);
+  const [confirmModal, setConfirmModal] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [notifications, setNotifications] = useState([]);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -87,18 +89,33 @@ export default function AdminDashboard() {
     router.push("/admin/login");
   }
 
-  async function handleDeleteProduct(id) {
-    if (!confirm("Delete this product?")) return;
-    await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
-    setProducts((prev) => prev.filter((p) => String(p.id) !== String(id)));
-    setSelectedProducts((prev) => prev.filter((sid) => String(sid) !== String(id)));
+  function openDeleteProductModal(id) {
+    setConfirmModal({
+      title: "Delete this product?",
+      description: "This will permanently remove the product from the platform.",
+      confirmText: "Delete product",
+      cancelText: "Keep product",
+      onConfirm: async () => {
+        await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
+        setProducts((prev) => prev.filter((p) => String(p.id) !== String(id)));
+        setSelectedProducts((prev) => prev.filter((sid) => String(sid) !== String(id)));
+      },
+    });
   }
 
-  async function handleBulkDeleteProducts() {
-    if (!selectedProducts.length || !confirm(`Delete ${selectedProducts.length} product(s)?`)) return;
-    await Promise.all(selectedProducts.map((id) => fetch(`/api/admin/products/${id}`, { method: "DELETE" })));
-    setProducts((prev) => prev.filter((p) => !selectedProducts.map(String).includes(String(p.id))));
-    setSelectedProducts([]);
+  function openBulkDeleteProductsModal() {
+    if (!selectedProducts.length) return;
+    setConfirmModal({
+      title: `Delete ${selectedProducts.length} product(s)?`,
+      description: "This will permanently remove the selected product listings.",
+      confirmText: "Delete selected",
+      cancelText: "Keep selected",
+      onConfirm: async () => {
+        await Promise.all(selectedProducts.map((id) => fetch(`/api/admin/products/${id}`, { method: "DELETE" })));
+        setProducts((prev) => prev.filter((p) => !selectedProducts.map(String).includes(String(p.id))));
+        setSelectedProducts([]);
+      },
+    });
   }
 
   function toggleSelectProduct(id) {
@@ -109,13 +126,19 @@ export default function AdminDashboard() {
     setSelectedProducts(selectedProducts.length === products.length ? [] : products.map((p) => p.id));
   }
 
-  async function handleDeleteUser(id) {
-    if (!confirm("Delete this user?")) return;
-    await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
-    fetchData();
+  function openDeleteUserModal(id) {
+    setConfirmModal({
+      title: "Delete this user?",
+      description: "This will remove the user account and all associated access.",
+      confirmText: "Delete user",
+      cancelText: "Keep user",
+      onConfirm: async () => {
+        await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
+        fetchData();
+      },
+    });
   }
 
-  
   function markAllRead() {
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: 1 })));
   }
@@ -136,9 +159,9 @@ export default function AdminDashboard() {
   );
 
   return (
-    <div className="min-h-screen flex bg-gray-950 text-white">
+    <div className="min-h-screen flex flex-col bg-gray-950 text-white md:flex-row">
       {/* Sidebar */}
-      <aside className="w-56 bg-gray-900 border-r border-gray-800 flex flex-col sticky top-0 h-screen">
+      <aside className="w-full bg-gray-900 border-b border-gray-800 flex flex-col md:w-56 md:border-b-0 md:border-r md:sticky md:top-0 md:h-screen">
         {/* Logo */}
         <div className="px-5 py-5 border-b border-gray-800">
           <h1 className="text-lg font-bold text-white">PIYUMART</h1>
@@ -146,12 +169,12 @@ export default function AdminDashboard() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
+        <nav className="flex-1 px-3 py-3 flex gap-1 overflow-x-auto md:py-4 md:flex-col md:overflow-x-visible">
           {NAV.map((item) => (
             <button
               key={item.key}
               onClick={() => setActiveTab(item.key)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition w-full text-left ${
+              className={`flex shrink-0 items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition md:w-full text-left ${
                 activeTab === item.key
                   ? "bg-blue-600 text-white"
                   : "text-gray-400 hover:bg-gray-800 hover:text-white"
@@ -171,7 +194,7 @@ export default function AdminDashboard() {
         </nav>
 
         {/* Admin info + logout */}
-        <div className="px-3 py-4 border-t border-gray-800">
+        <div className="hidden px-3 py-4 border-t border-gray-800 md:block">
           <div className="flex items-center gap-3 px-3 py-2 mb-2">
             <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold">
               {admin?.name?.charAt(0).toUpperCase()}
@@ -196,7 +219,7 @@ export default function AdminDashboard() {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Top bar */}
-        <header className="bg-gray-900 border-b border-gray-800 px-6 py-3 flex items-center justify-between sticky top-0 z-10">
+        <header className="bg-gray-900 border-b border-gray-800 px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-10">
           <h2 className="text-sm font-medium text-gray-300 capitalize">{activeTab}</h2>
           {/* Notification bell */}
           <div className="relative">
@@ -216,7 +239,7 @@ export default function AdminDashboard() {
             </button>
 
             {notifOpen && (
-              <div className="absolute right-0 mt-2 w-80 bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden">
+              <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-80 bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
                   <span className="text-sm font-medium text-white">
                     Notifications
@@ -260,12 +283,12 @@ export default function AdminDashboard() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="flex-1 p-4 sm:p-6 overflow-auto">
 
           {/* Overview */}
           {activeTab === "overview" && (
             <div>
-              <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-3">
                 <div onClick={() => setActiveTab("products")} className="bg-gray-900 border border-gray-800 rounded-xl p-5 text-center cursor-pointer hover:border-blue-500 transition">
                   <p className="text-3xl font-bold text-blue-400">{products.length}</p>
                   <p className="text-gray-400 text-sm mt-1">Total Products</p>
@@ -282,8 +305,8 @@ export default function AdminDashboard() {
 
               {/* Recent orders */}
               <h3 className="text-sm font-medium text-gray-400 mb-3">Recent Orders</h3>
-              <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-x-auto">
+                <table className="w-full min-w-[560px] text-sm">
                   <thead className="border-b border-gray-800">
                     <tr>
                       <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase">Order</th>
@@ -315,8 +338,8 @@ export default function AdminDashboard() {
 
           {/* Orders */}
           {activeTab === "orders" && (
-            <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-x-auto">
+              <table className="w-full min-w-[820px] text-sm">
                 <thead className="border-b border-gray-800">
                   <tr>
                     <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase">Order ID</th>
@@ -362,14 +385,14 @@ export default function AdminDashboard() {
             <div>
               {selectedProducts.length > 0 && (
                 <div className="flex justify-end mb-3">
-                  <button onClick={handleBulkDeleteProducts}
+                  <button onClick={openBulkDeleteProductsModal}
                     className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm">
                     Delete Selected ({selectedProducts.length})
                   </button>
                 </div>
               )}
-              <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-x-auto">
+                <table className="w-full min-w-[760px] text-sm">
                   <thead className="border-b border-gray-800">
                     <tr>
                       <th className="p-4 w-8">
@@ -403,7 +426,7 @@ export default function AdminDashboard() {
                         <td className="px-4 py-3 text-gray-400">{product.seller_name || "—"}</td>
                         <td className="px-4 py-3">
                           <div className="flex gap-2">
-                            <button onClick={() => handleDeleteProduct(product.id)}
+                            <button onClick={() => openDeleteProductModal(product.id)}
                               className="text-xs px-3 py-1.5 rounded-lg bg-red-900/40 text-red-400 hover:bg-red-900/70 transition">
                               Delete
                             </button>
@@ -435,8 +458,8 @@ export default function AdminDashboard() {
 
           {/* Users */}
           {activeTab === "users" && (
-            <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-x-auto">
+              <table className="w-full min-w-[640px] text-sm">
                 <thead className="border-b border-gray-800">
                   <tr>
                     <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase">Name</th>
@@ -457,7 +480,7 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-4 py-3">
                         {user.role !== "admin" && (
-                          <button onClick={() => handleDeleteUser(user.id)}
+                          <button onClick={() => openDeleteUserModal(user.id)}
                             className="text-xs px-3 py-1.5 rounded-lg bg-red-900/40 text-red-400 hover:bg-red-900/70 transition">
                             Delete
                           </button>
@@ -470,6 +493,21 @@ export default function AdminDashboard() {
             </div>
           )}
         </main>
+
+        <ConfirmModal
+          open={Boolean(confirmModal)}
+          title={confirmModal?.title || "Confirm action"}
+          description={confirmModal?.description || "Are you sure?"}
+          confirmText={confirmModal?.confirmText || "Confirm"}
+          cancelText={confirmModal?.cancelText || "Cancel"}
+          onCancel={() => setConfirmModal(null)}
+          onConfirm={async () => {
+            if (!confirmModal?.onConfirm) return;
+            const action = confirmModal.onConfirm;
+            setConfirmModal(null);
+            await action();
+          }}
+        />
       </div>
     </div>
   );

@@ -56,7 +56,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex h-full w-full items-center justify-center bg-[#0f1123] p-6">
+    <div className="flex min-h-dvh w-full items-center justify-center bg-[#0f1123] p-4 sm:p-6">
       <div className="flex w-full max-w-3xl overflow-hidden rounded-2xl shadow-2xl">
 
         {/* Left: Hero Panel */}
@@ -82,7 +82,7 @@ export default function RegisterPage() {
         </div>
 
         {/* Right: Register Form */}
-        <div className="flex flex-1 flex-col bg-[#1a1d35] px-8 py-7">
+        <div className="flex flex-1 flex-col bg-[#1a1d35] px-5 py-7 sm:px-8">
           <div className="mb-6 text-sm font-bold tracking-widest text-white">
             PIYU<span className="text-[#4f8ef7]">MART</span>
           </div>
@@ -92,7 +92,7 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
 
             {/* First & Last Name */}
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <div className="relative flex-1">
                 <svg className="absolute left-3 top-1/2 -translate-y-1/2" width="13" height="13" viewBox="0 0 14 14" fill="none">
                   <circle cx="7" cy="5" r="3" stroke="#4a5080" strokeWidth="1.4"/>
@@ -144,7 +144,7 @@ export default function RegisterPage() {
             
 
             {/* Password & Confirm */}
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <div className="relative flex-1">
                 <svg className="absolute left-3 top-1/2 -translate-y-1/2" width="13" height="13" viewBox="0 0 14 14" fill="none">
                   <rect x="2" y="6" width="10" height="7" rx="2" stroke="#4a5080" strokeWidth="1.4"/>

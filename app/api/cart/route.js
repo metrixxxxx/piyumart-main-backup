@@ -17,12 +17,16 @@ export async function GET(req) {
         cart_items.id,
         cart_items.product_id,
         cart_items.quantity,
+        cart_items.variant,
         products.name,
         products.price,
-        products.image_url
+        COALESCE(pv.image_url, products.image_url) AS image_url
        FROM cart_items
        JOIN carts ON cart_items.cart_id = carts.id
        JOIN products ON cart_items.product_id = products.id
+       LEFT JOIN product_variants pv 
+         ON pv.product_id = cart_items.product_id 
+         AND pv.label = cart_items.variant
        WHERE carts.user_id = $1`,
       [userId]
     );
@@ -42,9 +46,8 @@ export async function POST(req) {
     }
 
     const userId = session.user.id;
-    const { product_id, quantity } = await req.json();
+    const { product_id, quantity, variant } = await req.json();
 
-    // Get or create the user's cart
     const [cart] = await db.query(
       "SELECT id FROM carts WHERE user_id = $1",
       [userId]
@@ -52,31 +55,30 @@ export async function POST(req) {
 
     let cartId;
     if (cart.length === 0) {
-      // Use RETURNING instead of re-querying
       const [newCart] = await db.query(
         "INSERT INTO carts (user_id) VALUES ($1) RETURNING id",
         [userId]
       );
-      cartId = newCart[0].id; // ← was result.insertId
+      cartId = newCart[0].id;
     } else {
       cartId = cart[0].id;
     }
 
-    // Check if item already exists
     const [items] = await db.query(
-      "SELECT * FROM cart_items WHERE cart_id = $1 AND product_id = $2",
-      [cartId, product_id]
+      `SELECT * FROM cart_items 
+       WHERE cart_id = $1 AND product_id = $2 AND variant IS NOT DISTINCT FROM $3`,
+      [cartId, product_id, variant ?? null]
     );
 
     if (items.length > 0) {
       await db.query(
-        "UPDATE cart_items SET quantity = quantity + 1 WHERE id = $1",
-        [items[0].id]
+        "UPDATE cart_items SET quantity = quantity + $1 WHERE id = $2",
+        [quantity, items[0].id]
       );
     } else {
       await db.query(
-        "INSERT INTO cart_items (cart_id, product_id, quantity) VALUES ($1, $2, $3)",
-        [cartId, product_id, quantity]
+        "INSERT INTO cart_items (cart_id, product_id, quantity, variant) VALUES ($1, $2, $3, $4)",
+        [cartId, product_id, quantity, variant ?? null]
       );
     }
 

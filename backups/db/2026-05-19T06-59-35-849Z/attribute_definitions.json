@@ -1,0 +1,452 @@
+[
+  {
+    "id": 1,
+    "category_id": 1,
+    "name": "brand",
+    "label": "Brand",
+    "type": "text",
+    "options": null,
+    "required": true
+  },
+  {
+    "id": 2,
+    "category_id": 1,
+    "name": "model",
+    "label": "Model",
+    "type": "text",
+    "options": null,
+    "required": true
+  },
+  {
+    "id": 3,
+    "category_id": 1,
+    "name": "condition",
+    "label": "Condition",
+    "type": "select",
+    "options": "[\"Brand New\",\"Like New\",\"Good\",\"Fair\",\"For Parts\"]",
+    "required": true
+  },
+  {
+    "id": 4,
+    "category_id": 1,
+    "name": "warranty",
+    "label": "Warranty",
+    "type": "select",
+    "options": "[\"No Warranty\",\"1 Month\",\"3 Months\",\"6 Months\",\"1 Year\",\"2 Years\"]",
+    "required": false
+  },
+  {
+    "id": 5,
+    "category_id": 1,
+    "name": "storage",
+    "label": "Storage",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 6,
+    "category_id": 1,
+    "name": "ram",
+    "label": "RAM",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 7,
+    "category_id": 1,
+    "name": "battery_life",
+    "label": "Battery Life",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 8,
+    "category_id": 1,
+    "name": "color",
+    "label": "Color",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 9,
+    "category_id": 2,
+    "name": "brand",
+    "label": "Brand",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 10,
+    "category_id": 2,
+    "name": "size",
+    "label": "Size",
+    "type": "select",
+    "options": "[\"XS\",\"S\",\"M\",\"L\",\"XL\",\"XXL\",\"XXXL\",\"Free Size\"]",
+    "required": true
+  },
+  {
+    "id": 11,
+    "category_id": 2,
+    "name": "color",
+    "label": "Color",
+    "type": "text",
+    "options": null,
+    "required": true
+  },
+  {
+    "id": 12,
+    "category_id": 2,
+    "name": "material",
+    "label": "Material",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 13,
+    "category_id": 2,
+    "name": "gender",
+    "label": "Gender",
+    "type": "select",
+    "options": "[\"Male\",\"Female\",\"Unisex\",\"Kids\"]",
+    "required": true
+  },
+  {
+    "id": 14,
+    "category_id": 2,
+    "name": "style",
+    "label": "Style",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 15,
+    "category_id": 2,
+    "name": "condition",
+    "label": "Condition",
+    "type": "select",
+    "options": "[\"Brand New\",\"Like New\",\"Good\",\"Fair\"]",
+    "required": true
+  },
+  {
+    "id": 16,
+    "category_id": 3,
+    "name": "weight_volume",
+    "label": "Weight / Volume",
+    "type": "text",
+    "options": null,
+    "required": true
+  },
+  {
+    "id": 17,
+    "category_id": 3,
+    "name": "expiry_date",
+    "label": "Expiry Date",
+    "type": "date",
+    "options": null,
+    "required": true
+  },
+  {
+    "id": 18,
+    "category_id": 3,
+    "name": "allergens",
+    "label": "Allergens",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 19,
+    "category_id": 3,
+    "name": "ingredients",
+    "label": "Ingredients",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 20,
+    "category_id": 3,
+    "name": "serving_size",
+    "label": "Serving Size",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 21,
+    "category_id": 4,
+    "name": "author",
+    "label": "Author",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 22,
+    "category_id": 4,
+    "name": "publisher",
+    "label": "Publisher",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 23,
+    "category_id": 4,
+    "name": "edition",
+    "label": "Edition",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 24,
+    "category_id": 4,
+    "name": "isbn",
+    "label": "ISBN",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 25,
+    "category_id": 4,
+    "name": "subject",
+    "label": "Subject",
+    "type": "text",
+    "options": null,
+    "required": true
+  },
+  {
+    "id": 26,
+    "category_id": 4,
+    "name": "grade_level",
+    "label": "Grade Level",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 27,
+    "category_id": 4,
+    "name": "condition",
+    "label": "Condition",
+    "type": "select",
+    "options": "[\"Brand New\",\"Like New\",\"Good\",\"Fair\",\"Heavily Used\"]",
+    "required": true
+  },
+  {
+    "id": 28,
+    "category_id": 5,
+    "name": "brand",
+    "label": "Brand",
+    "type": "text",
+    "options": null,
+    "required": true
+  },
+  {
+    "id": 29,
+    "category_id": 5,
+    "name": "expiry_date",
+    "label": "Expiry Date",
+    "type": "date",
+    "options": null,
+    "required": true
+  },
+  {
+    "id": 30,
+    "category_id": 5,
+    "name": "skin_type",
+    "label": "Skin Type",
+    "type": "select",
+    "options": "[\"All Skin Types\",\"Oily\",\"Dry\",\"Combination\",\"Sensitive\"]",
+    "required": false
+  },
+  {
+    "id": 31,
+    "category_id": 5,
+    "name": "volume_weight",
+    "label": "Volume / Weight",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 32,
+    "category_id": 5,
+    "name": "ingredients",
+    "label": "Ingredients",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 33,
+    "category_id": 6,
+    "name": "material",
+    "label": "Material",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 34,
+    "category_id": 6,
+    "name": "dimensions",
+    "label": "Dimensions (L x W x H)",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 35,
+    "category_id": 6,
+    "name": "color",
+    "label": "Color",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 36,
+    "category_id": 6,
+    "name": "brand",
+    "label": "Brand",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 37,
+    "category_id": 6,
+    "name": "weight",
+    "label": "Weight",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 38,
+    "category_id": 6,
+    "name": "condition",
+    "label": "Condition",
+    "type": "select",
+    "options": "[\"Brand New\",\"Like New\",\"Good\",\"Fair\"]",
+    "required": true
+  },
+  {
+    "id": 39,
+    "category_id": 7,
+    "name": "brand",
+    "label": "Brand",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 40,
+    "category_id": 7,
+    "name": "size",
+    "label": "Size",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 41,
+    "category_id": 7,
+    "name": "color",
+    "label": "Color",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 42,
+    "category_id": 7,
+    "name": "material",
+    "label": "Material",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 43,
+    "category_id": 7,
+    "name": "sport_type",
+    "label": "Sport Type",
+    "type": "text",
+    "options": null,
+    "required": true
+  },
+  {
+    "id": 44,
+    "category_id": 7,
+    "name": "condition",
+    "label": "Condition",
+    "type": "select",
+    "options": "[\"Brand New\",\"Like New\",\"Good\",\"Fair\"]",
+    "required": true
+  },
+  {
+    "id": 45,
+    "category_id": 8,
+    "name": "service_type",
+    "label": "Service Type",
+    "type": "text",
+    "options": null,
+    "required": true
+  },
+  {
+    "id": 46,
+    "category_id": 8,
+    "name": "duration",
+    "label": "Duration",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 47,
+    "category_id": 8,
+    "name": "availability",
+    "label": "Availability",
+    "type": "select",
+    "options": "[\"Weekdays\",\"Weekends\",\"Daily\",\"By Appointment\"]",
+    "required": true
+  },
+  {
+    "id": 48,
+    "category_id": 8,
+    "name": "location",
+    "label": "Location",
+    "type": "text",
+    "options": null,
+    "required": true
+  },
+  {
+    "id": 49,
+    "category_id": 9,
+    "name": "custom_label",
+    "label": "Custom Label",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 50,
+    "category_id": 9,
+    "name": "custom_value",
+    "label": "Custom Value",
+    "type": "text",
+    "options": null,
+    "required": false
+  }
+]

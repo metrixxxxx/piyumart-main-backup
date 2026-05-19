@@ -4,10 +4,11 @@ import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import ProductCard from "@/components/products/ProductCard";
 import { getSocket } from "@/lib/socket";
+import ReviewsSection from "@/components/products/ReviewsSection";
 
 export default function ProductDetailPage() {
   const [product, setProduct] = useState(null);
-  const [allProducts, setAllProducts] = useState([]);
+  const [relatedProducts, setRelatedProducts] = useState([]);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -21,20 +22,17 @@ export default function ProductDetailPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [productRes, allRes] = await Promise.all([
-          fetch(`/api/products/${id}`),
-          fetch("/api/products"),
-        ]);
-        const productData = await productRes.json();
-        const allData = await allRes.json();
-        setProduct(productData);
-        setSelectedImageIndex(0);
-        setSelectedVariant(null);
-        setAllProducts(
-          Array.isArray(allData)
-            ? allData.filter((p) => String(p.id) !== String(id))
-            : []
-        );
+        const productRes = await fetch(`/api/products/${id}`);
+      const productData = await productRes.json();
+      setProduct(productData);
+      setSelectedImageIndex(0);
+      setSelectedVariant(null);
+
+      const relRes = await fetch(
+        `/api/products/related?id=${id}&category_id=${productData.category_id || ""}&seller_id=${productData.seller_id || ""}&price=${productData.price || ""}`
+      );
+      const relData = await relRes.json();
+      setRelatedProducts(Array.isArray(relData) ? relData : []);
       } catch (err) {
         console.error(err);
       } finally {
@@ -46,21 +44,21 @@ export default function ProductDetailPage() {
     const socket = getSocket();
     socket.on("products:updated", (updated) => {
       if (String(updated.id) === String(id)) setProduct((prev) => ({ ...prev, ...updated }));
-      setAllProducts((prev) => prev.map((p) => String(p.id) === String(updated.id) ? { ...p, ...updated } : p));
+      setRelatedProducts((prev) => prev.map((p) => String(p.id) === String(updated.id) ? { ...p, ...updated } : p));
     });
     socket.on("products:deleted", ({ id: deletedId }) => {
       if (String(deletedId) === String(id)) router.push("/products");
-      setAllProducts((prev) => prev.filter((p) => String(p.id) !== String(deletedId)));
+      setRelatedProducts((prev) => prev.filter((p) => String(p.id) !== String(deletedId)));
     });
     socket.on("products:new", (newProduct) => {
-      setAllProducts((prev) => [newProduct, ...prev]);
+      setRelatedProducts((prev) => [newProduct, ...prev]);
     });
     return () => {
       socket.off("products:updated");
       socket.off("products:deleted");
       socket.off("products:new");
     };
-  }, [id]);
+  }, [id, router]);
 
   async function handleAddToCart() {
     if (!session) { setShowModal(true); return; }
@@ -116,7 +114,7 @@ export default function ProductDetailPage() {
     <div className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] transition-colors duration-300">
 
       
-      <div className="max-w-[960px] mx-auto px-5 py-8">
+      <div className="max-w-[960px] mx-auto px-4 sm:px-5 py-6 sm:py-8">
 
         {/* DETAIL CARD */}
         <div className="bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07] overflow-hidden grid grid-cols-1 md:grid-cols-2 shadow-[0_4px_24px_rgba(0,0,0,0.07)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
@@ -172,7 +170,7 @@ export default function ProductDetailPage() {
           </div>
 
           {/* RIGHT — Info */}
-          <div className="p-7 flex flex-col gap-4 overflow-y-auto">
+          <div className="p-5 sm:p-7 flex flex-col gap-4 overflow-y-auto">
 
             {/* Category badge */}
             {product.category_name && (
@@ -190,7 +188,7 @@ export default function ProductDetailPage() {
             </p>
 
             {/* Stock + Seller */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <span className={`text-xs font-semibold px-3 py-1 rounded-full
                 ${isOutOfStock
                   ? "bg-red-50 dark:bg-red-500/10 text-[#e94560]"
@@ -228,7 +226,7 @@ export default function ProductDetailPage() {
                 <p className="text-[11px] font-bold text-[#1a1060]/60 dark:text-[#f0ede8]/40 uppercase tracking-wider m-0">
                   Product Details
                 </p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {product.attributes.map((attr) => (
                     <div key={attr.name} className="bg-[#f9fafb] dark:bg-white/[0.04] rounded-xl px-3 py-2 border border-[#f0f0f0] dark:border-white/[0.06]">
                       <p className="text-[10px] text-[#1a1060]/40 dark:text-[#f0ede8]/35 uppercase tracking-wide m-0">{attr.label}</p>
@@ -279,7 +277,7 @@ export default function ProductDetailPage() {
 
             {/* Quantity */}
             {!isOutOfStock && (
-              <div className="flex items-center gap-3.5">
+              <div className="flex flex-wrap items-center gap-3.5">
                 <span className="text-sm text-[#1a1060]/60 dark:text-[#f0ede8]/50 font-semibold">Qty</span>
                 <div className="flex items-center border border-[#e5e7eb] dark:border-white/10 rounded-xl overflow-hidden">
                   <button
@@ -327,15 +325,18 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
+        {/* REVIEWS SECTION */}
+        <ReviewsSection productId={id} product={product} />
+
         {/* MORE PRODUCTS */}
-        {allProducts.length > 0 && (
+        {relatedProducts.length > 0 && (
           <div className="mt-14">
             <div className="flex items-center gap-3 mb-5">
               <h2 className="text-xl font-bold text-[#1a1060] dark:text-[#f0ede8] m-0">More Products</h2>
               <div className="flex-1 h-px bg-[#e5e7eb] dark:bg-white/[0.07]" />
             </div>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4">
-              {allProducts.map((p) => (
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,170px),1fr))] gap-4 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
+              {relatedProducts.map((p) => (
                 <div
                   key={p.id}
                   className="bg-white dark:bg-white/[0.04] rounded-[14px] border border-[#e8e5f0] dark:border-white/[0.07] overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(109,74,255,0.12)] dark:hover:shadow-[0_8px_24px_rgba(201,169,110,0.1)]"
@@ -352,11 +353,11 @@ export default function ProductDetailPage() {
       {showModal && (
         <div
           onClick={() => setShowModal(false)}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-white dark:bg-[#12121a] rounded-2xl p-9 w-[320px] text-center border border-[#e8e5f0] dark:border-white/[0.07] shadow-[0_24px_60px_rgba(0,0,0,0.2)]"
+            className="bg-white dark:bg-[#12121a] rounded-2xl p-6 sm:p-9 w-full max-w-[320px] text-center border border-[#e8e5f0] dark:border-white/[0.07] shadow-[0_24px_60px_rgba(0,0,0,0.2)]"
           >
             <div className="text-4xl mb-3.5">🔒</div>
             <h2 className="text-lg font-bold mb-2 text-[#1a1060] dark:text-[#f0ede8]">Sign in to continue</h2>

@@ -1,12 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export default function CartPage() {
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedItems, setSelectedItems] = useState([]);
   const [updatingId, setUpdatingId] = useState(null);
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -50,7 +52,11 @@ export default function CartPage() {
 
   async function handleBulkRemove() {
     if (selectedItems.length === 0) return;
-    if (!confirm(`Remove ${selectedItems.length} item(s)?`)) return;
+    setShowRemoveModal(true);
+  }
+
+  async function confirmBulkRemove() {
+    setShowRemoveModal(false);
     await Promise.all(selectedItems.map((id) => fetch("/api/cart", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cart_item_id: id }) })));
     setCart((prev) => prev.filter((item) => !selectedItems.includes(item.id)));
     setSelectedItems([]);
@@ -76,8 +82,10 @@ export default function CartPage() {
   }
 
   function handleBuyNow(item) {
-    router.push(`/checkout?productId=${item.product_id}&quantity=${item.quantity}`);
-  }
+  router.push(
+    `/checkout?productId=${item.product_id}&quantity=${item.quantity}${item.variant ? `&variant=${encodeURIComponent(item.variant)}` : ""}`
+  );
+}
 
   if (loading) return (
     <div className="min-h-screen bg-[#eef2f7] dark:bg-[#070b14] flex items-center justify-center">
@@ -97,7 +105,7 @@ export default function CartPage() {
     <main className="min-h-screen bg-[#eef2f7] dark:bg-[#070b14] transition-colors duration-300">
 
       {/* HERO */}
-      <section className="bg-[#1a2a6c] dark:bg-[#0a0e1f] px-5 py-10 text-center">
+      <section className="bg-[#1a2a6c] dark:bg-[#0a0e1f] px-4 sm:px-5 py-10 text-center">
         <div className="inline-flex items-center gap-2 bg-white/10 text-[#c9a028] text-[11px] font-bold px-4 py-1.5 rounded-full mb-4 uppercase tracking-wider">
           <span className="w-1.5 h-1.5 rounded-full bg-[#c9a028]" />
           Shopping Cart
@@ -124,7 +132,7 @@ export default function CartPage() {
 
             {/* LEFT */}
             <div className="flex flex-col gap-3">
-              <div className="bg-white dark:bg-[#0e1520] rounded-xl border border-[#c5cfe8] dark:border-white/[0.07] px-4 py-3 flex items-center justify-between">
+              <div className="bg-white dark:bg-[#0e1520] rounded-xl border border-[#c5cfe8] dark:border-white/[0.07] px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <label className="flex items-center gap-2.5 cursor-pointer text-sm font-medium text-[#0e1a3d] dark:text-[#e8edf8]">
                   <div onClick={toggleSelectAll}
                     className={`w-5 h-5 rounded-md flex items-center justify-center cursor-pointer transition-all border-2
@@ -146,7 +154,7 @@ export default function CartPage() {
                 const isUpdating = updatingId === item.id;
                 return (
                   <div key={item.id}
-                    className={`bg-white dark:bg-[#0e1520] rounded-2xl border p-4 flex gap-3 items-center transition-all duration-150
+                    className={`bg-white dark:bg-[#0e1520] rounded-2xl border p-4 flex flex-wrap gap-3 items-center transition-all duration-150
                       ${isSelected ? "border-[#1a2a6c] dark:border-[#c9a028] shadow-[0_0_0_3px_rgba(26,42,108,0.12)]" : "border-[#c5cfe8] dark:border-white/[0.07]"}
                       ${isUpdating ? "opacity-60" : ""}`}>
                     <div onClick={() => toggleSelectItem(item.id)}
@@ -180,7 +188,7 @@ export default function CartPage() {
                       </div>
                     </div>
 
-                    <div className="flex flex-col gap-1.5 shrink-0">
+                    <div className="flex w-full gap-2 shrink-0 sm:w-auto sm:flex-col sm:gap-1.5">
                       <button onClick={() => handleBuyNow(item)}
                         className="bg-[#1a2a6c] text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-[#142060] transition">
                         Buy Now
@@ -196,7 +204,7 @@ export default function CartPage() {
             </div>
 
             {/* RIGHT — Summary */}
-            <div className="sticky top-20 flex flex-col gap-3">
+            <div className="lg:sticky lg:top-20 flex flex-col gap-3">
               <div className="bg-white dark:bg-[#0e1520] rounded-2xl border border-[#c5cfe8] dark:border-white/[0.07] p-5">
                 <h3 className="text-sm font-bold text-[#0e1a3d] dark:text-[#e8edf8] mb-4">Order Summary</h3>
                 <div className="flex flex-col gap-2.5 mb-4">
@@ -239,6 +247,16 @@ export default function CartPage() {
           </div>
         )}
       </section>
+
+      <ConfirmModal
+        open={showRemoveModal}
+        title="Remove selected items?"
+        description={`This will remove ${selectedItems.length} item${selectedItems.length !== 1 ? "s" : ""} from your cart.`}
+        confirmText="Remove items"
+        cancelText="Keep items"
+        onCancel={() => setShowRemoveModal(false)}
+        onConfirm={confirmBulkRemove}
+      />
     </main>
   );
 }

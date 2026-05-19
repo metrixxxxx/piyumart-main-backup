@@ -4,6 +4,8 @@ import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useState, useRef, useEffect } from "react";
 import NotificationBell from "@/components/NotificationBell";
+import ConfirmModal from "@/components/ui/ConfirmModal";
+import LoadingModal from "@/components/ui/LoadingModal";
 
 function ThemeToggle() {
   const [state, setState] = useState({ dark: false, mounted: false });
@@ -13,7 +15,7 @@ function ThemeToggle() {
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const isDark = stored === "dark" || (!stored && prefersDark);
     document.documentElement.classList.toggle("dark", isDark);
-    setState({ dark: isDark, mounted: true });
+    setTimeout(() => setState({ dark: isDark, mounted: true }), 0);
   }, []);
 
   const toggle = () => {
@@ -45,6 +47,8 @@ export default function Navbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const dropdownRef = useRef(null);
 
   const isActive = (path) => pathname === path || pathname.startsWith(path + "/");
@@ -62,6 +66,18 @@ export default function Navbar() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const requestLogout = () => {
+    setOpen(false);
+    setMobileOpen(false);
+    setLogoutOpen(true);
+  };
+
+  const handleLogout = async () => {
+    setLogoutOpen(false);
+    setLoggingOut(true);
+    await signOut({ callbackUrl: "/" });
+  };
 
   return (
     <>
@@ -121,7 +137,7 @@ export default function Navbar() {
                     ))}
                   </div>
                   <div className="border-t border-[#c5cfe8] dark:border-white/[0.07] py-1">
-                    <button onClick={() => { setOpen(false); signOut({ callbackUrl: "/" }); }}
+                    <button onClick={requestLogout}
                       className="flex items-center gap-3 w-full px-4 py-2.5 text-xs text-red-400 hover:bg-[#e8edf8] dark:hover:bg-white/[0.04] hover:text-red-500 transition-colors">
                       <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -143,21 +159,46 @@ export default function Navbar() {
         <div className="flex md:hidden items-center gap-3">
           {session && <NotificationBell />}
           <ThemeToggle />
-          <button onClick={() => setMobileOpen((p) => !p)} className="text-white p-1">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              {mobileOpen
-                ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />}
+          <button
+            onClick={() => setMobileOpen((p) => !p)}
+            aria-expanded={mobileOpen}
+            aria-label="Toggle menu"
+            className="relative h-8 w-8 rounded-lg text-white transition hover:bg-white/10"
+          >
+            <svg className="absolute inset-1 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                className={`origin-center transition-all duration-300 ${mobileOpen ? "translate-y-1.5 rotate-45" : ""}`}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16"
+              />
+              <path
+                className={`transition-all duration-200 ${mobileOpen ? "opacity-0" : "opacity-100"}`}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 12h16"
+              />
+              <path
+                className={`origin-center transition-all duration-300 ${mobileOpen ? "-translate-y-1.5 -rotate-45" : ""}`}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 18h16"
+              />
             </svg>
           </button>
         </div>
       </nav>
 
       {/* Mobile Menu */}
-      {mobileOpen && (
-        <div className="md:hidden fixed inset-0 top-[57px] z-40 bg-[#1a2a6c] dark:bg-[#0a0e1f] flex flex-col px-6 py-6 gap-4">
+      <div
+        className={`md:hidden fixed inset-x-0 top-[57px] bottom-0 z-40 bg-[#1a2a6c] dark:bg-[#0a0e1f] flex flex-col px-6 py-6 gap-4 transition-all duration-300 ease-out
+          ${mobileOpen ? "translate-y-0 opacity-100 pointer-events-auto" : "-translate-y-3 opacity-0 pointer-events-none"}`}
+      >
           {session && (
-            <div className="flex items-center gap-3 pb-4 border-b border-white/10">
+            <div className={`flex items-center gap-3 pb-4 border-b border-white/10 transition-all duration-300 ${mobileOpen ? "translate-y-0 opacity-100 delay-100" : "-translate-y-2 opacity-0"}`}>
               <div className="w-10 h-10 rounded-full bg-[#c9a028] flex items-center justify-center text-sm font-bold text-[#0e1a3d]">
                 {session.user.name?.charAt(0).toUpperCase()}
               </div>
@@ -178,13 +219,13 @@ export default function Navbar() {
             ] : []),
           ].map(({ href, label }) => (
             <Link key={href} href={href} onClick={() => setMobileOpen(false)}
-              className={`text-sm font-semibold py-2 border-b border-white/10 transition
+              className={`text-sm font-semibold py-2 border-b border-white/10 transition-all duration-300
                 ${isActive(href) ? "text-[#c9a028]" : "text-white/80 hover:text-white"}`}>
               {label}
             </Link>
           ))}
           {session ? (
-            <button onClick={() => { setMobileOpen(false); signOut({ callbackUrl: "/" }); }}
+            <button onClick={requestLogout}
               className="mt-2 text-sm font-semibold text-red-400 text-left py-2">
               Logout
             </button>
@@ -194,8 +235,23 @@ export default function Navbar() {
               Login
             </Link>
           )}
-        </div>
-      )}
+      </div>
+
+      <ConfirmModal
+        open={logoutOpen}
+        title="Log out?"
+        description="You will need to sign in again to manage orders, listings, and your cart."
+        confirmText="Log out"
+        cancelText="Stay signed in"
+        loading={loggingOut}
+        onCancel={() => setLogoutOpen(false)}
+        onConfirm={handleLogout}
+      />
+      <LoadingModal
+        open={loggingOut}
+        title="Logging out"
+        description="Ending your session and returning you to the shop."
+      />
     </>
   );
 }

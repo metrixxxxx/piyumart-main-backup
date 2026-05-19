@@ -3,11 +3,15 @@
 import { signIn, getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import FeedbackModal from "@/components/ui/FeedbackModal";
+import LoadingModal from "@/components/ui/LoadingModal";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [feedback, setFeedback] = useState(null);
   const router = useRouter();
 
   const handleLogin = async (e) => {
@@ -15,10 +19,17 @@ export default function LoginPage() {
     setError("");
 
     if (!email.endsWith("@lspu.edu.ph")) {
-      setError("Use your LSPU email only");
+      const message = "Use your LSPU email only";
+      setError(message);
+      setFeedback({
+        type: "error",
+        title: "Invalid email",
+        description: message,
+      });
       return;
     }
 
+    setLoading(true);
     const res = await signIn("credentials", {
       email,
       password,
@@ -26,7 +37,14 @@ export default function LoginPage() {
     });
 
     if (res?.error) {
-      setError("Invalid email or password");
+      const message = "Invalid email or password";
+      setError(message);
+      setFeedback({
+        type: "error",
+        title: "Login failed",
+        description: message,
+      });
+      setLoading(false);
     } else {
       const session = await getSession();
       if (session?.user?.role === "admin") {
@@ -38,11 +56,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex h-full w-full items-center justify-center bg-[#0f1123] p-6">
-      <div className="flex w-full max-w-3xl overflow-hidden rounded-2xl shadow-2xl">
+    <div className="flex min-h-dvh w-full items-center justify-center bg-[#0f1123] p-4 sm:p-6">
+      <div className="flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl shadow-2xl md:flex-row">
 
         {/* Left: Login Panel */}
-        <div className="flex w-80 flex-shrink-0 flex-col bg-[#1a1d35] px-8 py-9">
+        <div className="flex w-full flex-shrink-0 flex-col bg-[#1a1d35] px-6 py-8 sm:px-8 md:w-80 md:py-9">
 
           {/* Brand */}
           <div className="mb-8 text-sm font-bold tracking-widest text-white">
@@ -103,13 +121,18 @@ export default function LoginPage() {
             {/* Submit */}
             <button
               type="submit"
+              disabled={loading}
               className="mt-1 h-10 w-full rounded-full bg-[#4f8ef7] text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-[#3a7de8] active:scale-95"
             >
-              Login
+              {loading ? "Logging in..." : "Login"}
             </button>
 <button
   type="button"
-  onClick={() => signIn("google", { callbackUrl: "/set-password" })}
+  onClick={() => {
+    setLoading(true);
+    signIn("google", { callbackUrl: "/set-password" });
+  }}
+  disabled={loading}
   className="mt-3 h-10 w-full rounded-full border border-[#4f8ef7] bg-transparent text-xs font-semibold uppercase tracking-widest text-[#4f8ef7] transition hover:bg-[#4f8ef7]/10 active:scale-95"
 >
   Sign in with Google
@@ -136,7 +159,7 @@ export default function LoginPage() {
         </div>
 
         {/* Right: Hero Panel */}
-        <div className="relative flex flex-1 flex-col overflow-hidden bg-[#13162b]">
+        <div className="relative hidden flex-1 flex-col overflow-hidden bg-[#13162b] md:flex">
           {/* Nav */}
           <nav className="relative z-10 flex items-center justify-end gap-5 px-5 py-4">
             {["About Us"].map((item) => (
@@ -151,7 +174,7 @@ export default function LoginPage() {
 
           {/* Hero */}
           <div className="relative z-10 mt-auto p-8">
-            <h1 className="mb-3 text-6xl font-bold leading-none tracking-tight text-white">
+            <h1 className="mb-3 text-4xl font-bold leading-none tracking-tight text-white lg:text-6xl">
               Welcome<span className="text-[#4f8ef7]">.</span>
             </h1>
             <p className="mb-3 max-w-[200px] text-xs leading-relaxed text-[#4a5080]">
@@ -162,6 +185,18 @@ export default function LoginPage() {
         </div>
 
       </div>
+      <LoadingModal
+        open={loading}
+        title="Logging in"
+        description="Checking your account and preparing your session."
+      />
+      <FeedbackModal
+        open={Boolean(feedback)}
+        type={feedback?.type}
+        title={feedback?.title}
+        description={feedback?.description}
+        onClose={() => setFeedback(null)}
+      />
     </div>
   );
 }

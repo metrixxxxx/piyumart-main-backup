@@ -14,6 +14,7 @@ export async function PATCH(req, { params }) {
 
     const [rows] = await db.query(`SELECT * FROM orders WHERE id = $1`, [id]);
     const order = rows[0];
+    let inTransaction = false;
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
     if (String(order.user_id) !== String(session.user.id))
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -22,10 +23,23 @@ export async function PATCH(req, { params }) {
       if (order.status !== "shipped")
         return NextResponse.json({ error: "Order is not shipped yet" }, { status: 400 });
 
+      await db.query("BEGIN");
+      inTransaction = true;
+      const [items] = await db.query(
+        `SELECT product_id, quantity FROM order_items WHERE order_id = $1`,
+        [id]
+      );
+      for (const item of items) {
+        await db.query(
+          `UPDATE products SET sold_count = sold_count + $1 WHERE id = $2`,
+          [item.quantity, item.product_id]
+        );
+      }
       await db.query(
         `UPDATE orders SET status = 'completed', completed_at = NOW() WHERE id = $1`,
         [id]
       );
+      await db.query("COMMIT");
 
       // notify seller
       const [itemRows] = await db.query(
@@ -106,6 +120,9 @@ export async function PATCH(req, { params }) {
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (err) {
+    if (inTransaction) {
+      await db.query("ROLLBACK");
+    }
     console.error("PATCH /api/orders/[id] error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

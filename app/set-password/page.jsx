@@ -36,8 +36,8 @@ export default function SetPasswordPage() {
   };
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-[#0f1123]">
-      <div className="w-full max-w-sm rounded-2xl bg-[#1a1d35] p-8">
+    <div className="flex min-h-dvh w-full items-center justify-center bg-[#0f1123] p-4">
+      <div className="w-full max-w-sm rounded-2xl bg-[#1a1d35] p-6 sm:p-8">
         <div className="mb-6 text-sm font-bold tracking-widest text-white">
           PIYU<span className="text-[#4f8ef7]">MART</span>
         </div>

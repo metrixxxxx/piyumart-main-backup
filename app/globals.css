@@ -52,9 +52,33 @@ html,
 body {
   height: 100%;
   margin: 0;
+  max-width: 100%;
+  overflow-x: hidden;
   background-color: var(--bg);
   color: var(--text);
   font-family: system-ui, sans-serif;
+}
+
+body {
+  min-width: 0;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  max-width: 100%;
+}
+
+table {
+  border-collapse: collapse;
 }
 
 /* ── CARDS ── */
