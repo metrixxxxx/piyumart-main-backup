@@ -19,6 +19,7 @@ export default function MyListingsPage() {
   const { data: session } = useSession();
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [orderStats, setOrderStats] = useState({ totalOrders: 0, revenue: 0 });
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [filter, setFilter] = useState("all");
@@ -30,18 +31,21 @@ export default function MyListingsPage() {
     let mounted = true;
 
     const loadData = async () => {
-      const [productsRes, statsRes, ordersRes] = await Promise.all([
+      const [productsRes, statsRes, ordersRes, reviewsRes] = await Promise.all([
         fetch("/api/sell"),
         fetch("/api/my-listings/stats"),
         fetch("/api/seller/orders"),
+        fetch("/api/seller/reviews"),
       ]);
       const productsData = await productsRes.json();
       const statsData = await statsRes.json();
       const ordersData = await ordersRes.json();
+      const reviewsData = await reviewsRes.json();
       if (mounted) {
         setProducts(Array.isArray(productsData) ? productsData : []);
         setOrderStats(statsData);
         setOrders(Array.isArray(ordersData) ? ordersData : []);
+        setReviews(Array.isArray(reviewsData) ? reviewsData : []);
         setLoading(false);
       }
     };
@@ -86,7 +90,6 @@ export default function MyListingsPage() {
   }, [session?.user?.id]);
 
   async function handleOrderStatus(id, status) {
-    // optimistically set loading
     setOrders((prev) =>
       prev.map((o) => (Number(o.id) === Number(id) ? { ...o, _loading: true } : o))
     );
@@ -102,7 +105,6 @@ export default function MyListingsPage() {
       );
       return alert(data.error || "Failed to update order");
     }
-    // success — state update handled by socket orders:updated
   }
 
   async function handleDelete(id) {
@@ -189,6 +191,14 @@ export default function MyListingsPage() {
             Orders
             {pendingOrders > 0 && (
               <span className="text-[10px] bg-amber-400 text-black px-1.5 py-0.5 rounded-full font-bold">{pendingOrders}</span>
+            )}
+          </button>
+          <button onClick={() => setActiveTab("reviews")}
+            className={`px-4 py-2.5 text-xs font-semibold border-b-2 -mb-px flex items-center gap-2 transition
+              ${activeTab === "reviews" ? "border-[#1a2a6c] dark:border-[#c9a028] text-[#1a2a6c] dark:text-[#c9a028]" : "border-transparent text-[#0e1a3d]/50 dark:text-[#e8edf8]/40 hover:text-[#0e1a3d] dark:hover:text-[#e8edf8]"}`}>
+            Reviews
+            {reviews.length > 0 && (
+              <span className="text-[10px] bg-[#1a2a6c] dark:bg-[#c9a028] text-white dark:text-black px-1.5 py-0.5 rounded-full font-bold">{reviews.length}</span>
             )}
           </button>
         </div>
@@ -338,6 +348,52 @@ export default function MyListingsPage() {
                               </span>
                             )}
                           </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Reviews Tab */}
+        {activeTab === "reviews" && (
+          <>
+            {reviews.length === 0 ? (
+              <div className="text-center py-16 text-sm text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">
+                No reviews yet.
+              </div>
+            ) : (
+              <div className="bg-white dark:bg-[#0e1520] rounded-2xl border border-[#c5cfe8] dark:border-white/[0.07] overflow-x-auto">
+                <table className="w-full min-w-[640px] text-xs">
+                  <thead>
+                    <tr className="border-b border-[#c5cfe8] dark:border-white/[0.07] text-[#0e1a3d]/40 dark:text-[#e8edf8]/30 uppercase tracking-wider">
+                      <th className="text-left px-4 py-3">Product</th>
+                      <th className="text-left px-4 py-3">Buyer</th>
+                      <th className="text-left px-4 py-3">Rating</th>
+                      <th className="text-left px-4 py-3">Comment</th>
+                      <th className="text-left px-4 py-3">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reviews.map((r) => (
+                      <tr key={r.id} className="border-b border-[#c5cfe8] dark:border-white/[0.07] hover:bg-[#f0f4ff] dark:hover:bg-white/[0.02] transition">
+                        <td className="px-4 py-3 font-semibold text-[#0e1a3d] dark:text-[#e8edf8]">{r.product_name}</td>
+                        <td className="px-4 py-3 text-[#0e1a3d]/70 dark:text-[#e8edf8]/60">{r.user_name}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-0.5">
+                            {[1,2,3,4,5].map((i) => (
+                              <span key={i} className={i <= r.rating ? "text-[#FFB800]" : "text-[#e5e7eb] dark:text-white/10"}>⭐</span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-[#0e1a3d]/60 dark:text-[#e8edf8]/50 max-w-[240px] truncate">
+                          {r.comment || <span className="italic opacity-40">No comment</span>}
+                        </td>
+                        <td className="px-4 py-3 text-[#0e1a3d]/40 dark:text-[#e8edf8]/30">
+                          {new Date(r.created_at).toLocaleDateString()}
                         </td>
                       </tr>
                     ))}

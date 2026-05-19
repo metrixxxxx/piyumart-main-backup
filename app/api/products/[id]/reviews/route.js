@@ -19,19 +19,19 @@ export async function GET(req, { params }) {
 
     try {
       const [reviewResults] = await db.query(
-        `SELECT 
-          pr.id, 
-          pr.rating, 
-          pr.comment, 
-          pr.created_at,
-          u.name as user_name,
-          u.avatar as user_avatar
-        FROM product_reviews pr
-        JOIN users u ON pr.user_id = u.id
-        WHERE pr.product_id = $1
-        ORDER BY ${sortOrder}`,
-        [id]
-      );
+  `SELECT 
+    pr.id, 
+    pr.rating, 
+    pr.comment, 
+    pr.created_at,
+    u.name as user_name,
+    u.image as user_avatar
+  FROM product_reviews pr
+  JOIN users u ON pr.user_id = u.id
+  WHERE pr.product_id = $1
+  ORDER BY ${sortOrder}`,
+  [id]
+);
       reviews = reviewResults || [];
     } catch (dbErr) {
       // Table might not exist yet - return empty reviews gracefully
