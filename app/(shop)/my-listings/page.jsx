@@ -3,7 +3,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { getSocket } from "@/lib/socket";
+import { supabase } from "@/lib/supabase";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 
 function StatCard({ label, value, accent }) {
@@ -51,42 +51,30 @@ export default function MyListingsPage() {
     };
 
     loadData();
+const channel = supabase
+  .channel(`seller:${session.user.id}`)
+  .on("broadcast", { event: "orders:new" }, (payload) => {
+    const order = payload.payload;
+    setOrders((prev) => [{ ...order, status: "pending" }, ...prev]);
+  })
+  .on("broadcast", { event: "orders:updated" }, (payload) => {
+    const { id, status, tracking_number, courier } = payload.payload;
+    setOrders((prev) =>
+      prev.map((o) =>
+        Number(o.id) === Number(id)
+          ? { ...o, status, _loading: false, ...(tracking_number && { tracking_number }), ...(courier && { courier }) }
+          : o
+      )
+    );
+  })
+  .subscribe();
 
-    const socket = getSocket(session.user.id);
+return () => {
+  mounted = false;
+  supabase.removeChannel(channel);
+};
 
-    socket.on("products:new", (product) => {
-      if (String(product.seller_id) === String(session.user.id))
-        setProducts((prev) => [product, ...prev]);
-    });
-    socket.on("products:updated", (updated) => {
-      setProducts((prev) => prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)));
-    });
-    socket.on("products:deleted", ({ id }) => {
-      setProducts((prev) => prev.filter((p) => p.id !== id));
-    });
-    socket.on("orders:new", (order) => {
-      if (order.items?.some((i) => String(i.seller_id) === String(session.user.id))) {
-        setOrders((prev) => [{ ...order, id: order.orderId, status: "pending" }, ...prev]);
-      }
-    });
-    socket.on("orders:updated", ({ id, status, tracking_number, courier }) => {
-      setOrders((prev) =>
-        prev.map((o) =>
-          Number(o.id) === Number(id)
-            ? { ...o, status, _loading: false, ...(tracking_number && { tracking_number }), ...(courier && { courier }) }
-            : o
-        )
-      );
-    });
-
-    return () => {
-      mounted = false;
-      socket.off("products:new");
-      socket.off("products:updated");
-      socket.off("products:deleted");
-      socket.off("orders:new");
-      socket.off("orders:updated");
-    };
+   
   }, [session?.user?.id]);
 
   async function handleOrderStatus(id, status) {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { db } from "@/lib/db";
+import { supabaseAdmin } from "@/lib/supabase";
 
 // GET — fetch all messages sa conversation
 export async function GET(req, { params }) {
@@ -44,6 +45,7 @@ export async function GET(req, { params }) {
 }
 
 // POST — send message
+// POST — send message
 export async function POST(req, { params }) {
   try {
     const session = await getServerSession(authOptions);
@@ -57,7 +59,6 @@ export async function POST(req, { params }) {
       return NextResponse.json({ error: "Message cannot be empty" }, { status: 400 });
     }
 
-    // Verify na part ng conversation ang user
     const [convo] = await db.query(
       `SELECT id, buyer_id, seller_id FROM conversations 
        WHERE id = $1 AND (buyer_id = $2 OR seller_id = $2)`,
@@ -65,14 +66,12 @@ export async function POST(req, { params }) {
     );
     if (!convo.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    // Insert message
     const [newMsg] = await db.query(
       `INSERT INTO messages (conversation_id, sender_id, content) 
        VALUES ($1, $2, $3) RETURNING *`,
       [conversationId, userId, content.trim()]
     );
 
-    // Update conversation updated_at
     await db.query(
       `UPDATE conversations SET updated_at = NOW() WHERE id = $1`,
       [conversationId]
@@ -80,21 +79,17 @@ export async function POST(req, { params }) {
 
     const message = { ...newMsg[0], sender_name: session.user.name };
 
-    // Emit socket event — other user makakatanggap ng message
-    const otherUserId = String(convo[0].buyer_id) === String(userId)
-      ? convo[0].seller_id
-      : convo[0].buyer_id;
-
-    // Socket emit (if may socket server ka)
+    // ✅ Broadcast via Supabase Realtime — replaces Socket.io
     try {
-      const { getIO } = await import("@/lib/socket-server");
-      const io = getIO();
-      io.to(`user_${otherUserId}`).emit("message:received", {
-        conversationId: Number(conversationId),
-        message,
-      });
+      await supabaseAdmin
+        .channel(`conversation:${conversationId}`)
+        .send({
+          type: "broadcast",
+          event: "message:new",
+          payload: { message },
+        });
     } catch (e) {
-      // Socket optional — hindi mag-break ang API kahit walang socket
+      console.error("Broadcast error:", e);
     }
 
     return NextResponse.json(message);

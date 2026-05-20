@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { getSocket } from "@/lib/socket";
+import { supabase } from "@/lib/supabase";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import OrderItemReviewBtn from "@/components/orders/OrderItemReviewBtn";
 
@@ -335,18 +335,25 @@ export default function OrdersPage() {
       .catch(console.error)
       .finally(() => setLoading(false));
 
-    const socket = getSocket(session.user.id);
-    socket.on("orders:updated", ({ id, status, tracking_number, courier }) => {
-      setOrders((prev) =>
-        prev.map((o) =>
-          Number(o.id) === Number(id)
-            ? { ...o, status, ...(tracking_number && { tracking_number }), ...(courier && { courier }) }
-            : o
-        )
-      );
-    });
-    return () => socket.off("orders:updated");
-  }, [status, session?.user?.id]);
+    const channel = supabase
+  .channel(`buyer:${session.user.id}`)
+  .on("broadcast", { event: "orders:updated" }, (payload) => {
+    const { id, status, tracking_number, courier } = payload.payload;
+    setOrders((prev) =>
+      prev.map((o) =>
+        Number(o.id) === Number(id)
+          ? { ...o, status, ...(tracking_number && { tracking_number }), ...(courier && { courier }) }
+          : o
+      )
+    );
+  })
+  .subscribe();
+
+return () => supabase.removeChannel(channel);
+
+  },
+  [status, session?.user?.id]);
+
 
   if (status === "loading" || loading) return (
     <div className="min-h-screen bg-[#eef2f7] dark:bg-[#070b14] flex items-center justify-center">

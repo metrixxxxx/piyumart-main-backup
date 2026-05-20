@@ -40,11 +40,17 @@ export default function SellPage() {
   const updateVariantImage = (index, file) => setVariants((prev) => prev.map((v, i) => i === index ? { ...v, file, preview: URL.createObjectURL(file) } : v));
   const removeVariant = (index) => setVariants((prev) => prev.filter((_, i) => i !== index));
 
-  async function fetchCategories() {
+ async function fetchCategories() {
+  try {
     const res = await fetch("/api/categories");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
+    console.log("categories:", data); // temporary debug
     setCategories(Array.isArray(data) ? data : []);
+  } catch (err) {
+    console.error("Failed to load categories:", err);
   }
+}
 
   async function fetchMyProducts() {
     try {
@@ -65,11 +71,11 @@ export default function SellPage() {
   }
 
  async function handleSubmit() {
-  if (!form.name.trim() || !form.price || !form.category_id) {
+  if (!form.name.trim() || !form.price) {
     setFeedback({
       type: "error",
       title: "Missing product details",
-      description: "Please enter a product name, price, and category before posting.",
+      description: "Please enter a product name and price before posting.",
     });
     return;
   }

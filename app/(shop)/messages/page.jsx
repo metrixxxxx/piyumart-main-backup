@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { getSocket } from "@/lib/socket";
+import { supabase } from "@/lib/supabase"; // ✅ import supabase, tanggalin getSocket
 
 export default function MessagesPage() {
   const { data: session, status } = useSession();
@@ -19,19 +19,34 @@ export default function MessagesPage() {
       .then((data) => setConversations(Array.isArray(data) ? data : []))
       .finally(() => setLoading(false));
 
-    // Real-time — update unread count kapag may bagong message
-    const socket = getSocket(session.user.id);
-    socket.on("message:received", ({ conversationId }) => {
-      setConversations((prev) =>
-        prev.map((c) =>
-          Number(c.id) === Number(conversationId)
-            ? { ...c, unread_count: Number(c.unread_count) + 1 }
-            : c
-        )
-      );
-    });
-    return () => socket.off("message:received");
-  }, [status, session?.user?.id]);
+   const channel = supabase
+  .channel(`inbox:${session.user.id}`)
+  .on(
+    "broadcast",
+    { event: "message:new" },
+    (payload) => {
+      const newMsg = payload.payload.message;
+      if (String(newMsg.sender_id) !== String(session.user.id)) {
+        setConversations((prev) =>
+          prev.map((c) =>
+            Number(c.id) === Number(newMsg.conversation_id)
+              ? {
+                  ...c,
+                  unread_count: Number(c.unread_count) + 1,
+                  last_message: newMsg.content,
+                  last_message_at: newMsg.created_at,
+                  last_sender_id: newMsg.sender_id,
+                }
+              : c
+          )
+        );
+      }
+    }
+  )
+  .subscribe();
+
+    return () => supabase.removeChannel(channel); // ✅ nasa loob ng useEffect
+  }, [status, session?.user?.id]); // ✅ closing ng useEffect
 
   function formatTime(dateStr) {
     if (!dateStr) return "";
@@ -57,7 +72,6 @@ export default function MessagesPage() {
 
   return (
     <main className="min-h-screen bg-[#eef2f7] dark:bg-[#070b14] transition-colors duration-300">
-
       {/* Hero */}
       <section className="bg-[#1a2a6c] dark:bg-[#0a0e1f] px-4 sm:px-5 py-10 text-center">
         <div className="inline-flex items-center gap-2 bg-white/10 text-[#c9a028] text-[11px] font-bold px-4 py-1.5 rounded-full mb-4 uppercase tracking-wider">
@@ -95,12 +109,9 @@ export default function MessagesPage() {
                   className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer transition-colors hover:bg-[#f8f9ff] dark:hover:bg-white/[0.03]
                     ${unread > 0 ? "bg-[#f0f4ff] dark:bg-[#1a2a6c]/10" : ""}`}
                 >
-                  {/* Avatar */}
                   <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#1a2a6c] to-[#2a3d8f] dark:from-[#c9a028] dark:to-[#e8b830] flex items-center justify-center text-white dark:text-[#070b14] font-bold text-sm shrink-0">
                     {initials}
                   </div>
-
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-0.5">
                       <p className={`text-sm truncate ${unread > 0 ? "font-bold text-[#0e1a3d] dark:text-[#e8edf8]" : "font-semibold text-[#0e1a3d]/80 dark:text-[#e8edf8]/70"}`}>
@@ -110,14 +121,11 @@ export default function MessagesPage() {
                         {formatTime(convo.last_message_at)}
                       </span>
                     </div>
-
-                    {/* Product context */}
                     {convo.product_name && (
                       <p className="text-[10px] text-[#1a2a6c] dark:text-[#c9a028] font-semibold truncate mb-0.5">
                         re: {convo.product_name}
                       </p>
                     )}
-
                     <div className="flex items-center justify-between gap-2">
                       <p className={`text-xs truncate ${unread > 0 ? "text-[#0e1a3d]/70 dark:text-[#e8edf8]/60 font-medium" : "text-[#0e1a3d]/40 dark:text-[#e8edf8]/30"}`}>
                         {convo.last_message

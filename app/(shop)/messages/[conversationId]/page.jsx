@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
-import { getSocket } from "@/lib/socket";
+import { supabase } from "@/lib/supabase";
 
 export default function ConversationPage() {
   const { data: session, status } = useSession();
@@ -19,6 +19,7 @@ export default function ConversationPage() {
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
     if (status !== "authenticated") return;
+    console.log("session user:", JSON.stringify(session.user));
 
     // Fetch messages
     fetch(`/api/messages/${conversationId}`)
@@ -36,17 +37,23 @@ export default function ConversationPage() {
         }
       });
 
-    // Socket — listen for new messages
-    const socket = getSocket(session.user.id);
-    socket.on("message:received", ({ conversationId: cId, message }) => {
-      if (Number(cId) === Number(conversationId)) {
-        setMessages((prev) => [...prev, message]);
-        // Mark as read since naka-open ang conversation
+    // ✅ Supabase Realtime — listen for new messages
+    const channel = supabase
+  .channel(`conversation:${conversationId}`)
+  .on(
+    "broadcast",
+    { event: "message:new" },
+    (payload) => {
+      const newMsg = payload.payload.message;
+      if (String(newMsg.sender_id) !== String(session.user.id)) {
+        setMessages((prev) => [...prev, newMsg]);
         fetch(`/api/messages/${conversationId}`, { method: "GET" });
       }
-    });
+    }
+  )
+  .subscribe();
 
-    return () => socket.off("message:received");
+    return () => supabase.removeChannel(channel);
   }, [status, session?.user?.id, conversationId]);
 
   // Auto scroll to bottom
@@ -60,7 +67,6 @@ export default function ConversationPage() {
     const content = input.trim();
     setInput("");
 
-    // Optimistic update
     const optimistic = {
       id: Date.now(),
       conversation_id: Number(conversationId),
@@ -80,10 +86,8 @@ export default function ConversationPage() {
         body: JSON.stringify({ content }),
       });
       const data = await res.json();
-      // Replace optimistic with real message
       setMessages((prev) => prev.map((m) => m.optimistic ? data : m));
     } catch (err) {
-      // Remove optimistic on error
       setMessages((prev) => prev.filter((m) => !m.optimistic));
       setInput(content);
     } finally {
@@ -91,7 +95,6 @@ export default function ConversationPage() {
       inputRef.current?.focus();
     }
   }
-
   function handleKeyDown(e) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();

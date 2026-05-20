@@ -75,15 +75,15 @@ export async function POST(req) {
 
     const image_url = imageUrls[0] || null;
 
-    const [result] = await db.query(
+    // ✅ THE FIX — [rows] not [result], then rows[0].id
+    const [rows] = await db.query(
       `INSERT INTO products 
         (name, description, price, image_url, seller_id, seller_name, category_id, stock, is_visible, is_featured, status) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING id`,
       [name, description, price, image_url, session.user.id, session.user.name, category_id, stock, true, false, "approved"]
     );
-
-    const product_id = result[0].id;
+    const product_id = rows[0].id;
 
     if (imageUrls.length > 0) {
       await Promise.all(
@@ -125,19 +125,10 @@ export async function POST(req) {
 
     if (global.io) {
       global.io.emit("products:new", {
-        id: product_id,
-        name,
-        description,
-        price,
-        image_url,
-        images: imageUrls,
-        category_id,
-        stock,
-        seller_id: session.user.id,
-        seller_name: session.user.name,
-        is_visible: true,
-        is_featured: false,
-        status: "approved",
+        id: product_id, name, description, price, image_url,
+        images: imageUrls, category_id, stock,
+        seller_id: session.user.id, seller_name: session.user.name,
+        is_visible: true, is_featured: false, status: "approved",
       });
     }
 
@@ -175,30 +166,8 @@ export async function PUT(req) {
     }
 
     const existingUrls = JSON.parse(formData.get("existing_image_urls") || "[]");
-const allImageUrls = [...existingUrls, ...newImageUrls];
-let image_url = allImageUrls[0] || null;
-
-// and update the product_images block:
-if (allImageUrls.length > 0) {
-  await db.query("DELETE FROM product_images WHERE product_id = $1", [id]);
-  await Promise.all(
-    allImageUrls.map((url, i) =>
-      db.query(
-        "INSERT INTO product_images (product_id, image_url, sort_order) VALUES ($1, $2, $3)",
-        [id, url, i]
-      )
-    )
-  );
-}
-
-// and update the socket emit:
-if (global.io) {
-  global.io.emit("products:updated", {
-    id, name, description, price, image_url,
-    images: allImageUrls,
-    category_id, stock, is_visible,
-  });
-}
+    const allImageUrls = [...existingUrls, ...newImageUrls];
+    const image_url = allImageUrls[0] || null;
 
     await db.query(
       `UPDATE products 
@@ -207,10 +176,10 @@ if (global.io) {
       [name, description, price, image_url, category_id, stock, is_visible, id, session.user.id]
     );
 
-    if (newImageUrls.length > 0) {
+    if (allImageUrls.length > 0) {
       await db.query("DELETE FROM product_images WHERE product_id = $1", [id]);
       await Promise.all(
-        newImageUrls.map((url, i) =>
+        allImageUrls.map((url, i) =>
           db.query(
             "INSERT INTO product_images (product_id, image_url, sort_order) VALUES ($1, $2, $3)",
             [id, url, i]
@@ -251,7 +220,7 @@ if (global.io) {
     if (global.io) {
       global.io.emit("products:updated", {
         id, name, description, price, image_url,
-        category_id, stock, is_visible,
+        images: allImageUrls, category_id, stock, is_visible,
       });
     }
 
@@ -274,9 +243,7 @@ export async function DELETE(req) {
     await db.query("DELETE FROM product_variants WHERE product_id = $1", [id]);
     await db.query("DELETE FROM products WHERE id=$1 AND seller_id=$2", [id, session.user.id]);
 
-    if (global.io) {
-      global.io.emit("products:deleted", { id });
-    }
+    if (global.io) global.io.emit("products:deleted", { id });
 
     return Response.json({ success: true });
   } catch (err) {

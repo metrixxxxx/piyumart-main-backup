@@ -1,7 +1,7 @@
 "use client";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { io } from "socket.io-client";
+import { supabase } from "@/lib/supabase";
 
 export default function NotificationBell() {
   const { data: session } = useSession();
@@ -10,25 +10,31 @@ export default function NotificationBell() {
 
   const unread = notifications.filter((n) => !n.is_read).length;
 
-  useEffect(() => {
-    if (!session) return;
+ useEffect(() => {
+  if (!session) return;
 
-    fetch("/api/notifications")
-      .then((r) => r.json())
-      .then((data) => setNotifications(Array.isArray(data) ? data : []));
-
-    const socket = io();
-    socket.emit("join", session.user.id);
-    socket.on("notification:new", (notif) => {
-      setNotifications((prev) => [notif, ...prev]);
+  fetch("/api/notifications")
+    .then((r) => r.json())
+    .then((data) => {
+      console.log("notifications loaded:", data); // ✅ check if loading
+      setNotifications(Array.isArray(data) ? data : []);
     });
 
-    return () => socket.disconnect();
-  }, [session?.user?.id]);
+  const channel = supabase
+    .channel(`notifications:${session.user.id}`)
+    .on("broadcast", { event: "notification:new" }, (payload) => {
+      console.log("notification received:", payload); // ✅ check if realtime works
+      setNotifications((prev) => [payload.payload, ...prev]);
+    })
+    .subscribe((status) => {
+      console.log("supabase channel status:", status); // ✅ check if subscribed
+    });
 
+  return () => supabase.removeChannel(channel);
+}, [session?.user?.id]);
   async function markAllRead() {
     await fetch("/api/notifications", { method: "PATCH" });
-    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: 1 })));
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
   }
 
   async function clearAll() {
@@ -47,10 +53,7 @@ export default function NotificationBell() {
   return (
     <div className="relative">
       <button
-        onClick={() => {
-          setOpen(!open);
-          if (!open && unread > 0) markAllRead();
-        }}
+        onClick={() => { setOpen(!open); if (!open && unread > 0) markAllRead(); }}
         className="relative p-2 text-gray-300 hover:text-white transition"
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -66,56 +69,36 @@ export default function NotificationBell() {
 
       {open && (
         <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-80 bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden">
-          {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
             <span className="text-sm font-medium text-white">
               Notifications {unread > 0 && (
-                <span className="ml-1 text-xs bg-red-500 text-white px-1.5 py-0.5 rounded-full">
-                  {unread}
-                </span>
+                <span className="ml-1 text-xs bg-red-500 text-white px-1.5 py-0.5 rounded-full">{unread}</span>
               )}
             </span>
             <div className="flex items-center gap-3">
               {unread > 0 && (
-                <button
-                  onClick={markAllRead}
-                  className="text-xs text-blue-400 hover:text-blue-300 transition"
-                >
+                <button onClick={markAllRead} className="text-xs text-blue-400 hover:text-blue-300 transition">
                   Mark all read
                 </button>
               )}
               {notifications.length > 0 && (
-                <button
-                  onClick={clearAll}
-                  className="text-xs text-red-400 hover:text-red-300 transition"
-                >
+                <button onClick={clearAll} className="text-xs text-red-400 hover:text-red-300 transition">
                   Clear all
                 </button>
               )}
             </div>
           </div>
-
-          {/* List */}
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
-              <div className="text-center py-8 text-gray-500 text-sm">
-                No notifications
-              </div>
+              <div className="text-center py-8 text-gray-500 text-sm">No notifications</div>
             ) : (
               notifications.map((n) => (
-                <div
-                  key={n.id}
-                  className={`px-4 py-3 border-b border-gray-800 text-sm transition ${
-                    !n.is_read ? "bg-gray-800/60" : ""
-                  }`}
-                >
+                <div key={n.id} className={`px-4 py-3 border-b border-gray-800 text-sm transition ${!n.is_read ? "bg-gray-800/60" : ""}`}>
                   <div className="flex gap-2">
                     <span className="text-base">{iconMap[n.type] || "🔔"}</span>
                     <div>
                       <p className="text-gray-200">{n.message}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {new Date(n.created_at).toLocaleString()}
-                      </p>
+                      <p className="text-xs text-gray-500 mt-1">{new Date(n.created_at).toLocaleString()}</p>
                     </div>
                   </div>
                 </div>
