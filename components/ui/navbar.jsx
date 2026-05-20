@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from "react";
 import NotificationBell from "@/components/NotificationBell";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import LoadingModal from "@/components/ui/LoadingModal";
+import { getSocket } from "@/lib/socket";
 
 function ThemeToggle() {
   const [state, setState] = useState({ dark: false, mounted: false });
@@ -49,6 +50,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const dropdownRef = useRef(null);
 
   const isActive = (path) => pathname === path || pathname.startsWith(path + "/");
@@ -58,6 +60,38 @@ export default function Navbar() {
     ${isActive(path)
       ? "text-[#c9a028] dark:text-[#c9a028]"
       : "text-white/70 hover:text-white"}`;
+
+  // Fetch unread message count
+  useEffect(() => {
+    if (!session) return;
+
+    fetch("/api/conversations")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const total = data.reduce((s, c) => s + Number(c.unread_count || 0), 0);
+          setUnreadMessages(total);
+        }
+      })
+      .catch(() => {});
+
+    // Real-time unread count update
+    const socket = getSocket(session.user.id);
+    socket.on("message:received", () => {
+      // Only increment if not on messages page
+      if (!pathname.startsWith("/messages")) {
+        setUnreadMessages((prev) => prev + 1);
+      }
+    });
+    return () => socket.off("message:received");
+  }, [session, pathname]);
+
+  // Reset unread when visiting messages page
+  useEffect(() => {
+    if (pathname.startsWith("/messages")) {
+      setUnreadMessages(0);
+    }
+  }, [pathname]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -85,7 +119,6 @@ export default function Navbar() {
 
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5">
-          
           <h1 className="text-lg font-extrabold tracking-tight text-white">
             PIYU<span className="text-[#c9a028]">MART</span>
           </h1>
@@ -96,6 +129,19 @@ export default function Navbar() {
           <Link href="/" className={linkClass("/")}>Home</Link>
           <Link href="/cart" className={linkClass("/cart")}>Cart</Link>
           <Link href="/my-orders" className={linkClass("/my-orders")}>My Orders</Link>
+
+          {/* Messages link with unread badge */}
+          {session && (
+            <Link href="/messages" className={`relative ${linkClass("/messages")}`}>
+              Messages
+              {unreadMessages > 0 && (
+                <span className="absolute -top-2 -right-3 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+                  {unreadMessages > 9 ? "9+" : unreadMessages}
+                </span>
+              )}
+            </Link>
+          )}
+
           {session && <NotificationBell />}
           <ThemeToggle />
 
@@ -123,8 +169,8 @@ export default function Navbar() {
                   </div>
                   <div className="py-1">
                     {[
-                      { href: "/profile",     label: "My Profile",     icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
-                      { href: "/sell",        label: "Sell a Product",  icon: "M12 4v16m8-8H4" },
+                      { href: "/profile",     label: "My Profile",    icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
+                      { href: "/sell",        label: "Sell a Product", icon: "M12 4v16m8-8H4" },
                       { href: "/my-listings", label: "My Listings",    icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" },
                     ].map(({ href, label, icon }) => (
                       <Link key={href} href={href} onClick={() => setOpen(false)}
@@ -135,6 +181,20 @@ export default function Navbar() {
                         {label}
                       </Link>
                     ))}
+
+                    {/* Messages in dropdown too */}
+                    <Link href="/messages" onClick={() => setOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-xs text-[#0e1a3d]/70 dark:text-[#e8edf8]/60 hover:bg-[#e8edf8] dark:hover:bg-white/[0.04] hover:text-[#1a2a6c] dark:hover:text-[#c9a028] transition-colors">
+                      <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                      Messages
+                      {unreadMessages > 0 && (
+                        <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+                          {unreadMessages > 9 ? "9+" : unreadMessages}
+                        </span>
+                      )}
+                    </Link>
                   </div>
                   <div className="border-t border-[#c5cfe8] dark:border-white/[0.07] py-1">
                     <button onClick={requestLogout}
@@ -158,6 +218,21 @@ export default function Navbar() {
         {/* Mobile: right side */}
         <div className="flex md:hidden items-center gap-3">
           {session && <NotificationBell />}
+
+          {/* Mobile messages icon with badge */}
+          {session && (
+            <Link href="/messages" className="relative text-white/70 hover:text-white transition">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              {unreadMessages > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-3.5 px-0.5 rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center">
+                  {unreadMessages > 9 ? "9+" : unreadMessages}
+                </span>
+              )}
+            </Link>
+          )}
+
           <ThemeToggle />
           <button
             onClick={() => setMobileOpen((p) => !p)}
@@ -168,24 +243,15 @@ export default function Navbar() {
             <svg className="absolute inset-1 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 className={`origin-center transition-all duration-300 ${mobileOpen ? "translate-y-1.5 rotate-45" : ""}`}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16"
+                strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16"
               />
               <path
                 className={`transition-all duration-200 ${mobileOpen ? "opacity-0" : "opacity-100"}`}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 12h16"
+                strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 12h16"
               />
               <path
                 className={`origin-center transition-all duration-300 ${mobileOpen ? "-translate-y-1.5 -rotate-45" : ""}`}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 18h16"
+                strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 18h16"
               />
             </svg>
           </button>
@@ -197,44 +263,50 @@ export default function Navbar() {
         className={`md:hidden fixed inset-x-0 top-[57px] bottom-0 z-40 bg-[#1a2a6c] dark:bg-[#0a0e1f] flex flex-col px-6 py-6 gap-4 transition-all duration-300 ease-out
           ${mobileOpen ? "translate-y-0 opacity-100 pointer-events-auto" : "-translate-y-3 opacity-0 pointer-events-none"}`}
       >
-          {session && (
-            <div className={`flex items-center gap-3 pb-4 border-b border-white/10 transition-all duration-300 ${mobileOpen ? "translate-y-0 opacity-100 delay-100" : "-translate-y-2 opacity-0"}`}>
-              <div className="w-10 h-10 rounded-full bg-[#c9a028] flex items-center justify-center text-sm font-bold text-[#0e1a3d]">
-                {session.user.name?.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-white">{session.user.name}</p>
-                <p className="text-xs text-white/50">{session.user.email}</p>
-              </div>
+        {session && (
+          <div className={`flex items-center gap-3 pb-4 border-b border-white/10 transition-all duration-300 ${mobileOpen ? "translate-y-0 opacity-100 delay-100" : "-translate-y-2 opacity-0"}`}>
+            <div className="w-10 h-10 rounded-full bg-[#c9a028] flex items-center justify-center text-sm font-bold text-[#0e1a3d]">
+              {session.user.name?.charAt(0).toUpperCase()}
             </div>
-          )}
-          {[
-            { href: "/", label: "Home" },
-            { href: "/cart", label: "Cart" },
-            { href: "/my-orders", label: "My Orders" },
-            ...(session ? [
-              { href: "/profile", label: "My Profile" },
-              { href: "/sell", label: "Sell a Product" },
-              { href: "/my-listings", label: "My Listings" },
-            ] : []),
-          ].map(({ href, label }) => (
-            <Link key={href} href={href} onClick={() => setMobileOpen(false)}
-              className={`text-sm font-semibold py-2 border-b border-white/10 transition-all duration-300
-                ${isActive(href) ? "text-[#c9a028]" : "text-white/80 hover:text-white"}`}>
-              {label}
-            </Link>
-          ))}
-          {session ? (
-            <button onClick={requestLogout}
-              className="mt-2 text-sm font-semibold text-red-400 text-left py-2">
-              Logout
-            </button>
-          ) : (
-            <Link href="/login" onClick={() => setMobileOpen(false)}
-              className="mt-2 text-center bg-[#c9a028] text-[#0e1a3d] font-bold text-sm py-3 rounded-xl">
-              Login
-            </Link>
-          )}
+            <div>
+              <p className="text-sm font-semibold text-white">{session.user.name}</p>
+              <p className="text-xs text-white/50">{session.user.email}</p>
+            </div>
+          </div>
+        )}
+        {[
+          { href: "/",          label: "Home" },
+          { href: "/cart",      label: "Cart" },
+          { href: "/my-orders", label: "My Orders" },
+          ...(session ? [
+            { href: "/messages",    label: "Messages",    badge: unreadMessages },
+            { href: "/profile",     label: "My Profile" },
+            { href: "/sell",        label: "Sell a Product" },
+            { href: "/my-listings", label: "My Listings" },
+          ] : []),
+        ].map(({ href, label, badge }) => (
+          <Link key={href} href={href} onClick={() => setMobileOpen(false)}
+            className={`flex items-center justify-between text-sm font-semibold py-2 border-b border-white/10 transition-all duration-300
+              ${isActive(href) ? "text-[#c9a028]" : "text-white/80 hover:text-white"}`}>
+            {label}
+            {badge > 0 && (
+              <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                {badge > 9 ? "9+" : badge}
+              </span>
+            )}
+          </Link>
+        ))}
+        {session ? (
+          <button onClick={requestLogout}
+            className="mt-2 text-sm font-semibold text-red-400 text-left py-2">
+            Logout
+          </button>
+        ) : (
+          <Link href="/login" onClick={() => setMobileOpen(false)}
+            className="mt-2 text-center bg-[#c9a028] text-[#0e1a3d] font-bold text-sm py-3 rounded-xl">
+            Login
+          </Link>
+        )}
       </div>
 
       <ConfirmModal

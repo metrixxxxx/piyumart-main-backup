@@ -10,7 +10,6 @@ export async function GET(req) {
     const productId = searchParams.get("id");
     const categoryId = searchParams.get("category_id");
     const sellerId = searchParams.get("seller_id");
-    const price = searchParams.get("price");
 
     if (!productId) {
       return NextResponse.json({ error: "Missing id" }, { status: 400 });
@@ -19,9 +18,7 @@ export async function GET(req) {
     const params = [
       categoryId ? Number(categoryId) : null,  // $1 category_id
       sellerId ? Number(sellerId) : null,        // $2 seller_id
-      price ? Number(price) : 0,                 // $3 price low
-      price ? Number(price) : 0,                 // $4 price high
-      Number(productId),                         // $5 exclude current
+      Number(productId),                         // $3 exclude current
     ];
 
     let excludeSeller = "";
@@ -38,23 +35,21 @@ export async function GET(req) {
         (
           CASE WHEN p.category_id = $1 THEN 40 ELSE 0 END +
           CASE WHEN p.seller_id = $2 THEN 20 ELSE 0 END +
-          CASE WHEN $3 > 0 AND p.price BETWEEN $3 * 0.7 AND $4 * 1.3 THEN 15 ELSE 0 END +
           COALESCE(p.sold_count, 0) * 0.5 +
           COALESCE(p.average_rating, 0) * 2
         ) as relevance_score
        FROM products p
        LEFT JOIN categories c ON c.id = p.category_id
        WHERE p.is_visible = true
-         AND p.id != $5
+         AND p.id != $3
+         AND (p.category_id = $1 OR p.seller_id = $2)
          ${excludeSeller}
        ORDER BY relevance_score DESC, p.id DESC
        LIMIT 6`,
       params
     );
 
-    // Only return products with at least some relevance score
-    const relevant = rows.filter((r) => Number(r.relevance_score) > 0);
-    return NextResponse.json(relevant.length > 0 ? relevant : rows);
+    return NextResponse.json(rows);
   } catch (err) {
     console.error("Related products error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });

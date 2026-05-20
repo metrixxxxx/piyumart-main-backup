@@ -29,8 +29,8 @@ export default function ProductDetailPage() {
       setSelectedVariant(null);
 
       const relRes = await fetch(
-        `/api/products/related?id=${id}&category_id=${productData.category_id || ""}&seller_id=${productData.seller_id || ""}&price=${productData.price || ""}`
-      );
+  `/api/products/related?id=${id}&category_id=${productData.category_id || ""}&seller_id=${productData.seller_id || ""}`
+);
       const relData = await relRes.json();
       setRelatedProducts(Array.isArray(relData) ? relData : []);
       } catch (err) {
@@ -83,6 +83,19 @@ export default function ProductDetailPage() {
       `/checkout?productId=${product.id}&quantity=${quantity}${selectedVariant ? `&variant=${encodeURIComponent(selectedVariant.label)}` : ""}`
     );
   }
+  async function handleChat() {
+  if (!session) { setShowModal(true); return; }
+  const res = await fetch("/api/conversations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      seller_id: product.seller_id,
+      product_id: product.id,
+    }),
+  });
+  const data = await res.json();
+  if (data.id) router.push(`/messages/${data.id}`);
+}
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f]">
@@ -187,30 +200,43 @@ export default function ProductDetailPage() {
               ₱{Number(product.price).toLocaleString()}
             </p>
 
-            {/* Stock + Seller */}
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <span className={`text-xs font-semibold px-3 py-1 rounded-full
-                ${isOutOfStock
-                  ? "bg-red-50 dark:bg-red-500/10 text-[#e94560]"
-                  : "bg-green-50 dark:bg-green-500/10 text-[#16a34a]"
-                }`}>
-                {isOutOfStock ? "Out of Stock" : `${product.stock} in stock`}
-              </span>
-              <span className="text-xs text-[#1a1060]/40 dark:text-[#f0ede8]/35">
-                by {
-                  product.seller_id ? (
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/seller/${product.seller_id}`)}
-                      className="font-semibold text-[#1a1060]/80 dark:text-[#f0ede8]/70 hover:text-[#6d4aff] dark:hover:text-[#c9a96e] transition-colors"
-                    >
-                      {product.seller_name || "Unknown"}
-                    </button>
-                  ) : (
-                    <strong className="text-[#1a1060]/60 dark:text-[#f0ede8]/55">{product.seller_name || "Unknown"}</strong>
-                  )
-                }
-              </span>
+           {/* Stock + Seller */}
+<div className="flex flex-col gap-2">
+  {/* Stock badge */}
+  <span className={`w-fit text-xs font-semibold px-3 py-1 rounded-full
+    ${isOutOfStock
+      ? "bg-red-50 dark:bg-red-500/10 text-[#e94560]"
+      : "bg-green-50 dark:bg-green-500/10 text-[#16a34a]"
+    }`}>
+    {isOutOfStock ? "Out of Stock" : `${product.stock} in stock`}
+  </span>
+
+  {/* Seller row */}
+  <div className="flex items-center gap-2 flex-wrap">
+    <div className="flex items-center gap-1.5 bg-[#f5f3ff] dark:bg-white/[0.04] border border-[#e8e5f0] dark:border-white/[0.08] px-3 py-1.5 rounded-full">
+      <svg className="w-3 h-3 text-[#6d4aff] dark:text-[#c9a96e] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+      <span className="text-[11px] text-[#1a1060]/50 dark:text-[#f0ede8]/40">Sold by</span>
+      <span className="text-[11px] font-bold text-[#1a1060] dark:text-[#f0ede8]">
+        {product.seller_name || "Unknown"}
+      </span>
+    </div>
+
+    {product.seller_id && (
+      <button
+        type="button"
+        onClick={() => router.push(`/shop/${product.seller_id}`)}
+        className="flex items-center gap-1 text-[11px] font-semibold text-[#6d4aff] dark:text-[#c9a96e] border border-[#6d4aff]/30 dark:border-[#c9a96e]/30 px-3 py-1.5 rounded-full hover:bg-[#ede9ff] dark:hover:bg-[#c9a96e]/10 transition-colors"
+      >
+        Visit Shop
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+        </svg>
+      </button>
+    )}
+  </div>
+
             </div>
 
             {/* Description */}
@@ -321,32 +347,85 @@ export default function ProductDetailPage() {
               >
                 ⚡ Buy Now
               </button>
+              {session && String(session.user.id) !== String(product.seller_id) && (
+    <button
+      onClick={handleChat}
+      className="w-full py-3.5 rounded-xl border border-[#e5e7eb] dark:border-white/10 text-sm font-bold text-[#1a1060] dark:text-[#f0ede8] hover:bg-[#f5f3ff] dark:hover:bg-white/[0.04] transition-all duration-150 cursor-pointer"
+    >
+      💬 Chat with Seller
+    </button>
+  )}
             </div>
+            
           </div>
         </div>
+        
 
         {/* REVIEWS SECTION */}
         <ReviewsSection productId={id} product={product} />
 
-        {/* MORE PRODUCTS */}
-        {relatedProducts.length > 0 && (
-          <div className="mt-14">
-            <div className="flex items-center gap-3 mb-5">
-              <h2 className="text-xl font-bold text-[#1a1060] dark:text-[#f0ede8] m-0">More Products</h2>
-              <div className="flex-1 h-px bg-[#e5e7eb] dark:bg-white/[0.07]" />
-            </div>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,170px),1fr))] gap-4 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
-              {relatedProducts.map((p) => (
-                <div
-                  key={p.id}
-                  className="bg-white dark:bg-white/[0.04] rounded-[14px] border border-[#e8e5f0] dark:border-white/[0.07] overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(109,74,255,0.12)] dark:hover:shadow-[0_8px_24px_rgba(201,169,110,0.1)]"
-                >
-                  <ProductCard product={p} />
-                </div>
-              ))}
-            </div>
+        {relatedProducts.length > 0 && (() => {
+  const fromSeller = relatedProducts.filter(p => String(p.seller_id) === String(product.seller_id)).slice(0, 5);
+  const fromCategory = relatedProducts.filter(p => String(p.seller_id) !== String(product.seller_id)).slice(0, 5);
+
+  return (
+    <div className="mt-14 flex flex-col gap-10">
+      {/* FROM THIS SELLER */}
+      {fromSeller.length > 0 && (
+        <div>
+          <div className="flex items-center gap-3 mb-5">
+            <h2 className="text-xl font-bold text-[#1a1060] dark:text-[#f0ede8] m-0">
+              More from {product.seller_name}
+            </h2>
+            <div className="flex-1 h-px bg-[#e5e7eb] dark:bg-white/[0.07]" />
           </div>
-        )}
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,170px),1fr))] gap-4 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
+            {fromSeller.map((p) => (
+              <div key={p.id} className="bg-white dark:bg-white/[0.04] rounded-[14px] border border-[#e8e5f0] dark:border-white/[0.07] overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(109,74,255,0.12)] dark:hover:shadow-[0_8px_24px_rgba(201,169,110,0.1)]">
+                <ProductCard product={p} />
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex justify-center">
+            <button
+              onClick={() => router.push(`/seller/${product.seller_id}`)}
+              className="px-5 py-2.5 rounded-xl border border-[#e8e5f0] dark:border-white/10 text-sm font-semibold text-[#6d4aff] dark:text-[#c9a96e] hover:bg-[#ede9ff] dark:hover:bg-[#c9a96e]/10 transition"
+            >
+              View {product.seller_name} Products Shop →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* FROM SAME CATEGORY */}
+      {fromCategory.length > 0 && (
+        <div>
+          <div className="flex items-center gap-3 mb-5">
+            <h2 className="text-xl font-bold text-[#1a1060] dark:text-[#f0ede8] m-0">
+              More in {product.category_name || "this category"}
+            </h2>
+            <div className="flex-1 h-px bg-[#e5e7eb] dark:bg-white/[0.07]" />
+          </div>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,170px),1fr))] gap-4 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
+            {fromCategory.map((p) => (
+              <div key={p.id} className="bg-white dark:bg-white/[0.04] rounded-[14px] border border-[#e8e5f0] dark:border-white/[0.07] overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(109,74,255,0.12)] dark:hover:shadow-[0_8px_24px_rgba(201,169,110,0.1)]">
+                <ProductCard product={p} />
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex justify-center">
+            <button
+              onClick={() => router.push(`/products?category=${product.category_id}`)}
+              className="px-5 py-2.5 rounded-xl border border-[#e8e5f0] dark:border-white/10 text-sm font-semibold text-[#6d4aff] dark:text-[#c9a96e] hover:bg-[#ede9ff] dark:hover:bg-[#c9a96e]/10 transition"
+            >
+              Browse {product.category_name || "this category"} →
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+})()}
       </div>
 
       {/* LOGIN MODAL */}

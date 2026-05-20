@@ -110,8 +110,15 @@ const orderId = Number(id);
           `UPDATE products SET sold_count = sold_count + $1 WHERE id = $2`,
           [item.quantity, item.product_id]
         );
+         await db.query(
+      `UPDATE products SET stock = stock - $1 WHERE id = $2 AND stock >= $3`,
+      [item.quantity, item.product_id, item.quantity]
+    );
       }
     }
+    
+  
+
 
     // RESTORE STOCKS WHEN CANCELLED
     if (status === "cancelled") {

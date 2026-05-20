@@ -285,6 +285,7 @@ export default function MyListingsPage() {
                     <tr className="border-b border-[#c5cfe8] dark:border-white/[0.07] text-[#0e1a3d]/40 dark:text-[#e8edf8]/30 uppercase tracking-wider">
                       <th className="text-left px-4 py-3">Order ID</th>
                       <th className="text-left px-4 py-3">Product</th>
+                      <th className="text-left px-4 py-3">Variant</th>
                       <th className="text-left px-4 py-3">Buyer</th>
                       <th className="text-left px-4 py-3">Qty</th>
                       <th className="text-left px-4 py-3">Total</th>
@@ -296,7 +297,12 @@ export default function MyListingsPage() {
                     {orders.map((o) => (
                       <tr key={o.id} className="border-b border-[#c5cfe8] dark:border-white/[0.07] hover:bg-[#f0f4ff] dark:hover:bg-white/[0.02] transition">
                         <td className="px-4 py-3 font-mono text-[#0e1a3d]/40 dark:text-[#e8edf8]/30">#{o.id}</td>
-                        <td className="px-4 py-3 font-semibold text-[#0e1a3d] dark:text-[#e8edf8]">{o.product_name}</td>
+                        <td className="px-4 py-3 font-semibold text-[#0e1a3d] dark:text-[#e8edf8]">{o.product_name}   
+                        </td>
+                        <td className="px-4 py-3 text-[#0e1a3d]/60 dark:text-[#e8edf8]/50">
+                              {o.variant || <span className="italic opacity-40">—</span>}
+                                                                                 </td>
+                        
                         <td className="px-4 py-3">
                           <p className="font-semibold text-[#0e1a3d] dark:text-[#e8edf8]">{o.buyer_name}</p>
                           <p className="text-[#0e1a3d]/40 dark:text-[#e8edf8]/30">{o.buyer_email}</p>
@@ -371,6 +377,7 @@ export default function MyListingsPage() {
                   <thead>
                     <tr className="border-b border-[#c5cfe8] dark:border-white/[0.07] text-[#0e1a3d]/40 dark:text-[#e8edf8]/30 uppercase tracking-wider">
                       <th className="text-left px-4 py-3">Product</th>
+                      <th className="text-left px-4 py-3">Variant</th>
                       <th className="text-left px-4 py-3">Buyer</th>
                       <th className="text-left px-4 py-3">Rating</th>
                       <th className="text-left px-4 py-3">Comment</th>
@@ -381,6 +388,7 @@ export default function MyListingsPage() {
                     {reviews.map((r) => (
                       <tr key={r.id} className="border-b border-[#c5cfe8] dark:border-white/[0.07] hover:bg-[#f0f4ff] dark:hover:bg-white/[0.02] transition">
                         <td className="px-4 py-3 font-semibold text-[#0e1a3d] dark:text-[#e8edf8]">{r.product_name}</td>
+                        <td className="px-4 py-3 text-[#0e1a3d]/70 dark:text-[#e8edf8]/60">{r.variant|| "N/A"}</td>
                         <td className="px-4 py-3 text-[#0e1a3d]/70 dark:text-[#e8edf8]/60">{r.user_name}</td>
                         <td className="px-4 py-3">
                           <div className="flex gap-0.5">

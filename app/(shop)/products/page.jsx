@@ -9,70 +9,63 @@ import { getSocket } from "@/lib/socket";
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const { data: session } = useSession();
   const router = useRouter();
-useEffect(() => {
-  async function fetchCategories() {
-    const res = await fetch("/api/categories");
-    const data = await res.json();
-    setCategories(Array.isArray(data) ? data : []);
-  }
-  fetchCategories();
-}, []);
 
-// BAGO — i-update yung products useEffect dependency at fetch URL
-useEffect(() => {
-  async function fetchProducts() {
-    try {
-      const url = new URL("/api/products", window.location.origin);
-      if (selectedCategory) url.searchParams.set("category_id", selectedCategory);
-      const res = await fetch(url.toString());
-      const data = await res.json();
-      const allProducts = Array.isArray(data) ? data : [];
-      const filtered = session?.user?.id
-        ? allProducts.filter((p) => String(p.seller_id) !== String(session.user.id))
-        : allProducts;
-      setProducts(filtered);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+  // ✅ Basahin ang URL param sa initial state — isang beses lang
+  const [selectedCategory, setSelectedCategory] = useState(() => {
+    if (typeof window === "undefined") return null;
+    const param = new URLSearchParams(window.location.search).get("category");
+    return param ? Number(param) : null;
+  });
+
+  // ✅ Fetch categories
+  useEffect(() => {
+    fetch("/api/categories")
+      .then((r) => r.json())
+      .then((data) => setCategories(Array.isArray(data) ? data : []));
+  }, []);
+
+  // ✅ Fetch products
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        const url = new URL("/api/products", window.location.origin);
+        if (selectedCategory) url.searchParams.set("category_id", selectedCategory);
+        const res = await fetch(url.toString());
+        const data = await res.json();
+        const allProducts = Array.isArray(data) ? data : [];
+        const filtered = session?.user?.id
+          ? allProducts.filter((p) => String(p.seller_id) !== String(session.user.id))
+          : allProducts;
+        setProducts(filtered);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
     }
-  }
-  fetchProducts();
+    fetchProducts();
 
-  const socket = getSocket();
-  socket.on("products:new", (newProduct) => {
-    if (session?.user?.id && String(newProduct.seller_id) === String(session.user.id)) return;
-    setProducts((prev) => [newProduct, ...prev]);
-  });
-  socket.on("products:updated", (updated) => {
-    setProducts((prev) => prev.map((p) => String(p.id) === String(updated.id) ? { ...p, ...updated } : p));
-  });
-  socket.on("products:deleted", ({ id }) => {
-    setProducts((prev) => prev.filter((p) => String(p.id) !== String(id)));
-  });
-  return () => {
-    socket.off("products:new");
-    socket.off("products:updated");
-    socket.off("products:deleted");
-  };
-}, [session, selectedCategory]); // ← dagdag na selectedCategory dito// ← pinalitan
-
-const visibleProducts = products; // ← simplified, server na mag-filter
-
-  function handleAddToCart(product) {
-    if (!session) { setShowModal(true); return; }
-    fetch("/api/cart", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ product_id: product.id, quantity: 1 }) }).then(() => alert(`${product.name} added to cart!`));
-  }
-
-  function handleBuyNow(product) {
-    if (!session) { setShowModal(true); return; }
-    fetch("/api/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ product_id: product.id, quantity: 1 }) }).then(() => router.push("/checkout"));
-  }
+    const socket = getSocket();
+    socket.on("products:new", (newProduct) => {
+      if (session?.user?.id && String(newProduct.seller_id) === String(session.user.id)) return;
+      setProducts((prev) => [newProduct, ...prev]);
+    });
+    socket.on("products:updated", (updated) => {
+      setProducts((prev) => prev.map((p) => String(p.id) === String(updated.id) ? { ...p, ...updated } : p));
+    });
+    socket.on("products:deleted", ({ id }) => {
+      setProducts((prev) => prev.filter((p) => String(p.id) !== String(id)));
+    });
+    return () => {
+      socket.off("products:new");
+      socket.off("products:updated");
+      socket.off("products:deleted");
+    };
+  }, [session, selectedCategory]);
 
   if (loading) return (
     <div className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] flex items-center justify-center">
@@ -101,7 +94,10 @@ const visibleProducts = products; // ← simplified, server na mag-filter
         {/* Category Filter */}
         <div className="flex gap-2 flex-wrap mb-6">
           <button
-            onClick={() => setSelectedCategory(null)}
+            onClick={() => {
+              setSelectedCategory(null);
+              window.location.href = "/products";
+            }}
             className={`px-4 py-1.5 rounded-full border text-xs font-medium transition-all duration-150
               ${selectedCategory === null
                 ? "bg-[#6d4aff] dark:bg-[#c9a96e] border-[#6d4aff] dark:border-[#c9a96e] text-white dark:text-[#0a0a0f] font-bold"
@@ -112,7 +108,9 @@ const visibleProducts = products; // ← simplified, server na mag-filter
           {categories.map((cat) => (
             <button
               key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
+              onClick={() => {
+                window.location.href = `/products?category=${cat.id}`;
+              }}
               className={`px-4 py-1.5 rounded-full border text-xs font-medium transition-all duration-150
                 ${selectedCategory === cat.id
                   ? "bg-[#6d4aff] dark:bg-[#c9a96e] border-[#6d4aff] dark:border-[#c9a96e] text-white dark:text-[#0a0a0f] font-bold"
@@ -129,21 +127,32 @@ const visibleProducts = products; // ← simplified, server na mag-filter
             {selectedCategory ? categories.find((c) => c.id === selectedCategory)?.name : "All Products"}
           </h2>
           <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#ede9ff] dark:bg-[#c9a96e]/10 text-[#6d4aff] dark:text-[#c9a96e]">
-            {visibleProducts.length} item{visibleProducts.length !== 1 ? "s" : ""}
+            {products.length} item{products.length !== 1 ? "s" : ""}
           </span>
         </div>
 
         {/* Products Grid */}
-        {visibleProducts.length === 0 ? (
+        {products.length === 0 ? (
           <p className="text-sm text-[#1a1060]/50 dark:text-[#f0ede8]/40 py-6">No products found in this category.</p>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,170px),1fr))] gap-4 sm:grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
-            {visibleProducts.map((product) => (
+            {products.map((product) => (
               <div
                 key={product.id}
                 className="bg-white dark:bg-white/[0.04] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07] overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_8px_28px_rgba(109,74,255,0.12)] dark:hover:shadow-[0_8px_28px_rgba(201,169,110,0.1)] hover:border-[#6d4aff] dark:hover:border-[#c9a96e]"
               >
-                <ProductCard product={product} onAddToCart={() => handleAddToCart(product)} onClick={() => router.push(`/products/${product.id}`)} />
+                <ProductCard
+                  product={product}
+                  onAddToCart={() => {
+                    if (!session) { setShowModal(true); return; }
+                    fetch("/api/cart", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ product_id: product.id, quantity: 1 }),
+                    });
+                  }}
+                  onClick={() => router.push(`/products/${product.id}`)}
+                />
               </div>
             ))}
           </div>

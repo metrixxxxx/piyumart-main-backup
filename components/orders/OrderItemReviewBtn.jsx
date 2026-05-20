@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";  // ✅ dagdag useEffect
 import FeedbackModal from "@/components/ui/FeedbackModal";
 import LoadingModal from "@/components/ui/LoadingModal";
 
@@ -9,6 +9,15 @@ export default function OrderItemReviewBtn({ productId, productName, onSuccess }
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [reviewed, setReviewed] = useState(false);  // ✅ dagdag
+
+  // ✅ Check kung na-review na
+  useEffect(() => {
+    fetch(`/api/products/${productId}/reviews/mine`)
+      .then((r) => r.json())
+      .then((data) => { if (data.reviewed) setReviewed(true); })
+      .catch(() => {});
+  }, [productId]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -26,10 +35,7 @@ export default function OrderItemReviewBtn({ productId, productName, onSuccess }
       const res = await fetch(`/api/products/${productId}/reviews`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          rating,
-          comment: comment.trim() || null,
-        }),
+        body: JSON.stringify({ rating, comment: comment.trim() || null }),
       });
 
       const data = await res.json();
@@ -43,6 +49,7 @@ export default function OrderItemReviewBtn({ productId, productName, onSuccess }
         setComment("");
         setRating(0);
         setShowModal(false);
+        setReviewed(true);  // ✅ mark as reviewed
         setFeedback({
           type: "success",
           title: "Review submitted",
@@ -51,7 +58,6 @@ export default function OrderItemReviewBtn({ productId, productName, onSuccess }
         if (onSuccess) onSuccess();
       }
     } catch (err) {
-      console.error("Error submitting review:", err);
       setFeedback({
         type: "error",
         title: "Review not submitted",
@@ -61,6 +67,18 @@ export default function OrderItemReviewBtn({ productId, productName, onSuccess }
       setSubmitting(false);
     }
   }
+
+  // ✅ Kung na-review na, show thank you message
+  if (reviewed) {
+    return (
+      <span className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 whitespace-nowrap">
+        ✅ Thank you for your review!
+      </span>
+    );
+  }
+
+ 
+  
 
   return (
     <>
@@ -163,5 +181,5 @@ export default function OrderItemReviewBtn({ productId, productName, onSuccess }
         onClose={() => setFeedback(null)}
       />
     </>
-  );
-}
+  )
+};

@@ -22,7 +22,7 @@ export default function SellPage() {
   const [feedback, setFeedback] = useState(null);
   const [attributeDefs, setAttributeDefs] = useState([]);
   const [form, setForm] = useState({
-    name: "", description: "", price: "", category_id: "", stock: 0, is_visible: 1,
+    name: "", description: "", price: "", category_id: "", stock: "", is_visible: 1,
   });
   const [attrValues, setAttrValues] = useState({});
   const [mainImages, setMainImages] = useState([]);
@@ -57,7 +57,7 @@ export default function SellPage() {
   }
 
   function resetForm() {
-    setForm({ name: "", description: "", price: "", category_id: "", stock: 0, is_visible: 1 });
+    setForm({ name: "", description: "", price: "", category_id: "", stock: "", is_visible: 1 });
     setAttrValues({});
     setAttributeDefs([]);
     setMainImages([]);
@@ -344,11 +344,17 @@ export default function SellPage() {
                 </div>
               )}
 
-              <input
-                className="w-full px-3 py-2.5 rounded-xl border border-[#c5cfe8] dark:border-white/10 bg-[#f0f4ff] dark:bg-white/[0.04] text-[#0e1a3d] dark:text-[#e8edf8] placeholder:text-[#0e1a3d]/30 dark:placeholder:text-[#e8edf8]/30 text-sm outline-none focus:border-[#1a2a6c] dark:focus:border-[#c9a028] transition-colors"
-                type="number" min="0" placeholder="Stock quantity" value={form.stock}
-                onChange={(e) => setForm({ ...form, stock: parseInt(e.target.value) || 0 })}
-              />
+              <div>
+  <label className="text-xs font-semibold text-[#0e1a3d]/50 dark:text-[#e8edf8]/40 mb-1 block">
+    Stock Quantity
+  </label>
+  <input
+    className="w-full px-3 py-2.5 rounded-xl border border-[#c5cfe8] dark:border-white/10 bg-[#f0f4ff] dark:bg-white/[0.04] text-[#0e1a3d] dark:text-[#e8edf8] placeholder:text-[#0e1a3d]/30 dark:placeholder:text-[#e8edf8]/30 text-sm outline-none focus:border-[#1a2a6c] dark:focus:border-[#c9a028] transition-colors"
+    type="number" min="0" placeholder="e.g. 10"
+    value={form.stock}
+    onChange={(e) => setForm({ ...form, stock: e.target.value === "" ? "" : parseInt(e.target.value) || 0 })}
+  />
+</div>
 
               {/* PRODUCT PHOTOS */}
               <div>

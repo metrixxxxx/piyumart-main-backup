@@ -5,14 +5,16 @@ export async function GET(req, { params }) {
     const { id } = await params;
 
     const [rows] = await db.query(
-      `SELECT p.*, 
-        COALESCE(p.average_rating, 0) as average_rating,
-        COALESCE(p.total_ratings, 0) as total_ratings,
-        COALESCE(p.sold_count, 0) as sold_count
-       FROM products p 
-       WHERE p.id = $1`,
-      [id]
-    );
+  `SELECT p.*, 
+    COALESCE(p.average_rating, 0) as average_rating,
+    COALESCE(p.total_ratings, 0) as total_ratings,
+    COALESCE(p.sold_count, 0) as sold_count,
+    c.name as category_name
+   FROM products p
+   LEFT JOIN categories c ON c.id = p.category_id
+   WHERE p.id = $1`,
+  [id]
+);
 
     if (rows.length === 0) {
       return Response.json({ error: `Product not found (ID: ${id})` }, { status: 404 });

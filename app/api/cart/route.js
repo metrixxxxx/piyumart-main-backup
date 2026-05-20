@@ -11,25 +11,26 @@ export async function GET(req) {
     }
 
     const userId = session.user.id;
-
-    const [items] = await db.query(
-      `SELECT 
-        cart_items.id,
-        cart_items.product_id,
-        cart_items.quantity,
-        cart_items.variant,
-        products.name,
-        products.price,
-        COALESCE(pv.image_url, products.image_url) AS image_url
-       FROM cart_items
-       JOIN carts ON cart_items.cart_id = carts.id
-       JOIN products ON cart_items.product_id = products.id
-       LEFT JOIN product_variants pv 
-         ON pv.product_id = cart_items.product_id 
-         AND pv.label = cart_items.variant
-       WHERE carts.user_id = $1`,
-      [userId]
-    );
+const [items] = await db.query(
+  `SELECT 
+    cart_items.id,
+    cart_items.product_id,
+    cart_items.quantity,
+    cart_items.variant,
+    products.name,
+    products.price,
+    products.seller_id,        -- ← dagdag ito
+    products.seller_name,      -- ← at ito (nandoon na sa products table mo)
+    COALESCE(pv.image_url, products.image_url) AS image_url
+   FROM cart_items
+   JOIN carts ON cart_items.cart_id = carts.id
+   JOIN products ON cart_items.product_id = products.id
+   LEFT JOIN product_variants pv 
+     ON pv.product_id = cart_items.product_id 
+     AND pv.label = cart_items.variant
+   WHERE carts.user_id = $1`,
+  [userId]
+);
 
     return Response.json(items);
   } catch (err) {
