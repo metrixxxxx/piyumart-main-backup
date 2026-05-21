@@ -173,7 +173,7 @@ setTimeout(() => router.push("/my-orders"), 2500);
       <div className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] flex items-center justify-center p-4">
         <div className="text-center px-6 sm:px-12 py-10 sm:py-14 bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07]">
           <div className="text-5xl mb-4">🎉</div>
-          <h2 className="text-xl font-bold text-[#1a1060] dark:text-[#f0ede8] mb-2">Order Placed!</h2>
+          <h2 className="text-xl font-bold text-[#1a1060] dark:text-[#f0ede8] mb-2">Order Placed! Thank you for your purchase Ka PIYU</h2>
           <p className="text-sm text-[#1a1060]/50 dark:text-[#f0ede8]/40">
             Redirecting to your orders...
           </p>

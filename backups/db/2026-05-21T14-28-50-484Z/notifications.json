@@ -1,0 +1,530 @@
+[
+  {
+    "id": 57,
+    "user_id": 6,
+    "type": "order_cancelled",
+    "message": "❌ Order #7 was cancelled by the seller. ",
+    "is_read": true,
+    "created_at": "2026-05-18T15:17:49.831559"
+  },
+  {
+    "id": 59,
+    "user_id": 6,
+    "type": "order",
+    "message": "New order #17 for \"marijuana\" x1 — please approve it in My Listings.",
+    "is_read": true,
+    "created_at": "2026-05-18T16:26:49.634211"
+  },
+  {
+    "id": 60,
+    "user_id": 6,
+    "type": "low_stock",
+    "message": "⚠️ Low stock: \"marijuana\" only has 5 left.",
+    "is_read": true,
+    "created_at": "2026-05-18T16:26:49.689512"
+  },
+  {
+    "id": 11,
+    "user_id": 6,
+    "type": "order_placed",
+    "message": "Your order #7 has been placed! Total: ₱23,232. Waiting for seller approval.",
+    "is_read": true,
+    "created_at": "2026-05-17T14:47:06.69665"
+  },
+  {
+    "id": 18,
+    "user_id": 6,
+    "type": "order",
+    "message": "New order #10 for \"si wendy\" x1 — please approve it in My Listings.",
+    "is_read": true,
+    "created_at": "2026-05-18T07:40:58.802388"
+  },
+  {
+    "id": 61,
+    "user_id": 1,
+    "type": "order_placed",
+    "message": "Your order #17 has been placed! Total: ₱4,500. Waiting for seller approval.",
+    "is_read": true,
+    "created_at": "2026-05-18T16:26:49.744336"
+  },
+  {
+    "id": 65,
+    "user_id": 1,
+    "type": "order_completed",
+    "message": "Your order #17 has been marked as received. Thank you!",
+    "is_read": true,
+    "created_at": "2026-05-18T16:27:41.398538"
+  },
+  {
+    "id": 72,
+    "user_id": 14,
+    "type": "order_placed",
+    "message": "Your order #19 has been placed! Total: ₱4,000. Waiting for seller approval.",
+    "is_read": false,
+    "created_at": "2026-05-18T17:37:13.939563"
+  },
+  {
+    "id": 3,
+    "user_id": 2,
+    "type": "order_placed",
+    "message": "Your order #5 has been placed! Total: ₱23,232. Waiting for seller approval.",
+    "is_read": true,
+    "created_at": "2026-05-17T13:54:19.151247"
+  },
+  {
+    "id": 4,
+    "user_id": 2,
+    "type": "order_status",
+    "message": "Your order #5 is now On the way.",
+    "is_read": true,
+    "created_at": "2026-05-17T14:21:08.851164"
+  },
+  {
+    "id": 7,
+    "user_id": 2,
+    "type": "order_placed",
+    "message": "Your order #6 has been placed! Total: ₱23,232. Waiting for seller approval.",
+    "is_read": true,
+    "created_at": "2026-05-17T14:21:34.652859"
+  },
+  {
+    "id": 8,
+    "user_id": 2,
+    "type": "order_status",
+    "message": "Your order #6 is now On the way.",
+    "is_read": true,
+    "created_at": "2026-05-17T14:21:49.30091"
+  },
+  {
+    "id": 73,
+    "user_id": 14,
+    "type": "order_cancelled",
+    "message": "Your order #19 has been cancelled.",
+    "is_read": false,
+    "created_at": "2026-05-18T17:37:19.727284"
+  },
+  {
+    "id": 77,
+    "user_id": 14,
+    "type": "order_cancelled",
+    "message": "Your order #20 has been cancelled.",
+    "is_read": false,
+    "created_at": "2026-05-18T17:39:52.675402"
+  },
+  {
+    "id": 80,
+    "user_id": 14,
+    "type": "order_cancelled",
+    "message": "Your order #21 has been cancelled.",
+    "is_read": false,
+    "created_at": "2026-05-18T17:42:14.766017"
+  },
+  {
+    "id": 83,
+    "user_id": 14,
+    "type": "order_cancelled",
+    "message": "Your order #22 has been cancelled.",
+    "is_read": false,
+    "created_at": "2026-05-18T17:44:47.141407"
+  },
+  {
+    "id": 87,
+    "user_id": 14,
+    "type": "order_cancelled",
+    "message": "Your order #23 has been cancelled.",
+    "is_read": false,
+    "created_at": "2026-05-18T17:47:56.633606"
+  },
+  {
+    "id": 91,
+    "user_id": 14,
+    "type": "order_cancelled",
+    "message": "Your order #24 has been cancelled.",
+    "is_read": false,
+    "created_at": "2026-05-18T17:48:16.661108"
+  },
+  {
+    "id": 246,
+    "user_id": 8,
+    "type": "order_cancelled",
+    "message": "❌ Order #58 was cancelled by the seller. ",
+    "is_read": true,
+    "created_at": "2026-05-20T12:18:54.596148"
+  },
+  {
+    "id": 124,
+    "user_id": 17,
+    "type": "order_confirmed",
+    "message": "✅ Your order #30 has been confirmed by the seller!",
+    "is_read": true,
+    "created_at": "2026-05-19T07:11:08.532267"
+  },
+  {
+    "id": 125,
+    "user_id": 17,
+    "type": "order_processing",
+    "message": "📦 Order #30 is being prepared by the seller.",
+    "is_read": true,
+    "created_at": "2026-05-19T07:11:35.498917"
+  },
+  {
+    "id": 126,
+    "user_id": 17,
+    "type": "order_shipped",
+    "message": "🚚 Order #30 has been shipped! ",
+    "is_read": true,
+    "created_at": "2026-05-19T07:11:51.678192"
+  },
+  {
+    "id": 127,
+    "user_id": 17,
+    "type": "order_completed",
+    "message": "Your order #30 has been marked as received. Thank you!",
+    "is_read": true,
+    "created_at": "2026-05-19T07:12:02.830029"
+  },
+  {
+    "id": 219,
+    "user_id": 19,
+    "type": "order_placed",
+    "message": "Your order (#63) has been placed! Total: ₱199,998. Waiting for seller approval.",
+    "is_read": true,
+    "created_at": "2026-05-20T09:38:52.825726"
+  },
+  {
+    "id": 316,
+    "user_id": 16,
+    "type": "order",
+    "message": "New order #81: \"WENTRIX <3\" x1 — please approve it in My Listings.",
+    "is_read": true,
+    "created_at": "2026-05-21T13:26:41.386647"
+  },
+  {
+    "id": 58,
+    "user_id": 2,
+    "type": "order_cancelled",
+    "message": "❌ Order #4 was cancelled by the seller. ",
+    "is_read": false,
+    "created_at": "2026-05-18T15:17:49.891291"
+  },
+  {
+    "id": 43,
+    "user_id": 6,
+    "type": "order",
+    "message": "New order #14 for \"si wendy\" x1 — please approve it in My Listings.",
+    "is_read": true,
+    "created_at": "2026-05-18T11:02:39.924538"
+  },
+  {
+    "id": 46,
+    "user_id": 6,
+    "type": "order",
+    "message": "New order #15 for \"si wendy\" x3 — please approve it in My Listings.",
+    "is_read": true,
+    "created_at": "2026-05-18T11:12:18.167401"
+  },
+  {
+    "id": 53,
+    "user_id": 6,
+    "type": "order",
+    "message": "New order #16 for \"si wendy\" x1 — please approve it in My Listings.",
+    "is_read": true,
+    "created_at": "2026-05-18T12:11:34.383447"
+  },
+  {
+    "id": 62,
+    "user_id": 1,
+    "type": "order_confirmed",
+    "message": "✅ Your order #17 has been confirmed by the seller!",
+    "is_read": true,
+    "created_at": "2026-05-18T16:27:13.495744"
+  },
+  {
+    "id": 63,
+    "user_id": 1,
+    "type": "order_processing",
+    "message": "📦 Order #17 is being prepared by the seller.",
+    "is_read": true,
+    "created_at": "2026-05-18T16:27:20.201177"
+  },
+  {
+    "id": 64,
+    "user_id": 1,
+    "type": "order_shipped",
+    "message": "🚚 Order #17 has been shipped! ",
+    "is_read": true,
+    "created_at": "2026-05-18T16:27:25.935398"
+  },
+  {
+    "id": 221,
+    "user_id": 21,
+    "type": "order_placed",
+    "message": "Your order (#64) has been placed! Total: ₱4,000. Waiting for seller approval.",
+    "is_read": false,
+    "created_at": "2026-05-20T10:16:06.708025"
+  },
+  {
+    "id": 222,
+    "user_id": 21,
+    "type": "order_cancelled",
+    "message": "Your order #64 has been cancelled.",
+    "is_read": false,
+    "created_at": "2026-05-20T10:16:22.745615"
+  },
+  {
+    "id": 68,
+    "user_id": 14,
+    "type": "order_placed",
+    "message": "Your order #18 has been placed! Total: ₱4,000. Waiting for seller approval.",
+    "is_read": false,
+    "created_at": "2026-05-18T17:36:54.761423"
+  },
+  {
+    "id": 69,
+    "user_id": 14,
+    "type": "order_cancelled",
+    "message": "Your order #18 has been cancelled.",
+    "is_read": false,
+    "created_at": "2026-05-18T17:37:02.471407"
+  },
+  {
+    "id": 76,
+    "user_id": 14,
+    "type": "order_placed",
+    "message": "Your order #20 has been placed! Total: ₱4,000. Waiting for seller approval.",
+    "is_read": false,
+    "created_at": "2026-05-18T17:39:41.409111"
+  },
+  {
+    "id": 79,
+    "user_id": 14,
+    "type": "order_placed",
+    "message": "Your order #21 has been placed! Total: ₱4,000. Waiting for seller approval.",
+    "is_read": false,
+    "created_at": "2026-05-18T17:42:05.339428"
+  },
+  {
+    "id": 82,
+    "user_id": 14,
+    "type": "order_placed",
+    "message": "Your order #22 has been placed! Total: ₱4,000. Waiting for seller approval.",
+    "is_read": false,
+    "created_at": "2026-05-18T17:44:37.821151"
+  },
+  {
+    "id": 86,
+    "user_id": 14,
+    "type": "order_placed",
+    "message": "Your order #23 has been placed! Total: ₱4,000. Waiting for seller approval.",
+    "is_read": false,
+    "created_at": "2026-05-18T17:46:50.692193"
+  },
+  {
+    "id": 90,
+    "user_id": 14,
+    "type": "order_placed",
+    "message": "Your order #24 has been placed! Total: ₱4,000. Waiting for seller approval.",
+    "is_read": false,
+    "created_at": "2026-05-18T17:48:04.722159"
+  },
+  {
+    "id": 123,
+    "user_id": 17,
+    "type": "order_placed",
+    "message": "Your order #30 has been placed! Total: ₱4,000. Waiting for seller approval.",
+    "is_read": true,
+    "created_at": "2026-05-19T07:10:35.104501"
+  },
+  {
+    "id": 224,
+    "user_id": 21,
+    "type": "order_placed",
+    "message": "Your order (#65) has been placed! Total: ₱1,000. Waiting for seller approval.",
+    "is_read": false,
+    "created_at": "2026-05-20T10:27:35.569074"
+  },
+  {
+    "id": 131,
+    "user_id": 6,
+    "type": "order",
+    "message": "New order #32 for \"si wendy\" x1 — please approve it in My Listings.",
+    "is_read": false,
+    "created_at": "2026-05-19T14:42:42.601017"
+  },
+  {
+    "id": 133,
+    "user_id": 17,
+    "type": "order",
+    "message": "New order #33 for \"ayskrambol na tomboy \" x1 — please approve it in My Listings.",
+    "is_read": false,
+    "created_at": "2026-05-19T14:46:59.193474"
+  },
+  {
+    "id": 132,
+    "user_id": 18,
+    "type": "order_placed",
+    "message": "Your order #32 has been placed! Total: ₱4,000. Waiting for seller approval.",
+    "is_read": true,
+    "created_at": "2026-05-19T14:42:42.853398"
+  },
+  {
+    "id": 136,
+    "user_id": 18,
+    "type": "order_placed",
+    "message": "Your order #34 has been placed! Total: ₱1,950. Waiting for seller approval.",
+    "is_read": true,
+    "created_at": "2026-05-19T14:48:33.977879"
+  },
+  {
+    "id": 137,
+    "user_id": 18,
+    "type": "order_confirmed",
+    "message": "✅ Your order #34 has been confirmed by the seller!",
+    "is_read": true,
+    "created_at": "2026-05-19T14:49:02.212284"
+  },
+  {
+    "id": 138,
+    "user_id": 18,
+    "type": "order_processing",
+    "message": "📦 Order #34 is being prepared by the seller.",
+    "is_read": true,
+    "created_at": "2026-05-19T14:51:04.219289"
+  },
+  {
+    "id": 139,
+    "user_id": 18,
+    "type": "order_shipped",
+    "message": "🚚 Order #34 has been shipped! ",
+    "is_read": true,
+    "created_at": "2026-05-19T14:52:07.954827"
+  },
+  {
+    "id": 140,
+    "user_id": 18,
+    "type": "order_completed",
+    "message": "Your order #34 has been marked as received. Thank you!",
+    "is_read": false,
+    "created_at": "2026-05-19T14:55:11.654047"
+  },
+  {
+    "id": 142,
+    "user_id": 20,
+    "type": "order_placed",
+    "message": "Your order #35 has been placed! Total: ₱650. Waiting for seller approval.",
+    "is_read": false,
+    "created_at": "2026-05-19T15:26:36.873307"
+  },
+  {
+    "id": 143,
+    "user_id": 20,
+    "type": "order_confirmed",
+    "message": "✅ Your order #35 has been confirmed by the seller!",
+    "is_read": false,
+    "created_at": "2026-05-19T15:26:56.925043"
+  },
+  {
+    "id": 144,
+    "user_id": 20,
+    "type": "order_processing",
+    "message": "📦 Order #35 is being prepared by the seller.",
+    "is_read": false,
+    "created_at": "2026-05-19T15:27:34.756355"
+  },
+  {
+    "id": 145,
+    "user_id": 20,
+    "type": "order_shipped",
+    "message": "🚚 Order #35 has been shipped! ",
+    "is_read": false,
+    "created_at": "2026-05-19T15:27:57.027514"
+  },
+  {
+    "id": 146,
+    "user_id": 20,
+    "type": "order_completed",
+    "message": "Your order #35 has been marked as received. Thank you!",
+    "is_read": false,
+    "created_at": "2026-05-19T15:28:17.79693"
+  },
+  {
+    "id": 147,
+    "user_id": 1,
+    "type": "order",
+    "message": "New order #36 for \"Matrix\" x3 — please approve it in My Listings.",
+    "is_read": false,
+    "created_at": "2026-05-20T04:39:23.102074"
+  },
+  {
+    "id": 148,
+    "user_id": 1,
+    "type": "low_stock",
+    "message": "⚠️ Low stock: \"Matrix\" only has 3 left.",
+    "is_read": false,
+    "created_at": "2026-05-20T04:39:23.317272"
+  },
+  {
+    "id": 199,
+    "user_id": 17,
+    "type": "order",
+    "message": "New order #52 for \"ayskrambol na tomboy \" x1 — please approve it in My Listings.",
+    "is_read": false,
+    "created_at": "2026-05-20T06:58:39.050272"
+  },
+  {
+    "id": 203,
+    "user_id": 17,
+    "type": "order",
+    "message": "New order #55: \"ayskrambol na tomboy \" x1 — please approve it in My Listings.",
+    "is_read": false,
+    "created_at": "2026-05-20T07:08:01.89148"
+  },
+  {
+    "id": 206,
+    "user_id": 17,
+    "type": "order",
+    "message": "New order #57: \"ayskrambol na tomboy \" x1 — please approve it in My Listings.",
+    "is_read": false,
+    "created_at": "2026-05-20T07:10:36.928635"
+  },
+  {
+    "id": 210,
+    "user_id": 17,
+    "type": "order",
+    "message": "New order #60: \"ayskrambol na tomboy \" x1 — please approve it in My Listings.",
+    "is_read": false,
+    "created_at": "2026-05-20T07:21:31.112239"
+  },
+  {
+    "id": 237,
+    "user_id": 8,
+    "type": "order",
+    "message": "New order #68: \"SKWASHHY\" x1 — please approve it in My Listings.",
+    "is_read": true,
+    "created_at": "2026-05-20T11:56:41.852477"
+  },
+  {
+    "id": 243,
+    "user_id": 21,
+    "type": "order_confirmed",
+    "message": "✅ Your order #65 has been confirmed by the seller!",
+    "is_read": false,
+    "created_at": "2026-05-20T12:15:28.188973"
+  },
+  {
+    "id": 244,
+    "user_id": 21,
+    "type": "order_processing",
+    "message": "📦 Order #65 is being prepared by the seller.",
+    "is_read": false,
+    "created_at": "2026-05-20T12:15:31.238727"
+  },
+  {
+    "id": 245,
+    "user_id": 21,
+    "type": "order_shipped",
+    "message": "🚚 Order #65 has been shipped! ",
+    "is_read": false,
+    "created_at": "2026-05-20T12:15:34.851513"
+  }
+]

@@ -1,0 +1,290 @@
+[
+  {
+    "id": 1,
+    "category_id": 1,
+    "name": "brand",
+    "label": "Brand",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 2,
+    "category_id": 1,
+    "name": "model",
+    "label": "Model",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 3,
+    "category_id": 1,
+    "name": "warranty",
+    "label": "Warranty",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 4,
+    "category_id": 1,
+    "name": "condition",
+    "label": "Condition",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 5,
+    "category_id": 2,
+    "name": "size",
+    "label": "Size",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 6,
+    "category_id": 2,
+    "name": "color",
+    "label": "Color",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 7,
+    "category_id": 2,
+    "name": "material",
+    "label": "Material",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 8,
+    "category_id": 2,
+    "name": "gender",
+    "label": "Gender",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 9,
+    "category_id": 2,
+    "name": "condition",
+    "label": "Condition",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 10,
+    "category_id": 3,
+    "name": "author",
+    "label": "Author",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 11,
+    "category_id": 3,
+    "name": "genre",
+    "label": "Genre",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 12,
+    "category_id": 3,
+    "name": "publisher",
+    "label": "Publisher",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 13,
+    "category_id": 3,
+    "name": "isbn",
+    "label": "ISBN",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 14,
+    "category_id": 3,
+    "name": "condition",
+    "label": "Condition",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 15,
+    "category_id": 4,
+    "name": "material",
+    "label": "Material",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 16,
+    "category_id": 4,
+    "name": "dimensions",
+    "label": "Dimensions",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 17,
+    "category_id": 4,
+    "name": "color",
+    "label": "Color",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 18,
+    "category_id": 4,
+    "name": "room_type",
+    "label": "Room Type",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 19,
+    "category_id": 4,
+    "name": "condition",
+    "label": "Condition",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 20,
+    "category_id": 5,
+    "name": "sport_type",
+    "label": "Sport Type",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 21,
+    "category_id": 5,
+    "name": "material",
+    "label": "Material",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 22,
+    "category_id": 5,
+    "name": "size",
+    "label": "Size",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 23,
+    "category_id": 5,
+    "name": "brand",
+    "label": "Brand",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 24,
+    "category_id": 5,
+    "name": "condition",
+    "label": "Condition",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 25,
+    "category_id": 7,
+    "name": "weight_volume",
+    "label": "Weight/Volume",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 26,
+    "category_id": 7,
+    "name": "ingredients",
+    "label": "Ingredients",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 27,
+    "category_id": 7,
+    "name": "expiry_date",
+    "label": "Expiry Date",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 28,
+    "category_id": 7,
+    "name": "allergens",
+    "label": "Allergens",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 29,
+    "category_id": 8,
+    "name": "skin_type",
+    "label": "Skin Type",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 30,
+    "category_id": 8,
+    "name": "ingredients",
+    "label": "Ingredients",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 31,
+    "category_id": 8,
+    "name": "volume",
+    "label": "Volume",
+    "type": "text",
+    "options": null,
+    "required": false
+  },
+  {
+    "id": 32,
+    "category_id": 8,
+    "name": "brand",
+    "label": "Brand",
+    "type": "text",
+    "options": null,
+    "required": false
+  }
+]

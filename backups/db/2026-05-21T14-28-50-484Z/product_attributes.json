@@ -1,0 +1,50 @@
+[
+  {
+    "id": 20,
+    "product_id": 16,
+    "attribute_definition_id": 25,
+    "value": "100grams per item"
+  },
+  {
+    "id": 21,
+    "product_id": 16,
+    "attribute_definition_id": 28,
+    "value": "bahala na kayo"
+  },
+  {
+    "id": 22,
+    "product_id": 17,
+    "attribute_definition_id": 25,
+    "value": "40grams"
+  },
+  {
+    "id": 23,
+    "product_id": 21,
+    "attribute_definition_id": 5,
+    "value": "Large"
+  },
+  {
+    "id": 24,
+    "product_id": 21,
+    "attribute_definition_id": 9,
+    "value": "Brand-new"
+  },
+  {
+    "id": 25,
+    "product_id": 21,
+    "attribute_definition_id": 6,
+    "value": "Black"
+  },
+  {
+    "id": 26,
+    "product_id": 21,
+    "attribute_definition_id": 7,
+    "value": "Cotton"
+  },
+  {
+    "id": 27,
+    "product_id": 21,
+    "attribute_definition_id": 8,
+    "value": "Unisex"
+  }
+]

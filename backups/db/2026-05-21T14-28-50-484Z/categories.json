@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "name": "Electronics",
+    "slug": "electronics"
+  },
+  {
+    "id": 2,
+    "name": "Clothing",
+    "slug": "clothing"
+  },
+  {
+    "id": 3,
+    "name": "Books",
+    "slug": "books"
+  },
+  {
+    "id": 4,
+    "name": "Home & Living",
+    "slug": "home-and-living"
+  },
+  {
+    "id": 5,
+    "name": "Sports",
+    "slug": "sports"
+  },
+  {
+    "id": 6,
+    "name": "Toys",
+    "slug": "toys"
+  },
+  {
+    "id": 7,
+    "name": "Food & Drinks",
+    "slug": "food-and-drinks"
+  },
+  {
+    "id": 8,
+    "name": "Beauty",
+    "slug": "beauty"
+  }
+]

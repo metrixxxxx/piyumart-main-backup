@@ -1,138 +1,192 @@
-import cron from 'node-cron';
-import { createClient } from '@supabase/supabase-js';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import cron from "node-cron";
+import { createClient } from "@supabase/supabase-js";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Manually read .env.local
-const envPath = path.resolve(__dirname, '../.env.local');
-const envFile = fs.readFileSync(envPath, 'utf-8');
-envFile.split('\n').forEach(line => {
-  const trimmed = line.trim();
-  if (!trimmed || trimmed.startsWith('#')) return;
-  const [key, ...rest] = trimmed.split('=');
-  if (key && rest.length) {
-    process.env[key.trim()] = rest.join('=').trim();
-  }
-});
+// ---------------- ENV ----------------
+const envPath = path.resolve(__dirname, "../.env.local");
 
-const BACKUP_DIR = './backups';
+if (fs.existsSync(envPath)) {
+  const envFile = fs.readFileSync(envPath, "utf-8");
+
+  envFile.split("\n").forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) return;
+
+    const [key, ...rest] = trimmed.split("=");
+    if (key && rest.length) {
+      process.env[key.trim()] = rest.join("=").trim();
+    }
+  });
+}
+
+// ---------------- CONFIG ----------------
+const BACKUP_DIR = path.join(__dirname, "backups");
+const MAX_BACKUPS = 3;
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-function getTimestamp() {
-  return new Date().toISOString().replace(/[:.]/g, '-');
+// ---------------- HELPERS ----------------
+function ts() {
+  return new Date().toISOString().replace(/[:.]/g, "-");
 }
 
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
-// --- Database Backup (auto-detects all tables) ---
-async function backupDatabase() {
-  const timestamp = getTimestamp();
-  const outDir = path.join(BACKUP_DIR, 'db', timestamp);
-  ensureDir(outDir);
+// ---------------- SQL CONVERTER ----------------
+function toSQL(table, row) {
+  const cols = Object.keys(row).map((c) => `"${c}"`).join(", ");
 
-  console.log('\n📦 Backing up database tables...');
+  const vals = Object.values(row)
+    .map((v) =>
+      v === null ? "NULL" : `'${String(v).replace(/'/g, "''")}'`
+    )
+    .join(", ");
 
-  // Auto-fetch all table names
-  const { data: tableList, error: tableError } = await supabase
-    .rpc('get_all_tables');
+  return `INSERT INTO "${table}" (${cols}) VALUES (${vals});`;
+}
 
-  if (tableError) {
-    console.error('❌ Failed to fetch table list:', tableError.message);
+// ---------------- DATABASE BACKUP ----------------
+async function backupDatabase(outDir) {
+  console.log("\n📦 Database backup...");
+
+  const { data: tables } = await supabase.rpc("get_all_tables");
+
+  for (const { table_name } of tables || []) {
+    const { data } = await supabase.from(table_name).select("*");
+
+    let sql = `-- TABLE: ${table_name}\n`;
+
+    for (const row of data || []) {
+      sql += toSQL(table_name, row) + "\n";
+    }
+
+    fs.writeFileSync(
+      path.join(outDir, `${table_name}.sql`),
+      sql
+    );
+
+    console.log(`✅ ${table_name} → SQL`);
+  }
+}
+
+// ---------------- STORAGE RECURSIVE FIX ----------------
+async function downloadFolder(bucket, prefix, outDir) {
+  const { data: files, error } = await supabase.storage
+    .from(bucket)
+    .list(prefix, { limit: 1000 });
+
+  if (error) {
+    console.warn(`⚠️ ${bucket}/${prefix}:`, error.message);
     return;
   }
 
-  for (const { table_name } of tableList) {
-    const { data, error } = await supabase.from(table_name).select('*');
+  for (const file of files || []) {
+    if (!file.name) continue;
 
-    if (error) {
-      console.error(`❌ Failed to back up table "${table_name}":`, error.message);
+    const fullPath = prefix ? `${prefix}/${file.name}` : file.name;
+
+    // folder (no metadata = treated as folder)
+    if (!file.metadata) {
+      await downloadFolder(bucket, fullPath, outDir);
       continue;
     }
 
-    const outFile = path.join(outDir, `${table_name}.json`);
-    fs.writeFileSync(outFile, JSON.stringify(data, null, 2));
-    console.log(`✅ ${table_name} → ${data.length} rows saved`);
+    const { data } = await supabase.storage
+      .from(bucket)
+      .download(fullPath);
+
+    if (!data) continue;
+
+    const buffer = Buffer.from(await data.arrayBuffer());
+
+    const savePath = path.join(outDir, fullPath);
+    ensureDir(path.dirname(savePath));
+
+    fs.writeFileSync(savePath, buffer);
   }
 }
 
-// --- Storage Backup ---
-async function backupStorage() {
-  const timestamp = getTimestamp();
-  const outDir = path.join(BACKUP_DIR, 'storage', timestamp);
-  ensureDir(outDir);
+// ---------------- STORAGE BACKUP ----------------
+async function backupStorage(outDir) {
+  console.log("\n🖼️ Storage backup...");
 
-  console.log('\n🖼️  Backing up storage...');
+  const { data: buckets } = await supabase.storage.listBuckets();
 
-  const { data: buckets, error } = await supabase.storage.listBuckets();
-  if (error) return console.error('❌ Failed to list buckets:', error.message);
-
-  for (const bucket of buckets) {
+  for (const bucket of buckets || []) {
     const bucketDir = path.join(outDir, bucket.name);
     ensureDir(bucketDir);
 
-    const { data: files } = await supabase.storage.from(bucket.name).list('', { limit: 1000 });
-    if (!files || files.length === 0) continue;
+    await downloadFolder(bucket.name, "", bucketDir);
 
-    for (const file of files) {
-      if (!file.name) continue;
-
-      const { data, error: dlErr } = await supabase.storage
-        .from(bucket.name)
-        .download(file.name);
-
-      if (dlErr) {
-        console.warn(`⚠️  Skipped ${file.name}:`, dlErr.message);
-        continue;
-      }
-
-      const buffer = Buffer.from(await data.arrayBuffer());
-      fs.writeFileSync(path.join(bucketDir, file.name), buffer);
-    }
-
-    console.log(`✅ Bucket "${bucket.name}" → ${files.length} files saved`);
+    console.log(`✅ bucket: ${bucket.name}`);
   }
 }
 
-// --- Delete backups older than 7 days ---
-function cleanOldBackups() {
-  const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+// ---------------- CLEAN OLD BACKUPS ----------------
+function cleanupOldBackups() {
+  if (!fs.existsSync(BACKUP_DIR)) return;
 
-  for (const subDir of ['db', 'storage']) {
-    const dir = path.join(BACKUP_DIR, subDir);
-    if (!fs.existsSync(dir)) continue;
+  const folders = fs
+    .readdirSync(BACKUP_DIR)
+    .filter((f) =>
+      fs.statSync(path.join(BACKUP_DIR, f)).isDirectory()
+    )
+    .sort((a, b) => b.localeCompare(a));
 
-    fs.readdirSync(dir).forEach((folder) => {
-      const folderPath = path.join(dir, folder);
-      const { mtimeMs } = fs.statSync(folderPath);
-      if (mtimeMs < cutoff) {
-        fs.rmSync(folderPath, { recursive: true });
-        console.log(`🗑️  Deleted old backup: ${folderPath}`);
-      }
+  const toDelete = folders.slice(MAX_BACKUPS);
+
+  for (const folder of toDelete) {
+    fs.rmSync(path.join(BACKUP_DIR, folder), {
+      recursive: true,
+      force: true,
     });
+    console.log("🗑️ deleted:", folder);
   }
 }
 
-// --- Main ---
+// ---------------- MAIN ----------------
+let running = false;
+
 async function runBackup() {
-  console.log(`\n🔄 Backup started at ${new Date().toLocaleString()}`);
-  await backupDatabase();
-  await backupStorage();
-  cleanOldBackups();
-  console.log('\n🎉 Backup complete!');
+  if (running) return;
+  running = true;
+
+  try {
+    console.log("\n🔄 Backup started:", new Date().toLocaleString());
+
+    const id = ts();
+    const outDir = path.join(BACKUP_DIR, id);
+
+    ensureDir(outDir);
+
+    await backupDatabase(outDir);
+    await backupStorage(outDir);
+
+    cleanupOldBackups();
+
+    console.log("\n🎉 BACKUP DONE:", id);
+  } catch (err) {
+    console.error("❌ Backup failed:", err);
+  } finally {
+    running = false;
+  }
 }
 
-// Run immediately on start
+// ---------------- START ----------------
 runBackup();
 
-// Schedule daily at 2:00 AM
-cron.schedule('0 2 * * *', runBackup);
-console.log('🕐 Scheduler active — daily backup at 2:00 AM');
+cron.schedule("0 2 * * *", runBackup, {
+  timezone: "Asia/Manila",
+});
+
+console.log("🕐 Backup running (keeps only 3 latest backups)");

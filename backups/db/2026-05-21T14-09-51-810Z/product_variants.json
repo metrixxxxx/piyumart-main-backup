@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "product_id": 14,
+    "name": null,
+    "value": null,
+    "price_override": null,
+    "stock": null,
+    "label": "Red - Large",
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/variants/1779200246814-Screenshot_2026-05-19_221424.png"
+  },
+  {
+    "id": 2,
+    "product_id": 14,
+    "name": null,
+    "value": null,
+    "price_override": null,
+    "stock": null,
+    "label": "blue - Small",
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/variants/1779200247427-Screenshot_2026-05-19_221431.png"
+  },
+  {
+    "id": 6,
+    "product_id": 15,
+    "name": null,
+    "value": null,
+    "price_override": null,
+    "stock": null,
+    "label": "asdasdasd",
+    "image_url": null
+  }
+]

@@ -1,0 +1,92 @@
+[
+  {
+    "id": 3,
+    "product_id": 3,
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/products/1779029427084-IMG_5337.jpeg",
+    "sort_order": 0
+  },
+  {
+    "id": 6,
+    "product_id": 6,
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/products/1779030401286-java-rice.jpg",
+    "sort_order": 0
+  },
+  {
+    "id": 10,
+    "product_id": 2,
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/products/1779025954105-dog11.jpg",
+    "sort_order": 0
+  },
+  {
+    "id": 11,
+    "product_id": 9,
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/products/1779106824424-dandelion.jpg",
+    "sort_order": 0
+  },
+  {
+    "id": 12,
+    "product_id": 10,
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/products/1779106827854-dandelion.jpg",
+    "sort_order": 0
+  },
+  {
+    "id": 16,
+    "product_id": 8,
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/products/1779096043746-manok.jpg",
+    "sort_order": 0
+  },
+  {
+    "id": 17,
+    "product_id": 12,
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/products/1779174958846-inbound4646068774690404519.jpg",
+    "sort_order": 0
+  },
+  {
+    "id": 18,
+    "product_id": 13,
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/products/1779174959573-inbound4646068774690404519.jpg",
+    "sort_order": 0
+  },
+  {
+    "id": 19,
+    "product_id": 14,
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/products/1779200245969-graphic_tee.jpg",
+    "sort_order": 0
+  },
+  {
+    "id": 21,
+    "product_id": 16,
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/products/1779257749306-skwash.jpg",
+    "sort_order": 0
+  },
+  {
+    "id": 22,
+    "product_id": 17,
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/products/1779260992165-kalapati.jpg",
+    "sort_order": 0
+  },
+  {
+    "id": 26,
+    "product_id": 19,
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/products/1779278693791-marijane.jpg",
+    "sort_order": 0
+  },
+  {
+    "id": 27,
+    "product_id": 20,
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/products/1779279202351-plawer.jpg",
+    "sort_order": 0
+  },
+  {
+    "id": 28,
+    "product_id": 15,
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/products/1779252289163-decdccb5-1ef6-489f-aa6b-1c5b64d5e658.jpg",
+    "sort_order": 0
+  },
+  {
+    "id": 29,
+    "product_id": 21,
+    "image_url": "https://ffqhspyzvxlrvdeiwtkh.supabase.co/storage/v1/object/public/uploads/products/1779370449660-Screenshot_2026-05-21_213237.png",
+    "sort_order": 0
+  }
+]
