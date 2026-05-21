@@ -282,8 +282,8 @@ return () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {orders.map((o) => (
-                      <tr key={o.id} className="border-b border-[#c5cfe8] dark:border-white/[0.07] hover:bg-[#f0f4ff] dark:hover:bg-white/[0.02] transition">
+                    {orders.map((o, i) => (
+                      <tr key={`${o.id}-${i}`} className="border-b border-[#c5cfe8] dark:border-white/[0.07] hover:bg-[#f0f4ff] dark:hover:bg-white/[0.02] transition">
                         <td className="px-4 py-3 font-mono text-[#0e1a3d]/40 dark:text-[#e8edf8]/30">#{o.id}</td>
                         <td className="px-4 py-3 font-semibold text-[#0e1a3d] dark:text-[#e8edf8]">{o.product_name}   
                         </td>

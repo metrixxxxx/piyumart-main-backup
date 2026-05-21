@@ -162,7 +162,7 @@ export default function HomePage() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="flex-1 sm:flex-none text-xs font-semibold px-3 py-1.5 rounded-full bg-white dark:bg-white/4 border border-[#c5cfe8] dark:border-white/10 text-[#0e1a3d] dark:text-[#e8edf8] cursor-pointer hover:border-[#1a2a6c] dark:hover:border-[#d4aa40] transition-colors"
+              className="flex-1 sm:flex-none text-xs font-semibold px-3 py-1.5 rounded-full bg-white dark:bg-[#0e1520] border border-[#c5cfe8] dark:border-white/10 text-[#0e1a3d] dark:text-white cursor-pointer hover:border-[#1a2a6c] dark:hover:border-[#d4aa40] transition-colors"
             >
               <option value="newest">Newest First</option>
               <option value="best_rated">Best Rated</option>
