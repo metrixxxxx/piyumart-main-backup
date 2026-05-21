@@ -5,10 +5,13 @@ import { useRouter, useParams } from "next/navigation";
 import ProductCard from "@/components/products/ProductCard";
 import { getSocket } from "@/lib/socket";
 import ReviewsSection from "@/components/products/ReviewsSection";
+import { useRef } from "react";
 import { useSearchParams } from "next/navigation";
 
 export default function ProductDetailPage() {
   const [product, setProduct] = useState(null);
+  const [flyItem, setFlyItem] = useState(null);
+
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -63,21 +66,47 @@ export default function ProductDetailPage() {
   }, [id, router]);
 
   async function handleAddToCart() {
-    if (!session) { setShowModal(true); return; }
-    setAddingToCart(true);
-    const res = await fetch("/api/cart", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        product_id: product.id,
-        quantity,
-        variant: selectedVariant?.label || null,
-      }),
-    });
-    const data = await res.json();
-    setAddingToCart(false);
-    if (data.success) router.push("/cart");
+  if (!session) {
+    setShowModal(true);
+    return;
   }
+
+  const img = document.querySelector("img[alt='" + product.name + "']");
+
+  if (img) {
+    const rect = img.getBoundingClientRect();
+
+    setFlyItem({
+      src: activeImage,
+      start: {
+        x: rect.left,
+        y: rect.top,
+        width: rect.width,
+        height: rect.height,
+      },
+    });
+  }
+
+  setAddingToCart(true);
+
+  const res = await fetch("/api/cart", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      product_id: product.id,
+      quantity,
+      variant: selectedVariant?.label || null,
+    }),
+  });
+
+  const data = await res.json();
+
+  setAddingToCart(false);
+
+  setTimeout(() => setFlyItem(null), 900);
+
+  if (data.success) router.push("/cart");
+}
 
   async function handleBuyNow() {
     if (!session) { setShowModal(true); return; }
@@ -462,6 +491,30 @@ export default function ProductDetailPage() {
           </div>
         </div>
       )}
+      {flyItem && (
+  <img
+    src={flyItem.src}
+    className="fixed z-[9999] rounded-xl pointer-events-none"
+    style={{
+      left: flyItem.start.x,
+      top: flyItem.start.y,
+      width: flyItem.start.width,
+      height: flyItem.start.height,
+      transition: "all 800ms cubic-bezier(0.16, 1, 0.3, 1)",
+    }}
+    ref={(el) => {
+      if (!el) return;
+
+      requestAnimationFrame(() => {
+        el.style.left = `${window.innerWidth - 60}px`;
+        el.style.top = `40px`;
+        el.style.transform = "scale(0.1) rotate(720deg)";
+        el.style.opacity = "0";
+        el.style.filter = "blur(6px)";
+      });
+    }}
+  />
+)}
     </div>
   );
 }

@@ -44,6 +44,7 @@ function ThemeToggle() {
 }
 
 export default function Navbar() {
+  
   const { data: session } = useSession();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
