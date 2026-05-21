@@ -6,7 +6,14 @@ import { useRouter } from "next/navigation";
 import { useSentiment } from '@/app/hooks/useSentiment';
 import LoadingModal from "@/components/ui/LoadingModal";
 
-export default function ProductCard({ product, hideActions = false, onClick, onAddToCart, onBuyNow }) {
+export default function ProductCard({
+  product,
+  hideActions = false,
+  onClick,
+  onAddToCart,
+  onBuyNow,
+  priority = false,
+}) {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const { data: session } = useSession();
@@ -58,15 +65,23 @@ export default function ProductCard({ product, hideActions = false, onClick, onA
       >
         {/* IMAGE */}
         <div className="aspect-square sm:aspect-[4/3] overflow-hidden relative">
-          <Image
-            src={product.image_url?.trim() ? product.image_url : "https://via.placeholder.com/400x300?text=No+Image"}
-            alt={product.name}
-            width={400}
-            height={400}
-            unoptimized
-            className="w-full h-full object-cover"
-            style={{ filter: isOutOfStock ? "grayscale(40%)" : "none" }}
-          />
+         <Image
+  src={
+    product.image_url?.trim()
+      ? product.image_url
+      : "https://via.placeholder.com/400x300?text=No+Image"
+  }
+  alt={product.name}
+  width={400}
+  height={400}
+  priority={priority}
+  loading={priority ? "eager" : "lazy"}
+  unoptimized
+  className="w-full h-full object-cover"
+  style={{
+    filter: isOutOfStock ? "grayscale(40%)" : "none",
+  }}
+/>
 
           {/* OUT OF STOCK OVERLAY */}
           {isOutOfStock && (
@@ -106,7 +121,7 @@ export default function ProductCard({ product, hideActions = false, onClick, onA
                 </span>
               </div>
             )}
-            <span className="text-[#bbb] hidden sm:inline">·</span>
+            <span className="text-[#bbb] hidden sm:inline"></span>
             <span className={`font-medium ${product.sold_count > 0 ? "text-[#16a34a]" : "text-[#999]"}`}>
               {product.sold_count || 0} sold
             </span>
@@ -157,27 +172,7 @@ export default function ProductCard({ product, hideActions = false, onClick, onA
             )}
           </div>
 
-          {/* BUTTONS */}
-          {!hideActions && (
-            <div className="flex gap-1.5 sm:gap-2 mt-2 sm:mt-3">
-              <button
-                onClick={(e) => { e.stopPropagation(); if (onAddToCart) return onAddToCart(e); return handleAddToCart(e); }}
-                disabled={loading || isOutOfStock}
-                className="flex-1 py-1.5 sm:py-2 rounded-lg text-[11px] sm:text-[12px] font-medium text-white transition-opacity"
-                style={{ background: isOutOfStock ? "#ccc" : "#1a1a2e", cursor: isOutOfStock ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1 }}
-              >
-                {loading ? "..." : "Add"}
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); if (onBuyNow) return onBuyNow(e); return handleBuyNow(e); }}
-                disabled={loading || isOutOfStock}
-                className="flex-1 py-1.5 sm:py-2 rounded-lg text-[11px] sm:text-[12px] font-medium bg-white transition-opacity"
-                style={{ border: `1px solid ${isOutOfStock ? "#ccc" : "#1a1a2e"}`, color: isOutOfStock ? "#ccc" : "#1a1a2e", cursor: isOutOfStock ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1 }}
-              >
-                {loading ? "..." : "Buy Now"}
-              </button>
-            </div>
-          )}
+          
         </div>
       </div>
 

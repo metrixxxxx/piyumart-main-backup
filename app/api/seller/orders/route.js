@@ -11,20 +11,26 @@ export async function GET() {
     // Now that orders are split per seller, we find orders that contain
     // at least one product belonging to this seller
     const [rows] = await db.query(
-      `SELECT
-        o.id, o.status, o.total, o.created_at, o.seller_note,
-        u.name AS buyer_name, u.email AS buyer_email,
-        COALESCE(oi.name, p.name) AS product_name,
-        oi.quantity, oi.price, oi.variant,
-        COALESCE(oi.image_url, p.image_url) AS image_url
-       FROM orders o
-       JOIN order_items oi ON oi.order_id = o.id
-       LEFT JOIN products p ON p.id = oi.product_id
-       JOIN users u ON u.id = o.user_id
-       WHERE p.seller_id = $1
-       ORDER BY o.created_at DESC`,
-      [session.user.id]
-    );
+  `SELECT
+     o.id, o.status, o.total, o.created_at, o.seller_note,
+     u.name AS buyer_name, u.email AS buyer_email,
+     json_agg(json_build_object(
+       'name',      COALESCE(oi.name, p.name),
+       'quantity',  oi.quantity,
+       'price',     oi.price,
+       'variant',   oi.variant,
+       'image_url', COALESCE(oi.image_url, p.image_url)
+     ) ORDER BY oi.id) AS items
+   FROM orders o
+   JOIN order_items oi ON oi.order_id = o.id
+   LEFT JOIN products p ON p.id = oi.product_id
+   JOIN users u ON u.id = o.user_id
+   WHERE p.seller_id = $1
+   GROUP BY o.id, o.status, o.total, o.created_at, o.seller_note,
+            u.name, u.email
+   ORDER BY o.created_at DESC`,
+  [session.user.id]
+);
 
     return NextResponse.json(rows);
   } catch (err) {

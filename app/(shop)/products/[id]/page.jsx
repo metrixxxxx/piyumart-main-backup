@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import ProductCard from "@/components/products/ProductCard";
 import { getSocket } from "@/lib/socket";
 import ReviewsSection from "@/components/products/ReviewsSection";
+import { useSearchParams } from "next/navigation";
 
 export default function ProductDetailPage() {
   const [product, setProduct] = useState(null);
@@ -18,6 +19,7 @@ export default function ProductDetailPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const { id } = useParams();
+  
 
   useEffect(() => {
     async function fetchData() {

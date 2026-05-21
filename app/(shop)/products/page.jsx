@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import ProductCard from "@/components/products/ProductCard";
 import SearchAutocomplete from "@/components/SearchAutocomplete";
 import { getSocket } from "@/lib/socket";
@@ -14,13 +14,11 @@ export default function ProductsPage() {
   const { data: session } = useSession();
   const router = useRouter();
 
-  // ✅ Basahin ang URL param sa initial state — isang beses lang
-  const [selectedCategory, setSelectedCategory] = useState(() => {
-    if (typeof window === "undefined") return null;
-    const param = new URLSearchParams(window.location.search).get("category");
-    return param ? Number(param) : null;
-  });
+ const searchParams = useSearchParams();
 
+const selectedCategory = searchParams.get("category")
+  ? Number(searchParams.get("category"))
+  : null;
   // ✅ Fetch categories
   useEffect(() => {
     fetch("/api/categories")
@@ -33,7 +31,7 @@ export default function ProductsPage() {
     async function fetchProducts() {
       try {
         const url = new URL("/api/products", window.location.origin);
-        if (selectedCategory) url.searchParams.set("category_id", selectedCategory);
+        if (selectedCategory) url.searchParams.set("category", selectedCategory);
         const res = await fetch(url.toString());
         const data = await res.json();
         const allProducts = Array.isArray(data) ? data : [];
@@ -82,7 +80,11 @@ export default function ProductsPage() {
           <span className="w-1.5 h-1.5 rounded-full bg-[#6d4aff] dark:bg-[#c9a96e] animate-pulse" />
           Campus Marketplace
         </div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#1a1060] dark:text-[#f0ede8]">All Products</h1>
+        <h1 className="text-3xl font-extrabold ...">
+  {selectedCategory
+    ? categories.find((c) => Number(c.id) === Number(selectedCategory))?.name ?? "All Products"
+    : "All Products"}
+    </h1> 
         <p className="mt-2 text-sm text-[#1a1060]/50 dark:text-[#f0ede8]/45">Browse items from students in your campus</p>
         <div className="max-w-lg mx-auto mt-6">
           <SearchAutocomplete />
@@ -95,8 +97,8 @@ export default function ProductsPage() {
         <div className="flex gap-2 flex-wrap mb-6">
           <button
             onClick={() => {
-              setSelectedCategory(null);
-              window.location.href = "/products";
+              
+              router.push("/products");
             }}
             className={`px-4 py-1.5 rounded-full border text-xs font-medium transition-all duration-150
               ${selectedCategory === null
@@ -109,7 +111,7 @@ export default function ProductsPage() {
             <button
               key={cat.id}
               onClick={() => {
-                window.location.href = `/products?category=${cat.id}`;
+                router.push(`/products?category=${cat.id}`);
               }}
               className={`px-4 py-1.5 rounded-full border text-xs font-medium transition-all duration-150
                 ${selectedCategory === cat.id
@@ -124,7 +126,7 @@ export default function ProductsPage() {
         {/* Header row */}
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center mb-5">
           <h2 className="text-base font-bold text-[#1a1060] dark:text-[#f0ede8]">
-            {selectedCategory ? categories.find((c) => c.id === selectedCategory)?.name : "All Products"}
+            {selectedCategory ? categories.find((c) => Number(c.id) === Number(selectedCategory))?.name ?? "All Products" : "All Products"}
           </h2>
           <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#ede9ff] dark:bg-[#c9a96e]/10 text-[#6d4aff] dark:text-[#c9a96e]">
             {products.length} item{products.length !== 1 ? "s" : ""}

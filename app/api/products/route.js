@@ -31,7 +31,7 @@ export async function GET(req) {
     }
 
     if (category) {
-      whereConditions.push(`p.category = $${params.length + 1}`);
+      whereConditions.push(`p.category_id = $${params.length + 1}`);
       params.push(category);
     }
 
