@@ -2,6 +2,7 @@ import "./globals.css";
 import SessionWrapper from "@/components/SessionWrapper";
 import { Suspense } from "react";
 import NavigationProgress from "@/components/NavigationProgress";
+import ChatWidget from "@/components/chatbot/ChatWidget";
 
 export default function RootLayout({ children }) {
   return (
@@ -10,7 +11,11 @@ export default function RootLayout({ children }) {
         <Suspense>
           <NavigationProgress />
         </Suspense>
-        <SessionWrapper>{children}</SessionWrapper>
+
+        <SessionWrapper>
+          {children}
+          <ChatWidget />
+        </SessionWrapper>
       </body>
     </html>
   );
