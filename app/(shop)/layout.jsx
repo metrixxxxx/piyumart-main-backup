@@ -1,4 +1,5 @@
 import Navbar from "@/components/ui/navbar";
+import ChatWidget from '@/components/chatbot/ChatWidget';
 
 export default function ShopLayout({ children }) {
   return (
@@ -8,6 +9,7 @@ export default function ShopLayout({ children }) {
       <footer className="bg-gray-900 text-green text-center py-4">
         © 2026 My Marketplace
       </footer>
+      <ChatWidget />
     </>
   );
 }
