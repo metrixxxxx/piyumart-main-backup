@@ -4,7 +4,6 @@ import { db } from "@/lib/db";
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
-
     const q = searchParams.get("q");
 
     if (!q || !q.trim()) {
@@ -27,8 +26,7 @@ export async function GET(req) {
         c.name AS category,
         c.slug AS category_slug
       FROM products p
-      LEFT JOIN categories c
-        ON p.category_id = c.id
+      LEFT JOIN categories c ON p.category_id = c.id
       WHERE
         p.name ILIKE $1
         OR p.description ILIKE $1
@@ -43,14 +41,6 @@ export async function GET(req) {
     return NextResponse.json(products);
   } catch (error) {
     console.error("SEARCH API ERROR:", error);
-
-    return NextResponse.json(
-      {
-        error: error.message,
-      },
-      {
-        status: 500,
-      }
-    );
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

@@ -1,10 +1,33 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
 import ProductCard from "@/components/products/ProductCard";
 import HeroSlider from "@/components/HeroSlider";
 import SearchAutocomplete from "@/components/SearchAutocomplete";
+
+const CATEGORY_ICONS = {
+  "Beauty": "💄",
+  "Books": "📚",
+  "Clothing": "👕",
+  "Electronics": "💻",
+  "Food & Drinks": "🍔",
+  "Home & Living": "🏠",
+  "Sports": "⚽",
+  "Toys": "🧸",
+};
+
+function SkeletonCard() {
+  return (
+    <div className="rounded-2xl overflow-hidden animate-pulse" style={{ backgroundColor: "#ffffff", border: "1px solid #e5e9f2" }}>
+      <div className="aspect-square sm:aspect-[4/3] bg-gray-200" />
+      <div className="p-3 space-y-2">
+        <div className="h-3 bg-gray-200 rounded w-3/4" />
+        <div className="h-3 bg-gray-200 rounded w-1/2" />
+        <div className="h-4 bg-gray-200 rounded w-1/3 mt-2" />
+      </div>
+    </div>
+  );
+}
 
 export default function HomePage() {
   const [products, setProducts] = useState([]);
@@ -71,16 +94,13 @@ export default function HomePage() {
       <section className="px-3 sm:px-5 pt-4 sm:pt-6 pb-6 sm:pb-8 max-w-7xl mx-auto">
         <div className="bg-white dark:bg-[#0e1520] rounded-2xl border border-[#c5cfe8] dark:border-white/[0.07] grid grid-cols-1 lg:grid-cols-2">
 
-          {/* LEFT — text + search */}
+          {/* LEFT */}
           <div className="flex flex-col justify-center px-5 py-7 sm:px-8 sm:py-9 lg:px-10 lg:py-12">
-
-            {/* eyebrow */}
             <div className="inline-flex items-center gap-2 bg-[#e8edf8] dark:bg-[#c9a028]/10 text-[#1a2a6c] dark:text-[#d4aa40] text-[11px] font-semibold px-4 py-1.5 rounded-full mb-5 w-fit">
               <span className="w-1.5 h-1.5 rounded-full bg-[#1a2a6c] dark:bg-[#d4aa40] animate-pulse" />
               {session ? `Welcome back, ${session.user.name}` : "Live on campus · LSPU"}
             </div>
 
-            {/* heading */}
             <h1 className="text-2xl sm:text-3xl lg:text-[2.6rem] font-extrabold leading-[1.1] tracking-tight text-[#0e1a3d] dark:text-[#e8edf8] mb-3 sm:mb-4">
               {session ? (
                 <>Your campus{" "}
@@ -95,24 +115,20 @@ export default function HomePage() {
               )}
             </h1>
 
-            {/* sub */}
             <p className="text-sm text-[#0e1a3d]/50 dark:text-[#e8edf8]/45 leading-relaxed mb-6 sm:mb-8">
               {session
                 ? "Discover student deals on campus."
                 : "Buy and sell with fellow LSPU students. Deals on books, tech, food, and more."}
             </p>
 
-            {/* search */}
             <SearchAutocomplete />
           </div>
 
-          {/* RIGHT — hero slider */}
-          {/* overflow-hidden removed; rounded only on right side on lg+ so corners still look clean */}
+          {/* RIGHT */}
           <div
-            className="relative flex items-center justify-center rounded-b-2xl lg:rounded-b-none lg:rounded-r-2xl min-h-[220px] sm:min-h-[260px] lg:min-h-0"
-            style={{ background: "linear-gradient(135deg, #1a2a6c 0%, #1a6c2a 60%, #c9a028 100%)" }}
-          >
-            {/* decorative blobs */}
+  className="relative flex items-center justify-center rounded-b-2xl lg:rounded-b-none lg:rounded-r-2xl min-h-[220px] sm:min-h-[260px] lg:min-h-0"
+  style={{ background: "linear-gradient(135deg, #1a2a6c 0%, #16235a 50%, #c9a028 100%)" }}
+>
             <div className="absolute top-6 right-6 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white/10" />
             <div className="absolute bottom-8 left-6 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10" />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-36 h-36 sm:w-40 sm:h-40 rounded-full bg-[#c9a028]/20 blur-2xl" />
@@ -126,7 +142,7 @@ export default function HomePage() {
       {/* ── CONTENT ── */}
       <section className="max-w-7xl mx-auto px-3 sm:px-5 pb-10">
 
-        {/* category tabs — horizontally scrollable on mobile */}
+        {/* category tabs */}
         <div className="flex gap-2 overflow-x-auto pb-1 mb-2 scrollbar-none -mx-3 px-3 sm:mx-0 sm:px-0 sm:flex-wrap">
           <button
             onClick={() => setCategory("all")}
@@ -136,7 +152,7 @@ export default function HomePage() {
                 : "bg-white dark:bg-white/4 border-[#c5cfe8] dark:border-white/10 text-[#4a5a7a] dark:text-[#e8edf8]/55 hover:border-[#1a2a6c] dark:hover:border-[#d4aa40] hover:text-[#1a2a6c] dark:hover:text-[#d4aa40]"
               }`}
           >
-            All
+            🛍️ All
           </button>
           {categories.map((cat) => (
             <button
@@ -148,7 +164,7 @@ export default function HomePage() {
                   : "bg-white dark:bg-white/4 border-[#c5cfe8] dark:border-white/10 text-[#4a5a7a] dark:text-[#e8edf8]/55 hover:border-[#1a2a6c] dark:hover:border-[#d4aa40] hover:text-[#1a2a6c] dark:hover:text-[#d4aa40]"
                 }`}
             >
-              {cat.name}
+              {CATEGORY_ICONS[cat.name] || "🏷️"} {cat.name}
             </button>
           ))}
         </div>
@@ -176,25 +192,33 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* product list */}
-        {loading ? (
-          <p className="text-sm text-[#0e1a3d]/50 dark:text-[#e8edf8]/40 py-6">Loading products…</p>
-        ) : displayed.length === 0 ? (
-          <p className="text-sm text-[#0e1a3d]/50 dark:text-[#e8edf8]/40 py-6">
-            {search ? `No results for "${search}".` : "No products available yet."}
-          </p>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] lg:grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
-            {displayed.map((product) => (
+        {/* product grid */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] lg:grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
+          {loading
+            ? Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={i} />)
+            : displayed.length === 0
+            ? (
+              <div className="col-span-full py-16 flex flex-col items-center gap-3 text-center">
+                <span className="text-4xl">🔍</span>
+                <p className="text-sm font-semibold text-[#0e1a3d] dark:text-[#e8edf8]">
+                  {search ? `No results for "${search}"` : "No products available yet."}
+                </p>
+                <p className="text-xs text-[#0e1a3d]/40 dark:text-[#e8edf8]/40">
+                  {search ? "Try a different keyword or category." : "Check back later!"}
+                </p>
+              </div>
+            )
+            : displayed.map((product) => (
               <div
                 key={product.id}
-                className="bg-white dark:bg-white/4 rounded-2xl border border-[#c5cfe8] dark:border-white/[0.07] overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_8px_28px_rgba(26,42,108,0.15)] dark:hover:shadow-[0_8px_28px_rgba(212,170,64,0.1)] hover:border-[#1a2a6c] dark:hover:border-[#d4aa40]"
+                className="rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_8px_28px_rgba(26,42,108,0.15)] dark:hover:shadow-[0_8px_28px_rgba(212,170,64,0.1)]"
+                style={{ backgroundColor: "#ffffff", border: "5px solid #e5e9f2" }}
               >
                 <ProductCard product={product} hideActions />
               </div>
-            ))}
-          </div>
-        )}
+            ))
+          }
+        </div>
       </section>
     </main>
   );

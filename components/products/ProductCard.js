@@ -116,12 +116,20 @@ export default function ProductCard({
           if (onClick) return onClick();
           return router.push(`/products/${product.id}`);
         }}
-        className="group flex flex-col cursor-pointer rounded-xl sm:rounded-[14px] border border-[#eee] bg-white overflow-hidden transition-transform duration-200 hover:-translate-y-[3px]"
-        style={{ opacity: isOutOfStock ? 0.8 : 1 }}
+        className="group flex flex-col cursor-pointer rounded-xl sm:rounded-[5px] overflow-hidden transition-transform duration-200 hover:-translate-y-[3px]"
+        style={{
+          opacity: isOutOfStock ? 0.8 : 1,
+          backgroundColor: "#ffffff",
+          border: "1px solid #eeeeee",
+          colorScheme: "light",
+        }}
       >
 
         {/* IMAGE */}
-        <div className="aspect-square sm:aspect-[4/3] overflow-hidden relative">
+        <div
+          className="aspect-square sm:aspect-[4/3] overflow-hidden relative"
+          style={{ backgroundColor: "#f3f4f6" }}
+        >
           <Image
             src={
               product.image_url?.trim()
@@ -137,9 +145,12 @@ export default function ProductCard({
             className="w-full h-full object-cover"
             style={{
               filter: isOutOfStock ? "grayscale(40%)" : "none",
+              borderBottom: "1px solid black",
+              border: "1px solid black",
+              borderRadius: "12px",
+              bordertop: "1px solid black",
             }}
           />
-
           {isOutOfStock && (
             <div className="absolute inset-0 bg-black/45 flex items-center justify-center">
               <span className="bg-[#e94560] text-white text-[10px] sm:text-[12px] font-bold px-3 py-1 rounded-full tracking-wide">
@@ -150,15 +161,24 @@ export default function ProductCard({
         </div>
 
         {/* CONTENT */}
-        <div className="flex flex-col flex-1 p-2.5 sm:p-[14px] overflow-hidden">
+        <div
+          className="flex flex-col flex-1 p-2.5 sm:p-[14px] overflow-hidden"
+          style={{ backgroundColor: "#ffffff" }}
+        >
 
           {/* PRODUCT NAME */}
-          <h2 className="text-[12px] sm:text-[16px] font-semibold leading-tight line-clamp-2 text-[#1a1a2e] mb-1 overflow-hidden">
+          <h2
+            className="text-[12px] sm:text-[16px] font-semibold leading-tight line-clamp-2 mb-1 overflow-hidden"
+            style={{ color: "#1a1a2e" }}
+          >
             {product.name}
           </h2>
 
           {/* DESCRIPTION */}
-          <p className="hidden sm:block text-[12px] text-[#777] h-8 overflow-hidden mb-1">
+          <p
+            className="hidden sm:block text-[12px] h-8 overflow-hidden mb-1"
+            style={{ color: "#777777" }}
+          >
             {product.description}
           </p>
 
@@ -166,7 +186,10 @@ export default function ProductCard({
           {product.seller_name && (
             <button
               onClick={handleSellerClick}
-              className="w-fit text-[10px] sm:text-[11px] text-[#1a1a2e]/60 hover:text-[#e94560] hover:underline transition-colors truncate mb-1 text-left"
+              className="w-fit text-[10px] sm:text-[11px] hover:underline transition-colors truncate mb-1 text-left"
+              style={{ color: "#1a1a2e99" }}
+              onMouseEnter={e => e.currentTarget.style.color = "#e94560"}
+              onMouseLeave={e => e.currentTarget.style.color = "#1a1a2e99"}
             >
               🏪 {product.seller_name}
             </button>
@@ -202,11 +225,17 @@ export default function ProductCard({
                     </svg>
                   );
                 })}
-                <span className="text-[10px] sm:text-[11px] text-[#777] ml-0.5">
+                <span
+                  className="text-[10px] sm:text-[11px] ml-0.5"
+                  style={{ color: "#777777" }}
+                >
                   {Number(product.average_rating).toFixed(1)}
                 </span>
                 {product.total_ratings > 0 && (
-                  <span className="text-[10px] sm:text-[11px] text-[#aaa]">
+                  <span
+                    className="text-[10px] sm:text-[11px]"
+                    style={{ color: "#aaaaaa" }}
+                  >
                     ({product.total_ratings})
                   </span>
                 )}
@@ -214,7 +243,10 @@ export default function ProductCard({
             )}
 
             {product.total_sold > 0 && (
-              <span className="text-[10px] sm:text-[11px] text-[#aaa]">
+              <span
+                className="text-[10px] sm:text-[11px]"
+                style={{ color: "#aaaaaa" }}
+              >
                 · {product.total_sold >= 1000
                   ? `${(product.total_sold / 1000).toFixed(1)}k`
                   : product.total_sold} sold
@@ -224,16 +256,20 @@ export default function ProductCard({
 
           {/* PRICE + STOCK */}
           <div className="flex items-end justify-between mt-auto pt-1 gap-1">
-            <p className="text-[13px] sm:text-[16px] font-bold text-[#e94560]">
+            <p
+              className="text-[13px] sm:text-[16px] font-bold"
+              style={{ color: "#e94560" }}
+            >
               ₱{Number(product.price).toLocaleString()}
             </p>
             {!isOutOfStock && product.stock > 0 && (
               <span
-                className={`text-[9px] sm:text-[11px] font-medium px-1.5 py-0.5 rounded-full ${
+                className="text-[9px] sm:text-[11px] font-medium px-1.5 py-0.5 rounded-full"
+                style={
                   product.stock <= 5
-                    ? "bg-orange-50 text-orange-500 border border-orange-200"
-                    : "bg-green-50 text-green-600 border border-green-200"
-                }`}
+                    ? { backgroundColor: "#fff7ed", color: "#f97316", border: "1px solid #fed7aa" }
+                    : { backgroundColor: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0" }
+                }
               >
                 {product.stock <= 5 ? `⚠ ${product.stock} left` : `✓ ${product.stock} available`}
               </span>
@@ -253,7 +289,8 @@ export default function ProductCard({
                 });
               }}
               disabled={sentimentLoading}
-              className="text-[10px] px-2 py-0.5 rounded-full border border-[#ddd] bg-[#f9f9f9] text-[#555] cursor-pointer"
+              className="text-[10px] px-2 py-0.5 rounded-full cursor-pointer"
+              style={{ border: "1px solid #dddddd", backgroundColor: "#f9f9f9", color: "#555555" }}
             >
               {sentimentLoading ? "..." : "Review insight"}
             </button>
