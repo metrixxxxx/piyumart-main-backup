@@ -1,4 +1,3 @@
-// components/chatbot/ChatMessage.jsx
 // Renders a single message bubble, styled differently for user vs AI.
 
 'use client';

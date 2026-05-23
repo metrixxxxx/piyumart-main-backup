@@ -1,4 +1,3 @@
-// components/chatbot/TypingIndicator.jsx
 // Animated typing indicator shown while AI is generating a response.
 
 'use client';
