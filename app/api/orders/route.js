@@ -18,20 +18,24 @@ export async function GET() {
       orders.map(async (order) => {
         const [items] = await db.query(
           `SELECT
-            oi.product_id, oi.quantity, oi.price, oi.variant,
-            COALESCE(oi.name, p.name) AS name,
-            COALESCE(oi.seller_name, p.seller_name) AS seller_name,
-            COALESCE(
-              oi.image_url,
-              (SELECT pv.image_url FROM product_variants pv
-               WHERE pv.product_id = p.id AND pv.label = oi.variant LIMIT 1),
-              (SELECT pi.image_url FROM product_images pi
-               WHERE pi.product_id = p.id ORDER BY pi.sort_order ASC LIMIT 1),
-              p.image_url
-            ) AS image_url
-          FROM order_items oi
-          LEFT JOIN products p ON p.id = oi.product_id
-          WHERE oi.order_id = $1`,
+  oi.product_id,
+  oi.quantity,
+  oi.price,
+  oi.variant,
+  p.seller_id, -- ✅ SAFE HERE
+  COALESCE(oi.name, p.name) AS name,
+  COALESCE(oi.seller_name, p.seller_name) AS seller_name,
+  COALESCE(
+    oi.image_url,
+    (SELECT pv.image_url FROM product_variants pv
+     WHERE pv.product_id = p.id AND pv.label = oi.variant LIMIT 1),
+    (SELECT pi.image_url FROM product_images pi
+     WHERE pi.product_id = p.id ORDER BY pi.sort_order ASC LIMIT 1),
+    p.image_url
+  ) AS image_url
+FROM order_items oi
+LEFT JOIN products p ON p.id = oi.product_id
+WHERE oi.order_id = $1`,
           [order.id]
         );
         return { ...order, items };

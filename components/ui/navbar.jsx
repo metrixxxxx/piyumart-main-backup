@@ -1,30 +1,63 @@
 "use client";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useState, useRef, useEffect } from "react";
+
 import NotificationBell from "@/components/NotificationBell";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import LoadingModal from "@/components/ui/LoadingModal";
-import { getSocket } from "@/lib/socket";
 import SearchAutocomplete from "@/components/SearchAutocomplete";
 
+import { getSocket } from "@/lib/socket";
+
 function ThemeToggle() {
-  const [state, setState] = useState({ dark: false, mounted: false });
+  const [state, setState] = useState({
+    dark: false,
+    mounted: false,
+  });
 
   useEffect(() => {
     const stored = localStorage.getItem("theme");
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const isDark = stored === "dark" || (!stored && prefersDark);
-    document.documentElement.classList.toggle("dark", isDark);
-    setTimeout(() => setState({ dark: isDark, mounted: true }), 0);
+
+    const prefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    ).matches;
+
+    const isDark =
+      stored === "dark" || (!stored && prefersDark);
+
+    document.documentElement.classList.toggle(
+      "dark",
+      isDark
+    );
+
+    setTimeout(() => {
+      setState({
+        dark: isDark,
+        mounted: true,
+      });
+    }, 0);
   }, []);
 
   const toggle = () => {
     const next = !state.dark;
-    setState((prev) => ({ ...prev, dark: next }));
-    localStorage.setItem("theme", next ? "dark" : "light");
-    document.documentElement.classList.toggle("dark", next);
+
+    setState((prev) => ({
+      ...prev,
+      dark: next,
+    }));
+
+    localStorage.setItem(
+      "theme",
+      next ? "dark" : "light"
+    );
+
+    document.documentElement.classList.toggle(
+      "dark",
+      next
+    );
   };
 
   if (!state.mounted) return null;
@@ -34,10 +67,16 @@ function ThemeToggle() {
       onClick={toggle}
       aria-label="Toggle dark mode"
       className={`relative w-11 h-6 rounded-full border transition-all duration-300 flex items-center px-0.5 shrink-0
-        ${state.dark ? "bg-[#c9a028] border-[#c9a028]" : "bg-[#e8edf8] border-[#1a2a6c]/30"}`}
+      ${
+        state.dark
+          ? "bg-[#c9a028] border-[#c9a028]"
+          : "bg-[#e8edf8] border-[#1a2a6c]/30"
+      }`}
     >
-      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] bg-white shadow-sm transition-all duration-300
-        ${state.dark ? "translate-x-5" : "translate-x-0"}`}>
+      <span
+        className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] bg-white shadow-sm transition-all duration-300
+        ${state.dark ? "translate-x-5" : "translate-x-0"}`}
+      >
         {state.dark ? "🌙" : "☀️"}
       </span>
     </button>
@@ -45,25 +84,46 @@ function ThemeToggle() {
 }
 
 export default function Navbar() {
-  
   const { data: session } = useSession();
+
   const pathname = usePathname();
+
   const [open, setOpen] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [logoutOpen, setLogoutOpen] = useState(false);
-  const [loggingOut, setLoggingOut] = useState(false);
-  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  const [mobileOpen, setMobileOpen] =
+    useState(false);
+
+  const [logoutOpen, setLogoutOpen] =
+    useState(false);
+
+  const [loggingOut, setLoggingOut] =
+    useState(false);
+
+  const [unreadMessages, setUnreadMessages] =
+    useState(0);
+
+  const [searchOpen, setSearchOpen] =
+    useState(false);
+
   const dropdownRef = useRef(null);
 
-  const isActive = (path) => pathname === path || pathname.startsWith(path + "/");
+  const searchRef = useRef(null);
+
+  const searchButtonRef = useRef(null);
+
+  const isActive = (path) =>
+    pathname === path ||
+    pathname.startsWith(path + "/");
 
   const linkClass = (path) =>
     `text-xs font-semibold tracking-wide transition-colors duration-150
-    ${isActive(path)
-      ? "text-[#c9a028] dark:text-[#c9a028]"
-      : "text-white/70 hover:text-white"}`;
+    ${
+      isActive(path)
+        ? "text-[#c9a028]"
+        : "text-white/70 hover:text-white"
+    }`;
 
-  // Fetch unread message count
+  // unread messages
   useEffect(() => {
     if (!session) return;
 
@@ -71,146 +131,287 @@ export default function Navbar() {
       .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data)) {
-          const total = data.reduce((s, c) => s + Number(c.unread_count || 0), 0);
+          const total = data.reduce(
+            (s, c) =>
+              s + Number(c.unread_count || 0),
+            0
+          );
+
           setUnreadMessages(total);
         }
       })
       .catch(() => {});
 
-    // Real-time unread count update
     const socket = getSocket(session.user.id);
+
     socket.on("message:received", () => {
-      // Only increment if not on messages page
       if (!pathname.startsWith("/messages")) {
         setUnreadMessages((prev) => prev + 1);
       }
     });
-    return () => socket.off("message:received");
+
+    return () =>
+      socket.off("message:received");
   }, [session, pathname]);
 
-  // Reset unread when visiting messages page
+  // reset unread
   useEffect(() => {
     if (pathname.startsWith("/messages")) {
       setUnreadMessages(0);
     }
   }, [pathname]);
 
+  // close profile dropdown
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setOpen(false);
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target)
+      ) {
+        setOpen(false);
+      }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    document.addEventListener(
+      "mousedown",
+      handleClickOutside
+    );
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside
+      );
+    };
   }, []);
+
+  // close search dropdown
+  useEffect(() => {
+    const handleOutsideSearch = (e) => {
+      if (
+        searchOpen &&
+        searchRef.current &&
+        !searchRef.current.contains(e.target) &&
+        searchButtonRef.current &&
+        !searchButtonRef.current.contains(e.target)
+      ) {
+        setSearchOpen(false);
+      }
+    };
+
+    document.addEventListener(
+      "mousedown",
+      handleOutsideSearch
+    );
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleOutsideSearch
+      );
+    };
+  }, [searchOpen]);
 
   const requestLogout = () => {
     setOpen(false);
+
     setMobileOpen(false);
+
     setLogoutOpen(true);
   };
 
   const handleLogout = async () => {
     setLogoutOpen(false);
+
     setLoggingOut(true);
-    await signOut({ callbackUrl: "/" });
+
+    await signOut({
+      callbackUrl: "/",
+    });
   };
 
   return (
     <>
-      <nav className="sticky top-0 z-50 bg-[#1a2a6c] dark:bg-[#0a0e1f] border-b border-white/10 px-5 md:px-8 py-4 flex items-center gap-4 transition-colors duration-300 shadow-md">
-        {/* Logo */}
-<Link href="/" className="flex items-center gap-2.5 shrink-0">
-  <h1 className="text-lg font-extrabold tracking-tight text-white">
-    PIYU<span className="text-[#c9a028]">MART</span>
-  </h1>
-</Link>
+      {/* NAVBAR */}
+      <nav className="sticky top-0 z-50 bg-[#1a2a6c] dark:bg-[#0a0e1f] border-b border-white/10 px-6 md:px-8 py-4 flex items-center gap-4 shadow-md">
 
-{/* Search — right beside logo, stretches across */}
-{pathname !== "/" && (
-  <div className="hidden md:flex flex-1 max-w-full ml-4">
-    <SearchAutocomplete />
-  </div>
-)}
+        {/* LOGO */}
+        <Link
+          href="/"
+          className="flex items-center gap-2.5 shrink-0"
+        >
+          <h1 className="text-lg font-extrabold tracking-tight text-white">
+            PIYU
+            <span className="text-[#c9a028]">
+              MART
+            </span>
+          </h1>
+        </Link>
 
-{/* Desktop Nav — right side */}
-<div className="hidden md:flex items-center gap-6 ml-auto">
-  <Link href="/" className={linkClass("/")}>Home</Link>
-  <Link href="/cart" className={linkClass("/cart")}>Cart</Link>
-          
+        {/* DESKTOP SEARCH */}
+        {pathname !== "/" && (
+          <div className="hidden md:flex flex-1 max-w-[1200px] ml-4 opacity-96 hover:opacity-100 transition animation-fade-in">
+            <SearchAutocomplete />
+          </div>
+        )}
 
-          {/* Messages link with unread badge */}
+        {/* DESKTOP NAV */}
+        <div className="hidden md:flex items-center gap-6 ml-auto">
+
+          <Link
+            href="/"
+            className={linkClass("/")}
+          >
+            Home
+          </Link>
+
+          <Link
+            href="/cart"
+            className={linkClass("/cart")}
+          >
+            Cart
+          </Link>
+
           {session && (
-            <Link href="/messages" className={`relative ${linkClass("/messages")}`}>
+            <Link
+              href="/messages"
+              className={`relative ${linkClass(
+                "/messages"
+              )}`}
+            >
               Messages
+
               {unreadMessages > 0 && (
                 <span className="absolute -top-2 -right-3 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
-                  {unreadMessages > 9 ? "9+" : unreadMessages}
+                  {unreadMessages > 9
+                    ? "9+"
+                    : unreadMessages}
                 </span>
               )}
             </Link>
           )}
 
           {session && <NotificationBell />}
+
           <ThemeToggle />
 
+          {/* PROFILE */}
           {session ? (
-            <div className="relative" ref={dropdownRef}>
-              <button onClick={() => setOpen((prev) => !prev)} className="flex items-center gap-2 hover:opacity-80 transition">
+            <div
+              className="relative"
+              ref={dropdownRef}
+            >
+              <button
+                onClick={() =>
+                  setOpen((p) => !p)
+                }
+                className="flex items-center gap-2 hover:opacity-80 transition"
+              >
                 {session.user.image ? (
-                  <img src={session.user.image} alt="avatar" className="w-9 h-9 rounded-full object-cover border-2 border-[#c9a028]" />
+                  <img
+                    src={session.user.image}
+                    alt="avatar"
+                    className="w-9 h-9 rounded-full object-cover border-2 border-[#c9a028]"
+                  />
                 ) : (
                   <div className="w-9 h-9 rounded-full bg-[#c9a028] flex items-center justify-center text-xs font-bold text-[#0e1a3d]">
-                    {session.user.name?.charAt(0).toUpperCase()}
+                    {session.user.name
+                      ?.charAt(0)
+                      .toUpperCase()}
                   </div>
                 )}
-                <span className="text-xs font-medium text-white/70">{session.user.name}</span>
-                <svg className={`w-3 h-3 text-white/50 transition-transform duration-200 ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+
+                <span className="text-xs font-medium text-white/70">
+                  {session.user.name}
+                </span>
+
+                <svg
+                  className={`w-3 h-3 text-white/50 transition-transform duration-200 ${
+                    open ? "rotate-180" : ""
+                  }`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </button>
 
               {open && (
-                <div className="absolute right-0 mt-2.5 w-52 bg-white dark:bg-[#0e1520] rounded-xl border border-[#c5cfe8] dark:border-white/[0.07] shadow-xl overflow-hidden z-50">
+                <div className="absolute right-0 mt-2.5 w-56 bg-white dark:bg-[#0e1520] rounded-xl border border-[#c5cfe8] dark:border-white/[0.07] shadow-2xl overflow-hidden z-50">
+
+                  {/* HEADER */}
                   <div className="px-4 py-3 border-b border-[#c5cfe8] dark:border-white/[0.07] bg-[#1a2a6c]">
-                    <p className="text-sm font-semibold text-white truncate">{session.user.name}</p>
-                    <p className="text-xs text-white/50 truncate">{session.user.email}</p>
+                    <p className="text-sm font-semibold text-white truncate">
+                      {session.user.name}
+                    </p>
+
+                    <p className="text-xs text-white/60 truncate">
+                      {session.user.email}
+                    </p>
                   </div>
+
+                  {/* LINKS */}
                   <div className="py-1">
+
                     {[
-                      { href: "/profile",     label: "My Profile",    icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
-                      { href: "/sell",        label: "Sell a Product", icon: "M12 4v16m8-8H4" },
-                      { href: "/my-listings", label: "My Listings",    icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" },
-                      { href: "/my-orders",    label: "My Orders",      icon: "M3 10h18M7 15h1m4 0h1m-6 4h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
-                    ].map(({ href, label, icon }) => (
-                      <Link key={href} href={href} onClick={() => setOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2.5 text-xs text-[#0e1a3d]/70 dark:text-[#e8edf8]/60 hover:bg-[#e8edf8] dark:hover:bg-white/[0.04] hover:text-[#1a2a6c] dark:hover:text-[#c9a028] transition-colors">
-                        <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={icon} />
-                        </svg>
-                        {label}
+                      {
+                        href: "/profile",
+                        label: "My Profile",
+                      },
+                      {
+                        href: "/sell",
+                        label: "Sell a Product",
+                      },
+                      {
+                        href: "/my-listings",
+                        label: "My Listings",
+                      },
+                      {
+                        href: "/my-orders",
+                        label: "My Orders",
+                      },
+                      {
+                        href: "/messages",
+                        label: "Messages",
+                      },
+                    ].map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() =>
+                          setOpen(false)
+                        }
+                        className="flex items-center px-4 py-3 text-xs text-[#0e1a3d]/70 dark:text-[#e8edf8]/60 hover:bg-[#e8edf8] dark:hover:bg-white/[0.04] hover:text-[#1a2a6c] dark:hover:text-[#c9a028] transition-colors"
+                      >
+                        {item.label}
+
+                        {item.href ===
+                          "/messages" &&
+                          unreadMessages >
+                            0 && (
+                            <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+                              {unreadMessages >
+                              9
+                                ? "9+"
+                                : unreadMessages}
+                            </span>
+                          )}
                       </Link>
                     ))}
-
-                    {/* Messages in dropdown too */}
-                    <Link href="/messages" onClick={() => setOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2.5 text-xs text-[#0e1a3d]/70 dark:text-[#e8edf8]/60 hover:bg-[#e8edf8] dark:hover:bg-white/[0.04] hover:text-[#1a2a6c] dark:hover:text-[#c9a028] transition-colors">
-                      <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                      Messages
-                      {unreadMessages > 0 && (
-                        <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
-                          {unreadMessages > 9 ? "9+" : unreadMessages}
-                        </span>
-                      )}
-                    </Link>
                   </div>
+
+                  {/* LOGOUT */}
                   <div className="border-t border-[#c5cfe8] dark:border-white/[0.07] py-1">
-                    <button onClick={requestLogout}
-                      className="flex items-center gap-3 w-full px-4 py-2.5 text-xs text-red-400 hover:bg-[#e8edf8] dark:hover:bg-white/[0.04] hover:text-red-500 transition-colors">
-                      <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                      </svg>
+                    <button
+                      onClick={requestLogout}
+                      className="w-full text-left px-4 py-3 text-xs text-red-400 hover:bg-[#e8edf8] dark:hover:bg-white/[0.04] hover:text-red-500 transition-colors"
+                    >
                       Logout
                     </button>
                   </div>
@@ -218,122 +419,206 @@ export default function Navbar() {
               )}
             </div>
           ) : (
-            <Link href="/login" className="text-xs font-semibold px-4 py-2 rounded-full bg-[#c9a028] text-[#0e1a3d] hover:bg-[#d4aa40] transition">
+            <Link
+              href="/login"
+              className="text-xs font-semibold px-4 py-2 rounded-full bg-[#c9a028] text-[#0e1a3d]"
+            >
               Login
             </Link>
           )}
         </div>
 
-        {/* Mobile: right side */}
-        <div className="flex md:hidden items-center gap-3">
-          {session && <NotificationBell />}
+       {/* MOBILE CONTROLS */}
+<div className="flex md:hidden items-center gap-3 ml-auto">
 
-          {/* Mobile messages icon with badge */}
-          {session && (
-            <Link href="/messages" className="relative text-white/70 hover:text-white transition">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              {unreadMessages > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-3.5 px-0.5 rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center">
-                  {unreadMessages > 9 ? "9+" : unreadMessages}
-                </span>
-              )}
-            </Link>
-          )}
+{/* MOBILE SEARCH OVERLAY — direct child of nav */}
+{pathname !== "/" && searchOpen && (
+  <div
+    ref={searchRef}
+    className="md:hidden absolute inset-0 z-20 flex items-center px-4 bg-[#1a2a6c] dark:bg-[#0a0e1f] animated fade-in-down"
+  >
+    <SearchAutocomplete autoFocus />
+    <button
+      onClick={() => setSearchOpen(false)}
+      className="ml-3 text-white/70 hover:text-white transition shrink-0"
+      aria-label="Close search"
+    >
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+  </div>
+)}
 
-          <ThemeToggle />
+  {/* SEARCH ICON */}
+  {pathname !== "/" && (
+    <button
+      ref={searchButtonRef}
+      className="text-white/70 hover:text-white transition"
+      onClick={() => setSearchOpen((p) => !p)}
+      aria-label="Search"
+    >
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+    </button>
+  )}
+
+  {/* NOTIFICATIONS */}
+  {session && <NotificationBell />}
+
+  {/* THEME */}
+  <ThemeToggle />
+
+          {/* MENU */}
           <button
-            onClick={() => setMobileOpen((p) => !p)}
-            aria-expanded={mobileOpen}
-            aria-label="Toggle menu"
+            onClick={() =>
+              setMobileOpen((p) => !p)
+            }
             className="relative h-8 w-8 rounded-lg text-white transition hover:bg-white/10"
           >
-            <svg className="absolute inset-1 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg
+              className="absolute inset-1 h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
               <path
-                className={`origin-center transition-all duration-300 ${mobileOpen ? "translate-y-1.5 rotate-45" : ""}`}
-                strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16"
+                className={`origin-center transition-all duration-300 ${
+                  mobileOpen
+                    ? "translate-y-1.5 rotate-45"
+                    : ""
+                }`}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16"
               />
+
               <path
-                className={`transition-all duration-200 ${mobileOpen ? "opacity-0" : "opacity-100"}`}
-                strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 12h16"
+                className={`transition-all duration-200 ${
+                  mobileOpen
+                    ? "opacity-0"
+                    : "opacity-100"
+                }`}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 12h16"
               />
+
               <path
-                className={`origin-center transition-all duration-300 ${mobileOpen ? "-translate-y-1.5 -rotate-45" : ""}`}
-                strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 18h16"
+                className={`origin-center transition-all duration-300 ${
+                  mobileOpen
+                    ? "-translate-y-1.5 -rotate-45"
+                    : ""
+                }`}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 18h16"
               />
             </svg>
           </button>
         </div>
       </nav>
 
-      {/* Mobile Menu */}
+      {/* MOBILE MENU */}
       <div
-        className={`md:hidden fixed inset-x-0 top-[57px] bottom-0 z-40 bg-[#1a2a6c] dark:bg-[#0a0e1f] flex flex-col px-6 py-6 gap-4 transition-all duration-300 ease-out
-          ${mobileOpen ? "translate-y-0 opacity-100 pointer-events-auto" : "-translate-y-3 opacity-0 pointer-events-none"}`}
+        className={`md:hidden fixed inset-x-0 top-[57px] bottom-0 z-40 bg-[#1a2a6c] dark:bg-[#0a0e1f] flex flex-col px-6 py-7 gap-6 transition-all duration-300
+        ${
+          mobileOpen
+            ? "translate-y-0 opacity-100"
+            : "-translate-y-3 opacity-0 pointer-events-none"
+        }`}
       >
-        {session && (
-          <div className={`flex items-center gap-3 pb-4 border-b border-white/10 transition-all duration-300 ${mobileOpen ? "translate-y-0 opacity-100 delay-100" : "-translate-y-2 opacity-0"}`}>
-            <div className="w-10 h-10 rounded-full bg-[#c9a028] flex items-center justify-center text-sm font-bold text-[#0e1a3d]">
-              {session.user.name?.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white">{session.user.name}</p>
-              <p className="text-xs text-white/50">{session.user.email}</p>
-            </div>
-          </div>
-        )}
         {[
-          { href: "/",          label: "Home" },
-          { href: "/cart",      label: "Cart" },
-         
-          ...(session ? [
-            { href: "/messages",    label: "Messages",    badge: unreadMessages },
-            { href: "/profile",     label: "My Profile" },
-            { href: "/sell",        label: "Sell a Product" },
-            { href: "/my-listings", label: "My Listings" },
-            { href: "/my-orders",      label: "My Orders" },
-            
-          ] : []),
-        ].map(({ href, label, badge }) => (
-          <Link key={href} href={href} onClick={() => setMobileOpen(false)}
-            className={`flex items-center justify-between text-sm font-semibold py-2 border-b border-white/10 transition-all duration-300
-              ${isActive(href) ? "text-[#c9a028]" : "text-white/80 hover:text-white"}`}>
-            {label}
-            {badge > 0 && (
-              <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                {badge > 9 ? "9+" : badge}
-              </span>
-            )}
-          </Link>
-        ))}
+          {
+            href: "/",
+            label: "Home",
+          },
+          {
+            href: "/cart",
+            label: "Cart",
+          },
+        ]
+          .concat(
+            session
+              ? [
+                  {
+                    href: "/messages",
+                    label: "Messages",
+                  },
+                  {
+                    href: "/profile",
+                    label: "Profile",
+                  },
+                  {
+                    href: "/sell",
+                    label: "Sell",
+                  },
+                  {
+                    href: "/my-listings",
+                    label: "Listings",
+                  },
+                  {
+                    href: "/my-orders",
+                    label: "Orders",
+                  },
+                ]
+              : []
+          )
+          .map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() =>
+                setMobileOpen(false)
+              }
+              className="text-white/80 border-b border-white/10 py-3.5 text-sm"
+            >
+              {item.label}
+            </Link>
+          ))}
+
         {session ? (
-          <button onClick={requestLogout}
-            className="mt-2 text-sm font-semibold text-red-400 text-left py-2">
+          <button
+            onClick={requestLogout}
+            className="text-red-400 text-sm mt-2 text-left"
+          >
             Logout
           </button>
         ) : (
-          <Link href="/login" onClick={() => setMobileOpen(false)}
-            className="mt-2 text-center bg-[#c9a028] text-[#0e1a3d] font-bold text-sm py-3 rounded-xl">
+          <Link
+            href="/login"
+            onClick={() =>
+              setMobileOpen(false)
+            }
+            className="bg-[#c9a028] text-[#0e1a3d] text-sm font-bold py-3 rounded-xl text-center"
+          >
             Login
           </Link>
         )}
       </div>
 
+      {/* MODALS */}
       <ConfirmModal
         open={logoutOpen}
         title="Log out?"
-        description="You will need to sign in again to manage orders, listings, and your cart."
+        description="You will need to sign in again."
         confirmText="Log out"
-        cancelText="Stay signed in"
+        cancelText="Cancel"
         loading={loggingOut}
-        onCancel={() => setLogoutOpen(false)}
+        onCancel={() =>
+          setLogoutOpen(false)
+        }
         onConfirm={handleLogout}
       />
+
       <LoadingModal
         open={loggingOut}
         title="Logging out"
-        description="Ending your session and returning you to the shop."
+        description="Ending session..."
       />
     </>
   );

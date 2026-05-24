@@ -85,10 +85,14 @@ function OrderCard({ order, onUpdate, onDelete }) {
     try { return typeof order.items === "string" ? JSON.parse(order.items) : (order.items || []); }
     catch { return []; }
   })();
+ 
 
   const sellerName = items.length > 0
     ? [...new Set(items.map(i => i.seller_name).filter(Boolean))].join(", ") || "Unknown Seller"
     : "Unknown Seller";
+    const sellerId = items.length > 0 ? items[0]?.seller_id : null;
+
+    
 
   const date = order.created_at
     ? new Date(order.created_at).toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
@@ -152,14 +156,19 @@ function OrderCard({ order, onUpdate, onDelete }) {
         </div>
         <span className="text-xs font-bold text-[#0e1a3d] dark:text-[#e8edf8]">{sellerName}</span>
         <button
-          onClick={() => router.push(`/shop/${encodeURIComponent(sellerName)}`)}
-          className="flex items-center gap-1 text-[10px] font-semibold text-[#1a2a6c] dark:text-[#c9a028] border border-[#1a2a6c]/30 dark:border-[#c9a028]/30 px-2 py-0.5 rounded-sm hover:bg-[#e8edf8] dark:hover:bg-[#c9a028]/10 transition"
-        >
-          <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-          </svg>
-          Visit Shop
-        </button>
+  onClick={() => {
+    if (!sellerId) return;
+    router.push(`/shop/${sellerId}`);
+  }}
+  disabled={!sellerId}
+  className={`px-4 py-2 rounded-xl border text-[13px] font-semibold transition
+    ${sellerId
+      ? "hover:bg-[#f5f3ff] dark:hover:bg-white/[0.04]"
+      : "opacity-40 cursor-not-allowed"
+    }`}
+>
+  View Shop
+</button>
         <div className="ml-auto flex items-center gap-2">
           <span className="text-[10px] text-[#0e1a3d]/40 dark:text-[#e8edf8]/30 font-mono">#{order.id}</span>
           <StatusBadge status={order.status} />

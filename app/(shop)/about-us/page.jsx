@@ -90,24 +90,23 @@ export default function AboutPage() {
       </section>
 
       {/* ── STATS ── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {STATS.map((s) => (
-            <div
-              key={s.label}
-              className="rounded-2xl text-center py-6 px-3"
-              style={{ backgroundColor: "#ffffff", border: "1px solid #e5e9f2" }}
-            >
-              <p className="text-2xl sm:text-3xl font-extrabold text-[#1a2a6c] dark:text-[#d4aa40]">
-                {s.value}
-              </p>
-              <p className="text-xs text-[#0e1a3d]/50 dark:text-[#e8edf8]/50 mt-1 font-medium">
-                {s.label}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
+<section className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    {STATS.map((s) => (
+      <div
+        key={s.label}
+        className="rounded-2xl text-center py-6 px-3 bg-white dark:bg-[#0e1520] border border-[#e5e9f2] dark:border-[#1e2a3a]"
+      >
+        <p className="text-2xl sm:text-3xl font-extrabold text-[#1a2a6c] dark:text-[#d4aa40]">
+          {s.value}
+        </p>
+        <p className="text-xs text-[#0e1a3d]/50 dark:text-[#e8edf8]/50 mt-1 font-medium">
+          {s.label}
+        </p>
+      </div>
+    ))}
+  </div>
+</section>
 
       {/* ── OUR STORY ── */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-6">

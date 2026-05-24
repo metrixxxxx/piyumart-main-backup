@@ -23,6 +23,7 @@ export async function GET(req) {
         p.sold_count,
         p.average_rating,
         p.category_id,
+        p.seller_id,
         c.name AS category,
         c.slug AS category_slug
       FROM products p

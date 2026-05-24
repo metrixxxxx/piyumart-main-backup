@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 export default function SearchAutocomplete() {
   const [query, setQuery] = useState("");
@@ -14,6 +15,7 @@ export default function SearchAutocomplete() {
   const inputRef = useRef(null);
   const containerRef = useRef(null);
   const router = useRouter();
+  const { data: session } = useSession(); // ← add
 
   function highlightMatch(text = "", query = "") {
     if (!query || !text) return text;
@@ -62,8 +64,12 @@ export default function SearchAutocomplete() {
         if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();
         const safeData = Array.isArray(data) ? data : [];
-        setSuggestions(safeData);
-        setIsOpen(safeData.length > 0);
+// filter out the logged-in user's own products
+const filtered = session?.user?.id
+  ? safeData.filter((p) => String(p.seller_id) !== String(session.user.id))
+  : safeData;
+setSuggestions(filtered);
+setIsOpen(filtered.length > 0);
         setActiveIndex(-1);
       } catch (err) {
         if (err.name !== "AbortError") console.error("Search error:", err);

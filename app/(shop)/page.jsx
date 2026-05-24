@@ -1,10 +1,12 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import ProductCard from "@/components/products/ProductCard";
 import HeroSlider from "@/components/HeroSlider";
 import SearchAutocomplete from "@/components/SearchAutocomplete";
 import Footer from "@/components/Footer";
+
+const PRODUCTS_PER_PAGE = 25;
 
 const CATEGORY_ICONS = {
   "Beauty": "💄",
@@ -30,13 +32,38 @@ function SkeletonCard() {
   );
 }
 
+// Fisher-Yates shuffle — creates a new randomized array
+function seededRandom(seed) {
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+}
+
+function shuffleArray(arr, seed) {
+  const shuffled = [...arr];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(seededRandom(seed + i) * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 export default function HomePage() {
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("all");
-  const [sortBy, setSortBy] = useState("newest");
+  const [products, setProducts]       = useState([]);
+  const [categories, setCategories]   = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [search, setSearch]           = useState("");
+  const [category, setCategory]       = useState("all");
+  const [sortBy, setSortBy]           = useState("newest");
+  const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
+  // seed changes every session login so order randomizes per login
+ const [shuffleSeed] = useState(() => {
+  if (typeof window === "undefined") return Math.random();
+  const existing = sessionStorage.getItem("pm_shuffle_seed");
+  if (existing) return parseFloat(existing);
+  const seed = Math.random();
+  sessionStorage.setItem("pm_shuffle_seed", seed);
+  return seed;
+});
   const { data: session } = useSession();
 
   useEffect(() => {
@@ -51,6 +78,8 @@ export default function HomePage() {
           ? allProducts.filter((p) => String(p.seller_id) !== String(session.user.id))
           : allProducts;
         setProducts(filtered);
+        // reset visible count when sort/session changes
+        setVisibleCount(PRODUCTS_PER_PAGE);
       } catch (err) {
         console.error(err);
       } finally {
@@ -73,7 +102,13 @@ export default function HomePage() {
     fetchCategories();
   }, []);
 
-  const displayed = products.filter((p) => {
+  // randomize once per session using shuffleSeed, only when not sorting
+ const randomizedProducts = useMemo(() => {
+  if (sortBy !== "newest") return products;
+  return shuffleArray(products, shuffleSeed);
+}, [products, shuffleSeed]); // shuffleSeed is stable per session
+
+  const displayed = randomizedProducts.filter((p) => {
     const matchesSearch =
       !search.trim() ||
       p.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -82,6 +117,13 @@ export default function HomePage() {
       category === "all" || String(p.category_id) === String(category);
     return matchesSearch && matchesCategory;
   });
+
+  // reset visible count when filter/search/category changes
+  
+
+  const visibleProducts  = displayed.slice(0, visibleCount);
+  const hasMore          = visibleCount < displayed.length;
+  const remainingCount   = displayed.length - visibleCount;
 
   const categoryLabel =
     category === "all"
@@ -127,9 +169,9 @@ export default function HomePage() {
 
           {/* RIGHT */}
           <div
-  className="relative flex items-center justify-center rounded-b-2xl lg:rounded-b-none lg:rounded-r-2xl min-h-[220px] sm:min-h-[260px] lg:min-h-0"
-  style={{ background: "linear-gradient(135deg, #1a2a6c 0%, #16235a 50%, #c9a028 100%)" }}
->
+            className="relative flex items-center justify-center rounded-b-2xl lg:rounded-b-none lg:rounded-r-2xl min-h-[220px] sm:min-h-[260px] lg:min-h-0"
+            style={{ background: "linear-gradient(135deg, #1a2a6c 0%, #16235a 50%, #c9a028 100%)" }}
+          >
             <div className="absolute top-6 right-6 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white/10" />
             <div className="absolute bottom-8 left-6 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10" />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-36 h-36 sm:w-40 sm:h-40 rounded-full bg-[#c9a028]/20 blur-2xl" />
@@ -146,7 +188,7 @@ export default function HomePage() {
         {/* category tabs */}
         <div className="flex gap-2 overflow-x-auto pb-1 mb-2 scrollbar-none -mx-3 px-3 sm:mx-0 sm:px-0 sm:flex-wrap">
           <button
-            onClick={() => setCategory("all")}
+            onClick={() => { setCategory("all"); setVisibleCount(PRODUCTS_PER_PAGE); }}
             className={`flex-shrink-0 px-4 py-1.5 rounded-full border text-xs font-medium transition-all duration-150
               ${category === "all"
                 ? "bg-[#1a2a6c] dark:bg-[#d4aa40] border-[#1a2a6c] dark:border-[#d4aa40] text-white dark:text-[#0e1a3d] font-bold"
@@ -158,7 +200,7 @@ export default function HomePage() {
           {categories.map((cat) => (
             <button
               key={cat.id}
-              onClick={() => setCategory(String(cat.id))}
+             onClick={() => { setCategory(String(cat.id)); setVisibleCount(PRODUCTS_PER_PAGE); }}
               className={`flex-shrink-0 px-4 py-1.5 rounded-full border text-xs font-medium transition-all duration-150
                 ${category === String(cat.id)
                   ? "bg-[#1a2a6c] dark:bg-[#d4aa40] border-[#1a2a6c] dark:border-[#d4aa40] text-white dark:text-[#0e1a3d] font-bold"
@@ -178,7 +220,7 @@ export default function HomePage() {
           <div className="flex items-center gap-2 sm:gap-3">
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
+              onChange={(e) => { setSortBy(e.target.value); setVisibleCount(PRODUCTS_PER_PAGE); }}
               className="flex-1 sm:flex-none text-xs font-semibold px-3 py-1.5 rounded-full bg-white dark:bg-[#0e1520] border border-[#c5cfe8] dark:border-white/10 text-[#0e1a3d] dark:text-white cursor-pointer hover:border-[#1a2a6c] dark:hover:border-[#d4aa40] transition-colors"
             >
               <option value="newest">Newest First</option>
@@ -209,7 +251,7 @@ export default function HomePage() {
                 </p>
               </div>
             )
-            : displayed.map((product) => (
+            : visibleProducts.map((product) => (
               <div
                 key={product.id}
                 className="rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_8px_28px_rgba(26,42,108,0.15)] dark:hover:shadow-[0_8px_28px_rgba(212,170,64,0.1)]"
@@ -220,9 +262,31 @@ export default function HomePage() {
             ))
           }
         </div>
+
+        {/* ── Show More button ── */}
+        {!loading && hasMore && (
+          <div className="mt-8 flex flex-col items-center gap-2">
+            <button
+              onClick={() => setVisibleCount((prev) => prev + PRODUCTS_PER_PAGE)}
+              className="px-8 py-2.5 rounded-full bg-[#1a2a6c] dark:bg-[#d4aa40] text-white dark:text-[#0e1a3d] text-sm font-bold tracking-wide hover:bg-[#142060] dark:hover:bg-[#c9922a] active:scale-95 transition-all duration-150"
+            >
+              Show More
+            </button>
+            <p className="text-xs text-[#0e1a3d]/40 dark:text-[#e8edf8]/40">
+              Showing {visibleCount} of {displayed.length} products · {remainingCount} more to load
+            </p>
+          </div>
+        )}
+
+        {/* ── All loaded message ── */}
+        {!loading && !hasMore && displayed.length > PRODUCTS_PER_PAGE && (
+          <div className="mt-8 text-center text-xs text-[#0e1a3d]/40 dark:text-[#e8edf8]/40">
+            You haveve seen all {displayed.length} products 🎉
+          </div>
+        )}
+
       </section>
-       
+
     </main>
-    
   );
 }
