@@ -258,7 +258,7 @@ export default function SellPage() {
     );
 
   return (
-    <main className="min-h-screen bg-[#eef2f7] dark:bg-[#070b14] transition-colors duration-300">
+    <main className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] transition-colors duration-300">
 
       {/* HERO */}
       <section className="bg-[#1a2a6c] dark:bg-[#0a0e1f] text-white text-center px-4 sm:px-5 py-10 sm:py-12">

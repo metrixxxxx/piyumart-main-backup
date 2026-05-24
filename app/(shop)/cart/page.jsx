@@ -130,7 +130,7 @@ export default function CartPage() {
   const sellerCount = Object.keys(sellerGroups).length;
 
   return (
-    <main className="min-h-screen bg-[#eef2f7] dark:bg-[#070b14] transition-colors duration-300">
+    <main className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] transition-colors duration-300">
 
       {/* Hero */}
       <section className="bg-[#1a2a6c] dark:bg-[#0a0e1f] px-4 sm:px-5 py-10 text-center">

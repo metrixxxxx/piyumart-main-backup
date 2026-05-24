@@ -3,6 +3,7 @@ import SessionWrapper from "@/components/SessionWrapper";
 import { Suspense } from "react";
 import NavigationProgress from "@/components/NavigationProgress";
 import ChatWidget from "@/components/chatbot/ChatWidget";
+import Footer from "@/components/Footer";  // ← dagdag
 
 export default function RootLayout({ children }) {
   return (
@@ -15,6 +16,7 @@ export default function RootLayout({ children }) {
         <SessionWrapper>
           {children}
           <ChatWidget />
+          <Footer />  {/* ← dagdag dito */}
         </SessionWrapper>
       </body>
     </html>

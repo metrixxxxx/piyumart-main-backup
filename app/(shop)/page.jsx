@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import ProductCard from "@/components/products/ProductCard";
 import HeroSlider from "@/components/HeroSlider";
 import SearchAutocomplete from "@/components/SearchAutocomplete";
+import Footer from "@/components/Footer";
 
 const CATEGORY_ICONS = {
   "Beauty": "💄",
@@ -88,7 +89,7 @@ export default function HomePage() {
       : categories.find((c) => String(c.id) === category)?.name || "Products";
 
   return (
-    <main className="min-h-screen bg-[#eef2f7] dark:bg-[#070b14] transition-colors duration-300 scroll-smooth">
+    <main className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] transition-colors duration-300 scroll-smooth">
 
       {/* ── HERO ── */}
       <section className="px-3 sm:px-5 pt-4 sm:pt-6 pb-6 sm:pb-8 max-w-7xl mx-auto">
@@ -220,6 +221,8 @@ export default function HomePage() {
           }
         </div>
       </section>
+       <Footer />
     </main>
+    
   );
 }
