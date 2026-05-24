@@ -7,6 +7,7 @@ import NotificationBell from "@/components/NotificationBell";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import LoadingModal from "@/components/ui/LoadingModal";
 import { getSocket } from "@/lib/socket";
+import SearchAutocomplete from "@/components/SearchAutocomplete";
 
 function ThemeToggle() {
   const [state, setState] = useState({ dark: false, mounted: false });
@@ -116,19 +117,25 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="sticky top-0 z-50 bg-[#1a2a6c] dark:bg-[#0a0e1f] border-b border-white/10 px-5 md:px-8 py-4 flex justify-between items-center transition-colors duration-300 shadow-md">
-
+      <nav className="sticky top-0 z-50 bg-[#1a2a6c] dark:bg-[#0a0e1f] border-b border-white/10 px-5 md:px-8 py-4 flex items-center gap-4 transition-colors duration-300 shadow-md">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5">
-          <h1 className="text-lg font-extrabold tracking-tight text-white">
-            PIYU<span className="text-[#c9a028]">MART</span>
-          </h1>
-        </Link>
+<Link href="/" className="flex items-center gap-2.5 shrink-0">
+  <h1 className="text-lg font-extrabold tracking-tight text-white">
+    PIYU<span className="text-[#c9a028]">MART</span>
+  </h1>
+</Link>
 
-        {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-6">
-          <Link href="/" className={linkClass("/")}>Home</Link>
-          <Link href="/cart" className={linkClass("/cart")}>Cart</Link>
+{/* Search — right beside logo, stretches across */}
+{pathname !== "/" && (
+  <div className="hidden md:flex flex-1 max-w-full ml-4">
+    <SearchAutocomplete />
+  </div>
+)}
+
+{/* Desktop Nav — right side */}
+<div className="hidden md:flex items-center gap-6 ml-auto">
+  <Link href="/" className={linkClass("/")}>Home</Link>
+  <Link href="/cart" className={linkClass("/cart")}>Cart</Link>
           
 
           {/* Messages link with unread badge */}

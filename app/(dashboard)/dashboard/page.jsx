@@ -418,7 +418,7 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
-                            <image src={product.image_url || "/placeholder.png"} className="w-9 h-9 rounded-lg object-cover" />
+                            <img src={product.image_url || "/placeholder.png"} className="w-9 h-9 rounded-lg object-cover" />
                             <span className="font-medium text-white">{product.name}</span>
                           </div>
                         </td>
