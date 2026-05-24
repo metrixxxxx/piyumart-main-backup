@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import Footer from "@/components/Footer";
+
 
 const TEAM_VALUES = [
   {
@@ -214,7 +214,7 @@ export default function AboutPage() {
       </section>
       
 
-      <Footer />
+      
     </main>
   );
 }
