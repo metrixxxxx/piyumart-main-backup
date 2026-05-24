@@ -129,7 +129,7 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-6">
           <Link href="/" className={linkClass("/")}>Home</Link>
           <Link href="/cart" className={linkClass("/cart")}>Cart</Link>
-          <Link href="/my-orders" className={linkClass("/my-orders")}>My Orders</Link>
+          
 
           {/* Messages link with unread badge */}
           {session && (
@@ -173,6 +173,7 @@ export default function Navbar() {
                       { href: "/profile",     label: "My Profile",    icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
                       { href: "/sell",        label: "Sell a Product", icon: "M12 4v16m8-8H4" },
                       { href: "/my-listings", label: "My Listings",    icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" },
+                      { href: "/my-orders",    label: "My Orders",      icon: "M3 10h18M7 15h1m4 0h1m-6 4h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
                     ].map(({ href, label, icon }) => (
                       <Link key={href} href={href} onClick={() => setOpen(false)}
                         className="flex items-center gap-3 px-4 py-2.5 text-xs text-[#0e1a3d]/70 dark:text-[#e8edf8]/60 hover:bg-[#e8edf8] dark:hover:bg-white/[0.04] hover:text-[#1a2a6c] dark:hover:text-[#c9a028] transition-colors">
@@ -278,12 +279,14 @@ export default function Navbar() {
         {[
           { href: "/",          label: "Home" },
           { href: "/cart",      label: "Cart" },
-          { href: "/my-orders", label: "My Orders" },
+         
           ...(session ? [
             { href: "/messages",    label: "Messages",    badge: unreadMessages },
             { href: "/profile",     label: "My Profile" },
             { href: "/sell",        label: "Sell a Product" },
             { href: "/my-listings", label: "My Listings" },
+            { href: "/my-orders",      label: "My Orders" },
+            
           ] : []),
         ].map(({ href, label, badge }) => (
           <Link key={href} href={href} onClick={() => setMobileOpen(false)}

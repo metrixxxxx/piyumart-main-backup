@@ -59,7 +59,6 @@ export async function POST(req) {
     if (validItems.length === 0)
       return NextResponse.json({ error: "No valid items in cart." }, { status: 400 });
 
-    // Step 1: fetch product info for all items first
     const enrichedItems = [];
     for (const item of validItems) {
       const [productRows] = await db.query(
@@ -82,7 +81,7 @@ export async function POST(req) {
       );
 
       const product = productRows[0];
-      if (!product) continue; // skip invalid products
+      if (!product) continue;
 
       enrichedItems.push({ ...item, product });
     }
@@ -90,7 +89,6 @@ export async function POST(req) {
     if (enrichedItems.length === 0)
       return NextResponse.json({ error: "No valid products found." }, { status: 400 });
 
-    // Step 2: group by seller_id
     const sellerGroups = enrichedItems.reduce((groups, item) => {
       const sellerId = item.product.seller_id;
       if (!groups[sellerId]) groups[sellerId] = [];
@@ -98,7 +96,6 @@ export async function POST(req) {
       return groups;
     }, {});
 
-    // Step 3: create one order per seller group
     const createdOrderIds = [];
 
     for (const [sellerId, sellerItems] of Object.entries(sellerGroups)) {
@@ -117,10 +114,8 @@ export async function POST(req) {
       const orderId = result[0].id;
       createdOrderIds.push(orderId);
 
-      // Insert all items for this seller into this order
       for (const item of sellerItems) {
         const { product } = item;
-
         await db.query(
           `INSERT INTO order_items
             (order_id, product_id, quantity, price, variant, name, image_url, seller_name)
@@ -138,7 +133,6 @@ export async function POST(req) {
         );
       }
 
-      // Notify seller once per order with all their items listed
       const itemsSummary = sellerItems
         .map((i) => `"${i.product.name}" x${i.quantity}`)
         .join(", ");
@@ -150,7 +144,6 @@ export async function POST(req) {
       });
     }
 
-    // Notify buyer once summarizing all orders created
     await notify({
       userId: session.user.id,
       type: "order_placed",
@@ -160,6 +153,44 @@ export async function POST(req) {
     return NextResponse.json({ success: true, orderIds: createdOrderIds });
   } catch (err) {
     console.error("Order POST error:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req, { params }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const orderId = Number(params.id);
+
+    // Verify the order exists and belongs to this buyer
+    const [rows] = await db.query(
+      `SELECT id, status, user_id FROM orders WHERE id = $1`,
+      [orderId]
+    );
+
+    const order = rows[0];
+    if (!order)
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+
+    if (Number(order.user_id) !== Number(session.user.id))
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+    const deletable = ["cancelled", "completed"];
+    if (!deletable.includes(order.status))
+      return NextResponse.json(
+        { error: "Only cancelled or completed orders can be deleted." },
+        { status: 400 }
+      );
+
+    // Delete order_items first (foreign key), then the order
+    await db.query(`DELETE FROM order_items WHERE order_id = $1`, [orderId]);
+    await db.query(`DELETE FROM orders WHERE id = $1`, [orderId]);
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("Order DELETE error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

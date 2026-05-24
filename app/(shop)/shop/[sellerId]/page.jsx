@@ -60,9 +60,7 @@ export default function ShopPage() {
     fetchProducts();
   }, [sortBy, sellerId]);
 
-  const handleChat = () => {
-    router.push(`/messages?seller=${sellerId}`);
-  };
+  
 
   const displayed = session?.user?.id
     ? products.filter(
@@ -185,28 +183,7 @@ export default function ShopPage() {
               </div>
             </div>
 
-            {session &&
-              String(session.user.id) !== String(sellerId) && (
-                <button
-                  onClick={handleChat}
-                  className="hidden sm:flex shrink-0 items-center gap-2 border border-white/30 text-white text-xs font-bold px-4 py-2 rounded-sm hover:bg-white/10 transition-colors"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                    />
-                  </svg>
-                  Chat
-                </button>
-              )}
+            
           </div>
         </div>
       </section>

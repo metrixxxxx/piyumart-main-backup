@@ -18,6 +18,8 @@ const STATUS_CONFIG = {
 const ORDER_STEPS = ["pending", "confirmed", "processing", "shipped", "completed"];
 const STEP_LABELS = ["Pending", "Confirmed", "Processing", "Shipped", "Completed"];
 
+const DELETABLE_STATUSES = ["cancelled", "completed"];
+
 function StatusBadge({ status }) {
   const cfg = STATUS_CONFIG[status] || { label: status, color: "text-[#0e1a3d]/50 dark:text-[#e8edf8]/40", bg: "bg-[#e8edf8] dark:bg-white/[0.04]", dot: "bg-gray-400", pulse: false };
   return (
@@ -70,11 +72,14 @@ function OrderProgress({ status }) {
   );
 }
 
-function OrderCard({ order, onUpdate }) {
+function OrderCard({ order, onUpdate, onDelete }) {
   const [expanded, setExpanded] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const router = useRouter();
+  const { data: session } = useSession();
 
   const items = (() => {
     try { return typeof order.items === "string" ? JSON.parse(order.items) : (order.items || []); }
@@ -107,39 +112,73 @@ function OrderCard({ order, onUpdate }) {
     }
   }
 
+  function handleBuyAgain(item) {
+    if (!session) { router.push("/login"); return; }
+    const variant = item.variant ? `&variant=${encodeURIComponent(item.variant)}` : "";
+    router.push(`/products/${item.product_id}?quantity=${item.quantity}${variant}`);
+  }
+
+  async function handleDelete() {
+  setDeleteLoading(true);
+  try {
+    const res = await fetch(`/api/orders/${order.id}`, { method: "DELETE" });
+
+    // Guard against empty body before parsing
+    const text = await res.text();
+    const data = text ? JSON.parse(text) : {};
+
+    if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+    onDelete(order.id);
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    setDeleteLoading(false);
+    setConfirmDeleteOpen(false);
+  }
+}
+
   const cfg = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
+  const canDelete = DELETABLE_STATUSES.includes(order.status);
 
   return (
     <div className="bg-white dark:bg-[#0e1520] border border-[#c5cfe8] dark:border-white/[0.07] overflow-hidden rounded-sm">
 
-      {/* Seller bar — Shopee style */}
-<div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#e8edf8] dark:border-white/[0.05] bg-[#f8f9ff] dark:bg-white/[0.02]">
-  <div className="w-5 h-5 rounded-sm bg-[#1a2a6c] dark:bg-[#c9a028] flex items-center justify-center shrink-0">
-    <svg className="w-3 h-3 text-white dark:text-[#070b14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-    </svg>
-  </div>
+      {/* Seller bar */}
+      <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#e8edf8] dark:border-white/[0.05] bg-[#f8f9ff] dark:bg-white/[0.02]">
+        <div className="w-5 h-5 rounded-sm bg-[#1a2a6c] dark:bg-[#c9a028] flex items-center justify-center shrink-0">
+          <svg className="w-3 h-3 text-white dark:text-[#070b14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+        </div>
+        <span className="text-xs font-bold text-[#0e1a3d] dark:text-[#e8edf8]">{sellerName}</span>
+        <button
+          onClick={() => router.push(`/shop/${encodeURIComponent(sellerName)}`)}
+          className="flex items-center gap-1 text-[10px] font-semibold text-[#1a2a6c] dark:text-[#c9a028] border border-[#1a2a6c]/30 dark:border-[#c9a028]/30 px-2 py-0.5 rounded-sm hover:bg-[#e8edf8] dark:hover:bg-[#c9a028]/10 transition"
+        >
+          <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+          Visit Shop
+        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-[10px] text-[#0e1a3d]/40 dark:text-[#e8edf8]/30 font-mono">#{order.id}</span>
+          <StatusBadge status={order.status} />
+          {/* Delete button — only for completed/cancelled */}
+          {canDelete && (
+            <button
+              onClick={() => setConfirmDeleteOpen(true)}
+              className="p-1 rounded-sm text-[#0e1a3d]/30 dark:text-[#e8edf8]/25 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+              title="Delete order"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
 
-  <span className="text-xs font-bold text-[#0e1a3d] dark:text-[#e8edf8]">{sellerName}</span>
-
-  {/* Visit Shop button */}
-  <button
-    onClick={() => router.push(`/shop/${encodeURIComponent(sellerName)}`)}
-    className="flex items-center gap-1 text-[10px] font-semibold text-[#1a2a6c] dark:text-[#c9a028] border border-[#1a2a6c]/30 dark:border-[#c9a028]/30 px-2 py-0.5 rounded-sm hover:bg-[#e8edf8] dark:hover:bg-[#c9a028]/10 transition"
-  >
-    <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-    </svg>
-    Visit Shop
-  </button>
-
-  <div className="ml-auto flex items-center gap-2">
-    <span className="text-[10px] text-[#0e1a3d]/40 dark:text-[#e8edf8]/30 font-mono">#{order.id}</span>
-    <StatusBadge status={order.status} />
-  </div>
-</div>
-
-      {/* Items list — flat, Shopee style */}
+      {/* Items list */}
       <div className="divide-y divide-[#f0f4ff] dark:divide-white/[0.04]">
         {items.map((item, idx) => (
           <div key={idx} className="flex gap-3 px-4 py-3.5 items-start">
@@ -172,16 +211,12 @@ function OrderCard({ order, onUpdate }) {
         ))}
       </div>
 
-      {/* Order footer — Shopee style: status right-aligned, total, then actions */}
+      {/* Order footer */}
       <div className="px-4 py-3 border-t border-[#e8edf8] dark:border-white/[0.07] bg-[#fafbff] dark:bg-white/[0.01]">
-
-        {/* Status line */}
         <div className="flex items-center justify-end gap-2 mb-2 pb-2 border-b border-dashed border-[#e8edf8] dark:border-white/[0.07]">
           <span className="text-[11px] text-[#0e1a3d]/40 dark:text-[#e8edf8]/30">Order Status:</span>
           <span className={`text-[11px] font-bold ${cfg.color}`}>{cfg.label}</span>
         </div>
-
-        {/* Total */}
         <div className="flex items-center justify-end gap-2 mb-3">
           <span className="text-xs text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">
             {items.length} item{items.length !== 1 ? "s" : ""} · Order Total:
@@ -190,8 +225,6 @@ function OrderCard({ order, onUpdate }) {
             ₱{Number(order.total).toLocaleString()}
           </span>
         </div>
-
-        {/* Action buttons */}
         <div className="flex items-center justify-between gap-2">
           <button
             onClick={() => setExpanded(!expanded)}
@@ -226,6 +259,13 @@ function OrderCard({ order, onUpdate }) {
                 Rate
               </button>
             )}
+            <button
+              onClick={() => handleBuyAgain(items[0])}
+              disabled={!items.length}
+              className="px-4 py-1.5 text-[11px] font-bold bg-[#1a2a6c] dark:bg-[#c9a028] text-white dark:text-[#070b14] hover:opacity-90 transition rounded-sm disabled:opacity-50"
+            >
+              Buy again
+            </button>
           </div>
         </div>
       </div>
@@ -233,14 +273,10 @@ function OrderCard({ order, onUpdate }) {
       {/* Expanded details */}
       {expanded && (
         <div className="px-4 py-4 border-t border-[#e8edf8] dark:border-white/[0.07] flex flex-col gap-4 bg-[#f8f9ff] dark:bg-white/[0.01]">
-
-          {/* Order progress */}
           <div>
             <p className="text-[10px] font-semibold text-[#0e1a3d]/40 dark:text-[#e8edf8]/30 uppercase tracking-wider mb-2">Order Progress</p>
             <OrderProgress status={order.status} />
           </div>
-
-          {/* Info grid */}
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {[
               { label: "Recipient", value: order.name },
@@ -255,8 +291,6 @@ function OrderCard({ order, onUpdate }) {
               </div>
             ))}
           </div>
-
-          {/* Shipping info */}
           {order.tracking_number && (
             <div className="bg-[#e8edf8] dark:bg-[#c9a028]/10 border border-[#c5cfe8] dark:border-[#c9a028]/20 rounded-sm p-3">
               <p className="text-[10px] font-semibold text-[#1a2a6c] dark:text-[#c9a028] uppercase tracking-wider mb-1">Shipping Info</p>
@@ -266,8 +300,6 @@ function OrderCard({ order, onUpdate }) {
               </p>
             </div>
           )}
-
-          {/* Rate items if completed */}
           {order.status === "completed" && items.length > 0 && (
             <div>
               <p className="text-[10px] font-semibold text-[#0e1a3d]/40 dark:text-[#e8edf8]/30 uppercase tracking-wider mb-2">Rate Items</p>
@@ -295,6 +327,7 @@ function OrderCard({ order, onUpdate }) {
         </div>
       )}
 
+      {/* Cancel confirm modal */}
       <ConfirmModal
         open={confirmCancelOpen}
         title="Cancel this order?"
@@ -307,6 +340,18 @@ function OrderCard({ order, onUpdate }) {
           setConfirmCancelOpen(false);
           handleAction("cancel");
         }}
+      />
+
+      {/* Delete confirm modal */}
+      <ConfirmModal
+        open={confirmDeleteOpen}
+        title="Delete this order?"
+        description="This will permanently remove the order from your history. This cannot be undone."
+        confirmText={deleteLoading ? "Deleting..." : "Yes, delete it"}
+        cancelText="Keep it"
+        loading={deleteLoading}
+        onCancel={() => setConfirmDeleteOpen(false)}
+        onConfirm={handleDelete}
       />
     </div>
   );
@@ -325,6 +370,11 @@ export default function OrdersPage() {
     );
   }
 
+  // Removes the deleted order from local state — no refetch needed
+  function handleOrderDelete(id) {
+    setOrders((prev) => prev.filter((o) => Number(o.id) !== Number(id)));
+  }
+
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
     if (status !== "authenticated") return;
@@ -336,24 +386,21 @@ export default function OrdersPage() {
       .finally(() => setLoading(false));
 
     const channel = supabase
-  .channel(`buyer:${session.user.id}`)
-  .on("broadcast", { event: "orders:updated" }, (payload) => {
-    const { id, status, tracking_number, courier } = payload.payload;
-    setOrders((prev) =>
-      prev.map((o) =>
-        Number(o.id) === Number(id)
-          ? { ...o, status, ...(tracking_number && { tracking_number }), ...(courier && { courier }) }
-          : o
-      )
-    );
-  })
-  .subscribe();
+      .channel(`buyer:${session.user.id}`)
+      .on("broadcast", { event: "orders:updated" }, (payload) => {
+        const { id, status, tracking_number, courier } = payload.payload;
+        setOrders((prev) =>
+          prev.map((o) =>
+            Number(o.id) === Number(id)
+              ? { ...o, status, ...(tracking_number && { tracking_number }), ...(courier && { courier }) }
+              : o
+          )
+        );
+      })
+      .subscribe();
 
-return () => supabase.removeChannel(channel);
-
-  },
-  [status, session?.user?.id]);
-
+    return () => supabase.removeChannel(channel);
+  }, [status, session?.user?.id]);
 
   if (status === "loading" || loading) return (
     <div className="min-h-screen bg-[#eef2f7] dark:bg-[#070b14] flex items-center justify-center">
@@ -379,8 +426,6 @@ return () => supabase.removeChannel(channel);
 
   return (
     <main className="min-h-screen bg-[#eef2f7] dark:bg-[#070b14] transition-colors duration-300">
-
-      {/* Hero */}
       <section className="bg-[#1a2a6c] dark:bg-[#0a0e1f] px-4 sm:px-5 py-10 sm:py-12 text-center">
         <div className="inline-flex items-center gap-2 bg-white/10 text-[#c9a028] text-[11px] font-bold px-4 py-1.5 rounded-full mb-4 uppercase tracking-wider">
           <span className="w-1.5 h-1.5 rounded-full bg-[#c9a028]" />
@@ -392,7 +437,6 @@ return () => supabase.removeChannel(channel);
         </p>
       </section>
 
-      {/* Shopee-style tab bar */}
       <div className="bg-white dark:bg-[#0e1520] border-b border-[#c5cfe8] dark:border-white/[0.07] sticky top-0 z-10">
         <div className="max-w-[900px] mx-auto px-4 sm:px-5 overflow-x-auto">
           <div className="flex min-w-max">
@@ -444,7 +488,12 @@ return () => supabase.removeChannel(channel);
         ) : (
           <div className="flex flex-col gap-3">
             {filtered.map((order) => (
-              <OrderCard key={order.id} order={order} onUpdate={handleOrderUpdate} />
+              <OrderCard
+                key={order.id}
+                order={order}
+                onUpdate={handleOrderUpdate}
+                onDelete={handleOrderDelete}
+              />
             ))}
           </div>
         )}

@@ -174,7 +174,7 @@ export default function SearchAutocomplete() {
               {/* HINT */}
               <div className="px-4 pt-2.5 pb-1.5 flex items-center justify-between">
                 <span className="text-[10px] text-[#0e1a3d]/40 dark:text-[#e8edf8]/30">
-                  {suggestions.length} result{suggestions.length !== 1 ? "s" : ""} for "{query}"
+                  {suggestions.length} result{suggestions.length !== 1 ? "s" : ""} for {query}
                 </span>
                 <span className="text-[10px] text-[#0e1a3d]/30 dark:text-[#e8edf8]/25 hidden sm:block">
                   ↑↓ to navigate · Enter to select · Esc to close

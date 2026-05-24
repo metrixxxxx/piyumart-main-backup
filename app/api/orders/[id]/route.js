@@ -78,7 +78,6 @@ export async function PATCH(req, { params }) {
 
     await db.query("COMMIT");
 
-    // ✅ Broadcast to buyer
     try {
       await supabaseAdmin
         .channel(`buyer:${order.user_id}`)
@@ -96,7 +95,6 @@ export async function PATCH(req, { params }) {
       console.error("Broadcast to buyer error:", e);
     }
 
-    // ✅ Broadcast to seller (para ma-update ang MyListings)
     try {
       const [sellerItems] = await db.query(
         `SELECT DISTINCT p.seller_id FROM order_items oi JOIN products p ON p.id = oi.product_id WHERE oi.order_id = $1`,
@@ -126,6 +124,39 @@ export async function PATCH(req, { params }) {
   } catch (err) {
     await db.query("ROLLBACK");
     console.error("PATCH /orders/[id] error:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req, { params }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { id } = await params;
+    const orderId = Number(id);
+    if (isNaN(orderId)) return NextResponse.json({ error: "Invalid order ID" }, { status: 400 });
+
+    const [rows] = await db.query(`SELECT id, status, user_id FROM orders WHERE id = $1`, [orderId]);
+    const order = rows[0];
+
+    if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+
+    if (Number(order.user_id) !== Number(session.user.id))
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+    if (!["cancelled", "completed"].includes(order.status))
+      return NextResponse.json(
+        { error: "Only cancelled or completed orders can be deleted." },
+        { status: 400 }
+      );
+
+    await db.query(`DELETE FROM order_items WHERE order_id = $1`, [orderId]);
+    await db.query(`DELETE FROM orders WHERE id = $1`, [orderId]);
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("DELETE /orders/[id] error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
