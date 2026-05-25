@@ -31,7 +31,7 @@ export default function TypingIndicator() {
         className='text-sm font-medium'
         style={{ color: isDark ? '#111827' : '#f3f4f6' }}
       >
-        Typing ...
+        Typing
       </span>
 
       {/* Animated Dots */}

@@ -147,3 +147,17 @@ table {
   ring: 2px solid var(--primary);
   border-color: var(--primary);
 }
+
+/* Hide scrollbar globally while keeping scroll functionality */
+html,
+body,
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE / Edge */
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none; /* Chrome / Safari */
+}
