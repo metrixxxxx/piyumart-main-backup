@@ -512,7 +512,7 @@ const soldCount = product.sold_count || 0;
                   </div>
                   <div className="mt-3 flex justify-center">
                     <button
-                      onClick={() => router.push(`/seller/${product.seller_id}`)}
+                     onClick={() => router.push(`/shop/${product.seller_id}`)}
                       className="px-5 py-2.5 rounded-xl border border-[#e8e5f0] dark:border-white/10 text-sm font-semibold text-[#6d4aff] dark:text-[#c9a96e] hover:bg-[#ede9ff] dark:hover:bg-[#c9a96e]/10 transition cursor-pointer bg-transparent"
                     >
                       View {product.seller_name} Shop →

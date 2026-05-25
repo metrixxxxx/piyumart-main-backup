@@ -5,17 +5,23 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
+const CATEGORIES = [
+  "Electronics", "Clothing", "Books",
+  "Food & Drinks", "Home & Living", "Sports", "Beauty", "Toys"
+];
+
 export default function SearchAutocomplete() {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [notFound, setNotFound] = useState(false);
 
   const inputRef = useRef(null);
   const containerRef = useRef(null);
   const router = useRouter();
-  const { data: session } = useSession(); // ← add
+  const { data: session } = useSession();
 
   function highlightMatch(text = "", query = "") {
     if (!query || !text) return text;
@@ -26,9 +32,7 @@ export default function SearchAutocomplete() {
         <span key={i} className="bg-yellow-300 dark:bg-yellow-500/40 font-semibold rounded px-0.5">
           {part}
         </span>
-      ) : (
-        part
-      )
+      ) : part
     );
   }
 
@@ -53,6 +57,7 @@ export default function SearchAutocomplete() {
       if (!trimmedQuery) {
         setSuggestions([]);
         setIsOpen(false);
+        setNotFound(false);
         return;
       }
       try {
@@ -64,17 +69,19 @@ export default function SearchAutocomplete() {
         if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();
         const safeData = Array.isArray(data) ? data : [];
-// filter out the logged-in user's own products
-const filtered = session?.user?.id
-  ? safeData.filter((p) => String(p.seller_id) !== String(session.user.id))
-  : safeData;
-setSuggestions(filtered);
-setIsOpen(filtered.length > 0);
+        const filtered = session?.user?.id
+          ? safeData.filter((p) => String(p.seller_id) !== String(session.user.id))
+          : safeData;
+
+        setSuggestions(filtered);
+        setNotFound(filtered.length === 0);
+        setIsOpen(true);
         setActiveIndex(-1);
       } catch (err) {
         if (err.name !== "AbortError") console.error("Search error:", err);
         setSuggestions([]);
         setIsOpen(false);
+        setNotFound(false);
       } finally {
         setLoading(false);
       }
@@ -85,17 +92,25 @@ setIsOpen(filtered.length > 0);
       controller.abort();
       clearTimeout(timer);
     };
-  }, [query]);
+  }, [query, session]);
 
   function handleSelectProduct(productId) {
     router.push(`/products/${productId}`);
     setQuery("");
     setSuggestions([]);
     setIsOpen(false);
+    setNotFound(false);
     setActiveIndex(-1);
   }
 
-  // Keyboard navigation
+  function handleSelectCategory(cat) {
+    router.push(`/?q=${encodeURIComponent(cat)}`);
+    setQuery("");
+    setSuggestions([]);
+    setIsOpen(false);
+    setNotFound(false);
+  }
+
   function handleKeyDown(e) {
     if (!isOpen) return;
     if (e.key === "ArrowDown") {
@@ -108,6 +123,9 @@ setIsOpen(filtered.length > 0);
       e.preventDefault();
       if (activeIndex >= 0 && suggestions[activeIndex]) {
         handleSelectProduct(suggestions[activeIndex].id);
+      } else if (query.trim()) {
+        router.push(`/?q=${encodeURIComponent(query.trim())}`);
+        setIsOpen(false);
       }
     } else if (e.key === "Escape") {
       setIsOpen(false);
@@ -121,11 +139,7 @@ setIsOpen(filtered.length > 0);
       <div className="relative">
         <svg
           className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#0e1a3d]/35 dark:text-[#e8edf8]/35 pointer-events-none"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
         </svg>
@@ -137,20 +151,18 @@ setIsOpen(filtered.length > 0);
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => {
-            if (query.trim() && suggestions.length > 0) setIsOpen(true);
+            if (query.trim() && (suggestions.length > 0 || notFound)) setIsOpen(true);
           }}
           onKeyDown={handleKeyDown}
           className="w-full py-3 pl-10 pr-10 rounded-xl border-[1.5px] border-[#c5cfe8] dark:border-white/10 bg-[#f0f4ff] dark:bg-white/6 text-[#0e1a3d] dark:text-[#e8edf8] placeholder:text-[#0e1a3d]/30 dark:placeholder:text-[#e8edf8]/30 text-sm outline-none focus:border-[#1a2a6c] dark:focus:border-[#d4aa40] transition-colors"
         />
 
-        {/* LOADING SPINNER */}
         {loading && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
             <div className="w-4 h-4 border-2 border-[#1a2a6c]/20 dark:border-[#d4aa40]/20 border-t-[#1a2a6c] dark:border-t-[#d4aa40] rounded-full animate-spin" />
           </div>
         )}
 
-        {/* CLEAR BUTTON */}
         {query && !loading && (
           <button
             type="button"
@@ -158,6 +170,7 @@ setIsOpen(filtered.length > 0);
               setQuery("");
               setSuggestions([]);
               setIsOpen(false);
+              setNotFound(false);
               setActiveIndex(-1);
               inputRef.current?.focus();
             }}
@@ -171,16 +184,39 @@ setIsOpen(filtered.length > 0);
       {/* DROPDOWN */}
       {isOpen && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#0e1520] rounded-xl border border-[#c5cfe8] dark:border-white/10 shadow-lg z-50 max-h-96 overflow-y-auto overscroll-contain ring-1 ring-black/5">
-          {suggestions.length === 0 ? (
-            <div className="p-4 text-center text-sm text-[#0e1a3d]/50 dark:text-[#e8edf8]/50">
-              No products found
+
+          {/* ── NO RESULTS ── */}
+          {notFound ? (
+            <div className="p-5 flex flex-col items-center gap-3">
+              <div className="text-3xl select-none">🔍</div>
+              <div className="text-center">
+                <p className="text-sm font-semibold text-[#0e1a3d] dark:text-[#e8edf8]">
+                  No results for &ldquo;{query}&rdquo;
+                </p>
+                <p className="text-xs text-[#0e1a3d]/50 dark:text-[#e8edf8]/40 mt-1">
+                  Try browsing a category instead:
+                </p>
+              </div>
+              <div className="flex flex-wrap justify-center gap-2">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => handleSelectCategory(cat)}
+                    className="text-[11px] font-medium px-3 py-1.5 rounded-full border border-[#c5cfe8] dark:border-white/10 text-[#1a2a6c] dark:text-[#d4aa40] hover:bg-[#e8edf8] dark:hover:bg-white/10 transition-colors"
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
             </div>
+
           ) : (
+            // ── RESULTS ──
             <div className="divide-y divide-[#e8edf8]/10">
-              {/* HINT */}
               <div className="px-4 pt-2.5 pb-1.5 flex items-center justify-between">
                 <span className="text-[10px] text-[#0e1a3d]/40 dark:text-[#e8edf8]/30">
-                  {suggestions.length} result{suggestions.length !== 1 ? "s" : ""} for {query}
+                  {suggestions.length} result{suggestions.length !== 1 ? "s" : ""} for &ldquo;{query}&rdquo;
                 </span>
                 <span className="text-[10px] text-[#0e1a3d]/30 dark:text-[#e8edf8]/25 hidden sm:block">
                   ↑↓ to navigate · Enter to select · Esc to close
@@ -215,18 +251,16 @@ setIsOpen(filtered.length > 0);
                         ₱{Number(product.price || 0).toLocaleString()}
                       </span>
                       {product.sold_count > 0 && (
-                        <><span>•</span><span>📦 {product.sold_count} sold</span></>
+                        <><span>·</span><span>📦 {product.sold_count} sold</span></>
                       )}
                       {product.average_rating && (
-                        <><span>•</span><span>⭐ {Number(product.average_rating).toFixed(1)}</span></>
+                        <><span>·</span><span>⭐ {Number(product.average_rating).toFixed(1)}</span></>
                       )}
                       {product.category && (
-                        <><span>•</span><span className="truncate">{highlightMatch(product.category, query)}</span></>
+                        <><span>·</span><span className="truncate">{highlightMatch(product.category, query)}</span></>
                       )}
                     </div>
                   </div>
-
-                  {/* ARROW INDICATOR */}
                   {i === activeIndex && (
                     <span className="text-[#1a2a6c] dark:text-[#d4aa40] text-xs shrink-0">→</span>
                   )}

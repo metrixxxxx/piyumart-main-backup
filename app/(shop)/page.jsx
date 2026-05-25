@@ -2,8 +2,8 @@
 import { useEffect, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import ProductCard from "@/components/products/ProductCard";
-import HeroSlider from "@/components/HeroSlider";
-import SearchAutocomplete from "@/components/SearchAutocomplete";
+
+import HeroSection from "@/components/HeroSection";
 import Footer from "@/components/Footer";
 
 const PRODUCTS_PER_PAGE = 25;
@@ -32,7 +32,6 @@ function SkeletonCard() {
   );
 }
 
-// Fisher-Yates shuffle — creates a new randomized array
 function seededRandom(seed) {
   const x = Math.sin(seed) * 10000;
   return x - Math.floor(x);
@@ -48,22 +47,23 @@ function shuffleArray(arr, seed) {
 }
 
 export default function HomePage() {
-  const [products, setProducts]       = useState([]);
-  const [categories, setCategories]   = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [search, setSearch]           = useState("");
-  const [category, setCategory]       = useState("all");
-  const [sortBy, setSortBy]           = useState("newest");
+  const [products, setProducts]         = useState([]);
+  const [categories, setCategories]     = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [search, setSearch]             = useState("");
+  const [category, setCategory]         = useState("all");
+  const [sortBy, setSortBy]             = useState("newest");
   const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
-  // seed changes every session login so order randomizes per login
- const [shuffleSeed] = useState(() => {
-  if (typeof window === "undefined") return Math.random();
-  const existing = sessionStorage.getItem("pm_shuffle_seed");
-  if (existing) return parseFloat(existing);
-  const seed = Math.random();
-  sessionStorage.setItem("pm_shuffle_seed", seed);
-  return seed;
-});
+
+  const [shuffleSeed] = useState(() => {
+    if (typeof window === "undefined") return Math.random();
+    const existing = sessionStorage.getItem("pm_shuffle_seed");
+    if (existing) return parseFloat(existing);
+    const seed = Math.random();
+    sessionStorage.setItem("pm_shuffle_seed", seed);
+    return seed;
+  });
+
   const { data: session } = useSession();
 
   useEffect(() => {
@@ -78,7 +78,6 @@ export default function HomePage() {
           ? allProducts.filter((p) => String(p.seller_id) !== String(session.user.id))
           : allProducts;
         setProducts(filtered);
-        // reset visible count when sort/session changes
         setVisibleCount(PRODUCTS_PER_PAGE);
       } catch (err) {
         console.error(err);
@@ -102,11 +101,10 @@ export default function HomePage() {
     fetchCategories();
   }, []);
 
-  // randomize once per session using shuffleSeed, only when not sorting
- const randomizedProducts = useMemo(() => {
-  if (sortBy !== "newest") return products;
-  return shuffleArray(products, shuffleSeed);
-}, [products, shuffleSeed]); // shuffleSeed is stable per session
+  const randomizedProducts = useMemo(() => {
+    if (sortBy !== "newest") return products;
+    return shuffleArray(products, shuffleSeed);
+  }, [products, shuffleSeed]);
 
   const displayed = randomizedProducts.filter((p) => {
     const matchesSearch =
@@ -118,12 +116,9 @@ export default function HomePage() {
     return matchesSearch && matchesCategory;
   });
 
-  // reset visible count when filter/search/category changes
-  
-
-  const visibleProducts  = displayed.slice(0, visibleCount);
-  const hasMore          = visibleCount < displayed.length;
-  const remainingCount   = displayed.length - visibleCount;
+  const visibleProducts = displayed.slice(0, visibleCount);
+  const hasMore         = visibleCount < displayed.length;
+  const remainingCount  = displayed.length - visibleCount;
 
   const categoryLabel =
     category === "all"
@@ -135,51 +130,7 @@ export default function HomePage() {
 
       {/* ── HERO ── */}
       <section className="px-3 sm:px-5 pt-4 sm:pt-6 pb-6 sm:pb-8 max-w-7xl mx-auto">
-        <div className="bg-white dark:bg-[#0e1520] rounded-2xl border border-[#c5cfe8] dark:border-white/[0.07] grid grid-cols-1 lg:grid-cols-2">
-
-          {/* LEFT */}
-          <div className="flex flex-col justify-center px-5 py-7 sm:px-8 sm:py-9 lg:px-10 lg:py-12">
-            <div className="inline-flex items-center gap-2 bg-[#e8edf8] dark:bg-[#c9a028]/10 text-[#1a2a6c] dark:text-[#d4aa40] text-[11px] font-semibold px-4 py-1.5 rounded-full mb-5 w-fit">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#1a2a6c] dark:bg-[#d4aa40] animate-pulse" />
-              {session ? `Welcome back, ${session.user.name}` : "Live on campus · LSPU"}
-            </div>
-
-            <h1 className="text-2xl sm:text-3xl lg:text-[2.6rem] font-extrabold leading-[1.1] tracking-tight text-[#0e1a3d] dark:text-[#e8edf8] mb-3 sm:mb-4">
-              {session ? (
-                <>Your campus{" "}
-                  <span className="text-[#1a6c2a] dark:text-[#d4aa40]">deals,</span>
-                  <br />all in one place.
-                </>
-              ) : (
-                <>Your campus{" "}
-                  <span className="text-[#1a6c2a] dark:text-[#d4aa40]">marketplace,</span>
-                  <br />reimagined.
-                </>
-              )}
-            </h1>
-
-            <p className="text-sm text-[#0e1a3d]/50 dark:text-[#e8edf8]/45 leading-relaxed mb-6 sm:mb-8">
-              {session
-                ? "Discover student deals on campus."
-                : "Buy and sell with fellow LSPU students. Deals on books, tech, food, and more."}
-            </p>
-
-            <SearchAutocomplete />
-          </div>
-
-          {/* RIGHT */}
-          <div
-            className="relative flex items-center justify-center rounded-b-2xl lg:rounded-b-none lg:rounded-r-2xl min-h-[220px] sm:min-h-[260px] lg:min-h-0"
-            style={{ background: "linear-gradient(135deg, #1a2a6c 0%, #16235a 50%, #c9a028 100%)" }}
-          >
-            <div className="absolute top-6 right-6 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white/10" />
-            <div className="absolute bottom-8 left-6 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-36 h-36 sm:w-40 sm:h-40 rounded-full bg-[#c9a028]/20 blur-2xl" />
-            <div className="relative z-10 w-full px-4 py-5 sm:px-8 sm:py-8">
-              <HeroSlider />
-            </div>
-          </div>
-        </div>
+        <HeroSection />
       </section>
 
       {/* ── CONTENT ── */}
@@ -200,7 +151,7 @@ export default function HomePage() {
           {categories.map((cat) => (
             <button
               key={cat.id}
-             onClick={() => { setCategory(String(cat.id)); setVisibleCount(PRODUCTS_PER_PAGE); }}
+              onClick={() => { setCategory(String(cat.id)); setVisibleCount(PRODUCTS_PER_PAGE); }}
               className={`flex-shrink-0 px-4 py-1.5 rounded-full border text-xs font-medium transition-all duration-150
                 ${category === String(cat.id)
                   ? "bg-[#1a2a6c] dark:bg-[#d4aa40] border-[#1a2a6c] dark:border-[#d4aa40] text-white dark:text-[#0e1a3d] font-bold"
@@ -263,7 +214,7 @@ export default function HomePage() {
           }
         </div>
 
-        {/* ── Show More button ── */}
+        {/* Show More */}
         {!loading && hasMore && (
           <div className="mt-8 flex flex-col items-center gap-2">
             <button
@@ -278,10 +229,9 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* ── All loaded message ── */}
         {!loading && !hasMore && displayed.length > PRODUCTS_PER_PAGE && (
           <div className="mt-8 text-center text-xs text-[#0e1a3d]/40 dark:text-[#e8edf8]/40">
-            You haveve seen all {displayed.length} products 🎉
+            You&lsquo;ve seen all {displayed.length} products 🎉
           </div>
         )}
 
