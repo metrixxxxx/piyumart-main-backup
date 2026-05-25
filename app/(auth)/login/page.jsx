@@ -230,25 +230,62 @@ export default function LoginPage() {
             <div className="h-px flex-1 bg-[#2a3272]" />
           </div>
 
-          {/* ── Email toggle button ── */}
-          <button
+          {/* ── Option B: Email toggle ── */}
+         <button
             type="button"
             onClick={() => setMode((m) => (m === "email" ? "none" : "email"))}
             disabled={loading}
-            className="relative flex h-10 w-full items-center justify-center gap-2 rounded-full border border-[#2a3272] bg-[#1c2260] text-xs font-semibold tracking-wide text-[#e8ecff] transition hover:border-[#c9922a] hover:bg-[#1a1f56] active:scale-95 disabled:opacity-50"
+            className="flex h-10 w-full items-center justify-center rounded-full border border-[#2e3460] bg-[#252a4a] px-4 text-xs font-semibold tracking-wide text-[#e0e4ff] transition hover:border-[#4f8ef7] hover:bg-[#1e2340] active:scale-95 disabled:opacity-50"
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <rect x="1" y="3" width="12" height="9" rx="2" stroke="#6b73b0" strokeWidth="1.4" />
-              <path d="M1 5l6 4 6-4" stroke="#6b73b0" strokeWidth="1.4" strokeLinecap="round" />
-            </svg>
-            Sign in with email &amp; password
-            <svg
-              width="12" height="12" viewBox="0 0 12 12" fill="none"
-              className="absolute right-3.5 transition-transform duration-200"
-              style={{ transform: mode === "email" ? "rotate(180deg)" : "rotate(0deg)" }}
-            >
-              <path d="M2 4l4 4 4-4" stroke="#6b73b0" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <div className="flex w-full items-center justify-center gap-2.5">
+              {/* Email icon */}
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 14 14"
+                fill="none"
+                className="shrink-0"
+              >
+                <rect
+                  x="1"
+                  y="3"
+                  width="12"
+                  height="9"
+                  rx="2"
+                  stroke="#4a5080"
+                  strokeWidth="1.4"
+                />
+                <path
+                  d="M1 5l6 4 6-4"
+                  stroke="#4a5080"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                />
+              </svg>
+
+              <span>Continue with email</span>
+
+              {/* Chevron */}
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 12 12"
+                fill="none"
+                className="shrink-0 transition-transform duration-200"
+                style={{
+                  transform:
+                    mode === "email" ? "rotate(180deg)" : "rotate(0deg)",
+                }}
+              >
+                <path
+                  d="M2 4l4 4 4-4"
+                  stroke="#4a5080"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
           </button>
 
           {/* ── Email + Password form ── */}
