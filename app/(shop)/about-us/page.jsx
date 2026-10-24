@@ -219,7 +219,7 @@ export default function AboutPage() {
             LSPU student to buy, sell, and thrive together.&#34;
           </p>
           <p className="text-white/50 text-xs mt-4">
-            — The LSPU Marketplace Dev Team, SPCC Campus
+            — Alvarez, Earl Matrix | Orzo, Bernard | Wendy, Urriquia, SPCC Campus
           </p>
         </div>
       </section>
