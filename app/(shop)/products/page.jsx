@@ -112,23 +112,23 @@ export default function ProductsPage() {
 
   if (loading)
     return (
-      <div className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] flex items-center justify-center">
+      <div className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] flex items-center justify-center">
         <div className="w-10 h-10 border-[3px] border-[#e8e5f0] dark:border-white/10 border-t-[#6d4aff] dark:border-t-[#c9a96e] rounded-full animate-spin" />
       </div>
     );
 
   return (
-    <main className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] transition-colors duration-300">
+    <main className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] transition-colors duration-300">
 
       {/* HERO */}
-      <section className="bg-white dark:bg-[#0a0a0f] border-b border-[#e8e5f0] dark:border-white/[0.07] px-4 sm:px-5 py-10 sm:py-12 text-center">
+      <section className="bg-[#142060] dark:bg-[#0a0a0f] border-b border-[#e8e5f0] dark:border-white/[0.07] px-4 sm:px-5 py-10 sm:py-12 text-center">
 
         <div className="inline-flex items-center gap-2 bg-[#ede9ff] dark:bg-[#c9a96e]/10 text-[#6d4aff] dark:text-[#c9a96e] text-[11px] font-bold px-4 py-1.5 rounded-full mb-4 uppercase tracking-wider">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#6d4aff] dark:bg-[#c9a96e] animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-[#c9a96e] dark:bg-[#c9a96e] animate-pulse" />
           Campus Marketplace
         </div>
 
-        <h1 className="text-3xl font-extrabold text-[#1a1060] dark:text-[#f0ede8]">
+        <h1 className="text-3xl font-extrabold text-[white] dark:text-[#f0ede8]">
           {selectedCategory
             ? categories.find(
                 (c) => Number(c.id) === Number(selectedCategory)
@@ -136,7 +136,7 @@ export default function ProductsPage() {
             : "All Products"}
         </h1>
 
-        <p className="mt-2 text-sm text-[#1a1060]/50 dark:text-[#f0ede8]/45">
+        <p className="mt-2 text-sm text-[white]/50 dark:text-[#f0ede8]/45">
           Browse items from students in your campus
         </p>
 
@@ -248,27 +248,27 @@ export default function ProductsPage() {
           onClick={() => setShowModal(false)}
         >
           <div
-            className="bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07] p-6 sm:p-8 w-full max-w-[320px] text-center"
+            className="bg-white dark:bg-[#0e1520] rounded-2xl border border-[#c5cfe8] dark:border-white/[0.07] p-6 sm:p-8 w-full max-w-[320px] text-center"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-4xl mb-4">🔒</div>
-            <h2 className="text-base font-bold text-[#1a1060] dark:text-[#f0ede8] mb-2">
+            <h2 className="text-base font-bold text-[#0e1a3d] dark:text-[#e8edf8] mb-2">
               Sign in to continue
             </h2>
-            <p className="text-xs text-[#1a1060]/50 dark:text-[#f0ede8]/40 mb-6">
+            <p className="text-xs text-[#0e1a3d]/50 dark:text-[#e8edf8]/40 mb-6">
               You need to be logged in to add items.
             </p>
 
             <button
               onClick={() => router.push("/login")}
-              className="w-full py-2.5 bg-[#6d4aff] dark:bg-[#c9a96e] text-white dark:text-[#0a0a0f] rounded-xl text-sm font-bold hover:opacity-90 transition mb-2"
+              className="w-full py-2.5 bg-[#1a2a6c] dark:bg-[#c9a028] text-white dark:text-[#0a0e1f] rounded-xl text-sm font-bold hover:bg-[#142060] dark:hover:bg-[#b78f20] transition mb-2"
             >
               Sign in
             </button>
 
             <button
               onClick={() => setShowModal(false)}
-              className="w-full py-2.5 border border-[#e8e5f0] dark:border-white/[0.07] text-[#1a1060]/60 dark:text-[#f0ede8]/50 rounded-xl text-sm font-medium hover:border-[#6d4aff] dark:hover:border-[#c9a96e] transition"
+              className="w-full py-2.5 border border-[#c5cfe8] dark:border-white/[0.07] text-[#0e1a3d]/60 dark:text-[#e8edf8]/50 rounded-xl text-sm font-medium hover:border-[#1a2a6c] dark:hover:border-[#c9a028] transition"
             >
               Continue browsing
             </button>

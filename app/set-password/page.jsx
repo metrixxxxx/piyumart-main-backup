@@ -147,7 +147,7 @@ export default function SetPasswordPage() {
   };
 
   return (
-    <div className="flex min-h-dvh w-full items-center justify-center bg-[#0f1123] p-4 sm:p-6">
+    <div className="flex min-h-dvh w-full items-center justify-center bg-[#f0eeff] dark:bg-[#070b14] p-4 sm:p-6">
       <div className="w-full max-w-sm rounded-2xl bg-[#1a1d35] shadow-2xl">
 
         {/* Top accent bar */}

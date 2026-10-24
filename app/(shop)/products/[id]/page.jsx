@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
+import Image from "next/image";
 import ProductCard from "@/components/products/ProductCard";
 import { getSocket } from "@/lib/socket";
 import ReviewsSection from "@/components/products/ReviewsSection";
@@ -28,6 +29,7 @@ export default function ProductDetailPage() {
   const [addingToCart, setAddingToCart] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState(null);
+  const [failedSellerImage, setFailedSellerImage] = useState("");
   const { data: session } = useSession();
   const router = useRouter();
   const { id } = useParams();
@@ -37,6 +39,19 @@ export default function ProductDetailPage() {
       try {
         const productRes = await fetch(`/api/products/${id}`);
         const productData = await productRes.json();
+        if (productData.seller_id) {
+          try {
+            const sellerRes = await fetch(`/api/seller/${productData.seller_id}`);
+            if (sellerRes.ok) {
+              const sellerData = await sellerRes.json();
+              productData.seller_image = sellerData.seller_image || productData.seller_image;
+            } else {
+              console.error("Seller profile image request failed:", sellerRes.status);
+            }
+          } catch (err) {
+            console.error("Seller profile image error:", err);
+          }
+        }
         setProduct(productData);
         setSelectedImageIndex(0);
         setSelectedVariant(null);
@@ -118,7 +133,7 @@ export default function ProductDetailPage() {
   }
 
   if (loading) return (
-    <div className="flex items-center justify-center min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f]">
+    <div className="flex items-center justify-center min-h-screen bg-[#f0eeff] dark:bg-[#070b14]">
       <div className="text-center">
         <div className="w-10 h-10 border-[3px] border-[#e5e7eb] border-t-[#6d4aff] dark:border-t-[#c9a96e] rounded-full mx-auto mb-4 animate-spin" />
         <p className="text-[#1a1060]/50 dark:text-[#f0ede8]/40 text-sm">Loading product...</p>
@@ -127,7 +142,7 @@ export default function ProductDetailPage() {
   );
 
   if (!product) return (
-    <div className="flex items-center justify-center min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f]">
+    <div className="flex items-center justify-center min-h-screen bg-[#f0eeff] dark:bg-[#070b14]">
       <p className="text-[#1a1060]/50 dark:text-[#f0ede8]/40 text-lg">Product not found.</p>
     </div>
   );
@@ -138,6 +153,20 @@ export default function ProductDetailPage() {
     : product.image_url ? [product.image_url] : ["/placeholder.png"];
   const activeImage = selectedVariant?.image_url || allImages[selectedImageIndex] || "/placeholder.png";
   const hasVariants = product.variants?.length > 0;
+  const sellerImage = typeof product.seller_image === "string"
+    ? product.seller_image.trim()
+    : "";
+  const sellerImageSrc = sellerImage && !sellerImage.startsWith("http") && !sellerImage.startsWith("/")
+    ? `/${sellerImage}`
+    : sellerImage;
+  const sellerInitials = (product.seller_name || "Seller")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
 
   // CORRECT — matches your schema
 const rating = product.average_rating || 0;
@@ -147,7 +176,7 @@ const soldCount = product.sold_count || 0;
 
 
   return (
-    <div className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] transition-colors duration-300">
+    <div className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] transition-colors duration-300">
       <div className="max-w-[1000px] mx-auto px-4 sm:px-5 py-6 sm:py-8 flex flex-col gap-3">
 
         {/* ── MAIN PRODUCT CARD ── */}
@@ -439,9 +468,21 @@ const soldCount = product.sold_count || 0;
         {product.seller_id && (
           <div className="bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07] overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.2)] px-5 sm:px-7 py-5">
             <div className="flex items-center gap-4 flex-wrap">
-              {/* Avatar placeholder */}
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#6d4aff] to-[#1a1060] dark:from-[#c9a96e] dark:to-[#8a6d3b] flex items-center justify-center text-white text-lg font-bold shrink-0">
-                {(product.seller_name || "S")[0].toUpperCase()}
+              {/* Seller avatar */}
+              <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#c5cfe8] bg-white font-bold text-[#1a2a6c] dark:border-white/10">
+                {(!sellerImageSrc || failedSellerImage === sellerImageSrc) && sellerInitials}
+                {sellerImageSrc && failedSellerImage !== sellerImageSrc && (
+                  <Image
+                    key={sellerImageSrc}
+                    src={sellerImageSrc}
+                    alt={`${product.seller_name || "Seller"} profile`}
+                    fill
+                    sizes="56px"
+                    unoptimized
+                    onError={() => setFailedSellerImage(sellerImageSrc)}
+                    className="object-cover"
+                  />
+                )}
               </div>
 
               <div className="flex flex-col gap-0.5 flex-1 min-w-0">
@@ -557,23 +598,23 @@ const soldCount = product.sold_count || 0;
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-white dark:bg-[#12121a] rounded-2xl p-6 sm:p-9 w-full max-w-[320px] text-center border border-[#e8e5f0] dark:border-white/[0.07] shadow-[0_24px_60px_rgba(0,0,0,0.2)]"
+            className="bg-white dark:bg-[#0e1520] rounded-2xl p-6 sm:p-9 w-full max-w-[320px] text-center border border-[#c5cfe8] dark:border-white/[0.07] shadow-[0_24px_60px_rgba(0,0,0,0.2)]"
           >
             <div className="text-4xl mb-3.5">🔒</div>
-            <h2 className="text-lg font-bold mb-2 text-[#1a1060] dark:text-[#f0ede8]">Sign in to continue</h2>
-            <p className="text-xs text-[#1a1060]/50 dark:text-[#f0ede8]/45 mb-6 leading-relaxed">
+            <h2 className="text-lg font-bold mb-2 text-[#0e1a3d] dark:text-[#e8edf8]">Sign in to continue</h2>
+            <p className="text-xs text-[#0e1a3d]/50 dark:text-[#e8edf8]/45 mb-6 leading-relaxed">
               You need to be logged in to add items or buy.
             </p>
             <div className="flex flex-col gap-2.5">
               <button
                 onClick={() => router.push("/login")}
-                className="w-full py-3 rounded-xl bg-[#6d4aff] dark:bg-[#c9a96e] text-white dark:text-[#0a0a0f] font-bold text-sm cursor-pointer hover:opacity-90 transition border-none"
+                className="w-full py-3 rounded-xl bg-[#1a2a6c] dark:bg-[#c9a028] text-white dark:text-[#0a0e1f] font-bold text-sm cursor-pointer hover:bg-[#142060] dark:hover:bg-[#b78f20] transition border-none"
               >
                 Sign in
               </button>
               <button
                 onClick={() => setShowModal(false)}
-                className="w-full py-3 rounded-xl border border-[#e5e7eb] dark:border-white/10 text-sm text-[#1a1060]/60 dark:text-[#f0ede8]/50 cursor-pointer hover:bg-[#f5f3ff] dark:hover:bg-white/[0.04] transition bg-transparent"
+                className="w-full py-3 rounded-xl border border-[#c5cfe8] dark:border-white/10 text-sm text-[#0e1a3d]/60 dark:text-[#e8edf8]/50 cursor-pointer hover:bg-[#f0f4ff] dark:hover:bg-white/[0.04] transition bg-transparent"
               >
                 Continue browsing
               </button>

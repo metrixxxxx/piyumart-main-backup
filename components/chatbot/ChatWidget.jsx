@@ -330,16 +330,14 @@ export default function ChatWidget() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         aria-label="Toggle PiyuBot chat"
-        className="relative w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-colors"
+        className="relative flex h-14 w-14 items-center justify-center rounded-full bg-[#0f1f5c] text-[#f2c94c] shadow-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2c94c] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950"
       >
         {isOpen ? (
-          <div className="w-full h-full rounded-full bg-blue-900 dark:bg-[#c9a96e] flex items-center justify-center text-white dark:text-[#0a0a0f] text-2xl hover:bg-blue-800 dark:hover:bg-[#d8b57a] transition-colors">
+          <div className="flex h-full w-full items-center justify-center rounded-full bg-[#0f1f5c] text-2xl text-[#f2c94c] transition-colors hover:bg-[#172c78]">
             ×
           </div>
         ) : (
-          <div className="w-full h-full rounded-full overflow-hidden">
-            <img src="/img/chatbotpfp.png" alt="Chat" className="w-full h-full object-cover" />
-          </div>
+          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M7 10h10M7 14h6m-1 7-3.5-3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-3l-3 3Z" /></svg>
         )}
 
         {!isOpen && !hasSeenChat && (

@@ -4,39 +4,39 @@
 @variant dark (&:where(.dark, .dark *));
 
 /* ── LSPU COLOR PALETTE ──
-   Navy Blue  : #1a2a6c
+   Navy Blue  : #0f1f5c
    Green      : #1a6c2a
-   Gold       : #c9a028
+   Gold       : #f2c94c
    White      : #ffffff
    Light BG   : #f0f4ff
 ── */
 
 :root {
-  --bg: #f0f4ff;
+  --bg: #f0eeff;
   --card: #ffffff;
   --text: #0e1a3d;
   --muted: #4a5a7a;
-  --primary: #1a2a6c;
-  --primary-hover: #142060;
+  --primary: #0f1f5c;
+  --primary-hover: #172c78;
   --secondary: #1a6c2a;
   --secondary-hover: #145520;
-  --accent: #c9a028;
-  --accent-hover: #b08a1a;
+  --accent: #f2c94c;
+  --accent-hover: #e2b82f;
   --danger: #ef4444;
   --success: #16a34a;
 }
 
 .dark {
-  --bg: #0a0e1f;
+  --bg: #070b14;
   --card: #111827;
   --text: #e8edf8;
   --muted: #6b7a9a;
-  --primary: #2a3f9c;
-  --primary-hover: #3450c0;
+  --primary: #0f1f5c;
+  --primary-hover: #172c78;
   --secondary: #1e7a32;
   --secondary-hover: #25a040;
-  --accent: #d4aa40;
-  --accent-hover: #e0bf60;
+  --accent: #f2c94c;
+  --accent-hover: #e2b82f;
   --danger: #ef4444;
   --success: #22c55e;
 }
@@ -89,6 +89,48 @@ table {
 /* ── CARDS ── */
 .card {
   @apply bg-white border border-blue-100 rounded-xl p-4 shadow-sm;
+}
+
+@keyframes product-card-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.product-card-enter {
+  animation: product-card-enter 420ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+@keyframes gold-price-shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.shimmer-gold {
+  background: linear-gradient(90deg, #c9a028 0%, #f5d87a 40%, #c9a028 60%, #f5d87a 100%);
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: gold-price-shimmer 3s linear infinite;
+}
+
+.product-price-maroon {
+  background: linear-gradient(90deg, #7a1f2d 0%, #d88b98 40%, #7a1f2d 60%, #d88b98 100%);
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: gold-price-shimmer 3s linear infinite;
+}
+
+.dark .product-price-maroon {
+  background-image: linear-gradient(90deg, #c9a028 0%, #f5d87a 40%, #c9a028 60%, #f5d87a 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product-card-enter { animation: none; }
 }
 
 /* ── BUTTONS ── */

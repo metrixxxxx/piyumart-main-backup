@@ -138,7 +138,7 @@ export default function SearchAutocomplete() {
       {/* SEARCH INPUT */}
       <div className="relative">
         <svg
-          className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#0e1a3d]/35 dark:text-[#e8edf8]/35 pointer-events-none"
+          className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#0f1f5c] dark:text-[#f2c94c] pointer-events-none"
           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
@@ -154,7 +154,7 @@ export default function SearchAutocomplete() {
             if (query.trim() && (suggestions.length > 0 || notFound)) setIsOpen(true);
           }}
           onKeyDown={handleKeyDown}
-          className="w-full py-3 pl-10 pr-10 rounded-xl border-[1.5px] border-[#c5cfe8] dark:border-white/10 bg-[#f0f4ff] dark:bg-white/6 text-[#0e1a3d] dark:text-[#e8edf8] placeholder:text-[#0e1a3d]/30 dark:placeholder:text-[#e8edf8]/30 text-sm outline-none focus:border-[#1a2a6c] dark:focus:border-[#d4aa40] transition-colors"
+          className="h-11 w-full rounded-xl border-[1.5px] border-[#c5cfe8] bg-white py-2 pl-10 pr-10 text-sm text-[#0e1a3d] outline-none placeholder:text-slate-600 transition-colors focus:border-[#f2c94c] focus:ring-2 focus:ring-[#f2c94c] dark:border-white/15 dark:bg-slate-900 dark:text-[#e8edf8] dark:placeholder:text-slate-300"
         />
 
         {loading && (
@@ -166,6 +166,7 @@ export default function SearchAutocomplete() {
         {query && !loading && (
           <button
             type="button"
+            aria-label="Clear search"
             onClick={() => {
               setQuery("");
               setSuggestions([]);

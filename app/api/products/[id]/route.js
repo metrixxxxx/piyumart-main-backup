@@ -46,6 +46,7 @@ const variants = variantsResult[0];
 
 const sellerResult = await db.query(
   `SELECT 
+    u.image AS seller_image,
     TO_CHAR(u.created_at, 'Mon YYYY') as seller_joined,
     (SELECT COUNT(*) FROM products p2 WHERE p2.seller_id = $1) as seller_product_count
    FROM users u WHERE u.id = $1`,
@@ -57,6 +58,7 @@ product.attributes = attrs;
 product.images = images.map((r) => r.image_url);
 product.variants = variants;
 if (sellerRows.length > 0) {
+  product.seller_image = sellerRows[0].seller_image;
   product.seller_joined = sellerRows[0].seller_joined;
   product.seller_product_count = sellerRows[0].seller_product_count;
 }

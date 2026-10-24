@@ -156,25 +156,25 @@ setTimeout(() => router.push("/my-orders"), 2500);
   }
 
   const inputClass =
-    "w-full py-2.5 px-3.5 rounded-xl border-[1.5px] border-[#e8e5f0] dark:border-white/10 bg-[#f5f3ff] dark:bg-white/[0.06] text-[#1a1060] dark:text-[#f0ede8] placeholder:text-[#1a1060]/30 dark:placeholder:text-[#f0ede8]/30 text-sm outline-none focus:border-[#6d4aff] dark:focus:border-[#c9a96e] transition-colors";
+    "w-full py-2.5 px-3.5 rounded-xl border-[1.5px] border-[#c5cfe8] dark:border-white/10 bg-[#f0f4ff] dark:bg-white/[0.06] text-[#0e1a3d] dark:text-[#e8edf8] placeholder:text-[#0e1a3d]/30 dark:placeholder:text-[#e8edf8]/30 text-sm outline-none focus:border-[#1a2a6c] dark:focus:border-[#c9a028] transition-colors";
 
   if (status === "loading" || loading)
     return (
-      <div className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] flex items-center justify-center">
+      <div className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-10 h-10 border-[3px] border-[#e8e5f0] dark:border-white/10 border-t-[#6d4aff] dark:border-t-[#c9a96e] rounded-full mx-auto mb-4 animate-spin" />
-          <p className="text-sm text-[#1a1060]/50 dark:text-[#f0ede8]/40">Loading checkout...</p>
+          <div className="w-10 h-10 border-[3px] border-[#c5cfe8] dark:border-white/10 border-t-[#1a2a6c] dark:border-t-[#c9a028] rounded-full mx-auto mb-4 animate-spin" />
+          <p className="text-sm text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">Loading checkout...</p>
         </div>
       </div>
     );
 
   if (orderDone)
     return (
-      <div className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] flex items-center justify-center p-4">
-        <div className="text-center px-6 sm:px-12 py-10 sm:py-14 bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07]">
+      <div className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] flex items-center justify-center p-4">
+        <div className="text-center px-6 sm:px-12 py-10 sm:py-14 bg-white dark:bg-[#0e1520] rounded-2xl border border-[#c5cfe8] dark:border-white/[0.07]">
           <div className="text-5xl mb-4">🎉</div>
-          <h2 className="text-xl font-bold text-[#1a1060] dark:text-[#f0ede8] mb-2">Order Placed! Thank you for your purchase Ka PIYU</h2>
-          <p className="text-sm text-[#1a1060]/50 dark:text-[#f0ede8]/40">
+          <h2 className="text-xl font-bold text-[#0e1a3d] dark:text-[#e8edf8] mb-2">Order Placed! Thank you for your purchase Ka PIYU</h2>
+          <p className="text-sm text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">
             Redirecting to your orders...
           </p>
         </div>
@@ -182,17 +182,17 @@ setTimeout(() => router.push("/my-orders"), 2500);
     );
 
   return (
-    <main className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] transition-colors duration-300">
+    <main className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] transition-colors duration-300">
       {/* HERO */}
-      <section className="bg-white dark:bg-[#0a0a0f] border-b border-[#e8e5f0] dark:border-white/[0.07] px-4 sm:px-5 py-10 sm:py-12 text-center">
-        <div className="inline-flex items-center gap-2 bg-[#ede9ff] dark:bg-[#c9a96e]/10 text-[#6d4aff] dark:text-[#c9a96e] text-[11px] font-bold px-4 py-1.5 rounded-full mb-4 uppercase tracking-wider">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#6d4aff] dark:bg-[#c9a96e]" />
+      <section className="bg-[#1a2a6c] dark:bg-[#0a0e1f] border-b border-[#c5cfe8] dark:border-white/[0.07] px-4 sm:px-5 py-10 sm:py-12 text-center">
+        <div className="inline-flex items-center gap-2 bg-white/10 text-[#c9a028] text-[11px] font-bold px-4 py-1.5 rounded-full mb-4 uppercase tracking-wider">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#c9a028]" />
           Secure Checkout
         </div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#1a1060] dark:text-[#f0ede8]">
+        <h1 className="text-3xl font-extrabold tracking-tight text-white">
           Checkout
         </h1>
-        <p className="mt-2 text-sm text-[#1a1060]/50 dark:text-[#f0ede8]/45">
+        <p className="mt-2 text-sm text-white/60">
           {items.length} item{items.length !== 1 ? "s" : ""} · ₱{total.toLocaleString()} total
         </p>
       </section>
@@ -213,16 +213,16 @@ setTimeout(() => router.push("/my-orders"), 2500);
             )}
 
             {/* Contact */}
-            <div className="bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07] p-5 sm:p-6">
+            <div className="bg-white dark:bg-[#0e1520] rounded-2xl border border-[#c5cfe8] dark:border-white/[0.07] p-5 sm:p-6">
               <div className="flex items-center gap-3 mb-5">
-                <div className="w-7 h-7 rounded-lg bg-[#6d4aff] dark:bg-[#c9a96e] flex items-center justify-center text-xs font-bold text-white dark:text-[#0a0a0f]">
+                <div className="w-7 h-7 rounded-lg bg-[#1a2a6c] dark:bg-[#c9a028] flex items-center justify-center text-xs font-bold text-white dark:text-[#0a0e1f]">
                   1
                 </div>
-                <h2 className="text-sm font-bold text-[#1a1060] dark:text-[#f0ede8]">Contact Information</h2>
+                <h2 className="text-sm font-bold text-[#0e1a3d] dark:text-[#e8edf8]">Contact Information</h2>
               </div>
               <div className="flex flex-col gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1a1060]/50 dark:text-[#f0ede8]/40 uppercase tracking-wider block mb-1.5">
+                  <label className="text-[11px] font-semibold text-[#0e1a3d]/50 dark:text-[#e8edf8]/40 uppercase tracking-wider block mb-1.5">
                     Full Name
                   </label>
                   <input
@@ -233,7 +233,7 @@ setTimeout(() => router.push("/my-orders"), 2500);
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1a1060]/50 dark:text-[#f0ede8]/40 uppercase tracking-wider block mb-1.5">
+                  <label className="text-[11px] font-semibold text-[#0e1a3d]/50 dark:text-[#e8edf8]/40 uppercase tracking-wider block mb-1.5">
                     LSPU Email
                   </label>
                   <input
@@ -247,15 +247,15 @@ setTimeout(() => router.push("/my-orders"), 2500);
             </div>
 
             {/* Delivery */}
-            <div className="bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07] p-5 sm:p-6">
+            <div className="bg-white dark:bg-[#0e1520] rounded-2xl border border-[#c5cfe8] dark:border-white/[0.07] p-5 sm:p-6">
               <div className="flex items-center gap-3 mb-5">
-                <div className="w-7 h-7 rounded-lg bg-[#6d4aff] dark:bg-[#c9a96e] flex items-center justify-center text-xs font-bold text-white dark:text-[#0a0a0f]">
+                <div className="w-7 h-7 rounded-lg bg-[#1a2a6c] dark:bg-[#c9a028] flex items-center justify-center text-xs font-bold text-white dark:text-[#0a0e1f]">
                   2
                 </div>
-                <h2 className="text-sm font-bold text-[#1a1060] dark:text-[#f0ede8]">Delivery Address</h2>
+                <h2 className="text-sm font-bold text-[#0e1a3d] dark:text-[#e8edf8]">Delivery Address</h2>
               </div>
               <div>
-                <label className="text-[11px] font-semibold text-[#1a1060]/50 dark:text-[#f0ede8]/40 uppercase tracking-wider block mb-1.5">
+                <label className="text-[11px] font-semibold text-[#0e1a3d]/50 dark:text-[#e8edf8]/40 uppercase tracking-wider block mb-1.5">
                   Full Address
                 </label>
                 <textarea
@@ -269,38 +269,38 @@ setTimeout(() => router.push("/my-orders"), 2500);
             </div>
 
             {/* Payment */}
-            <div className="bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07] p-5 sm:p-6">
+            <div className="bg-white dark:bg-[#0e1520] rounded-2xl border border-[#c5cfe8] dark:border-white/[0.07] p-5 sm:p-6">
               <div className="flex items-center gap-3 mb-5">
-                <div className="w-7 h-7 rounded-lg bg-[#6d4aff] dark:bg-[#c9a96e] flex items-center justify-center text-xs font-bold text-white dark:text-[#0a0a0f]">
+                <div className="w-7 h-7 rounded-lg bg-[#1a2a6c] dark:bg-[#c9a028] flex items-center justify-center text-xs font-bold text-white dark:text-[#0a0e1f]">
                   3
                 </div>
-                <h2 className="text-sm font-bold text-[#1a1060] dark:text-[#f0ede8]">Payment Method</h2>
+                <h2 className="text-sm font-bold text-[#0e1a3d] dark:text-[#e8edf8]">Payment Method</h2>
               </div>
-              <div className="flex items-center gap-3 p-4 rounded-xl border-[1.5px] border-[#6d4aff] dark:border-[#c9a96e] bg-[#f5f3ff] dark:bg-[#c9a96e]/5 cursor-pointer">
-                <div className="w-9 h-9 rounded-lg bg-[#6d4aff] dark:bg-[#c9a96e] flex items-center justify-center text-lg shrink-0">
+              <div className="flex items-center gap-3 p-4 rounded-xl border-[1.5px] border-[#1a2a6c] dark:border-[#c9a028] bg-[#f0f4ff] dark:bg-[#c9a028]/5 cursor-pointer">
+                <div className="w-9 h-9 rounded-lg bg-[#1a2a6c] dark:bg-[#c9a028] flex items-center justify-center text-lg shrink-0">
                   💵
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-[#1a1060] dark:text-[#f0ede8]">Cash on Delivery</p>
-                  <p className="text-xs text-[#1a1060]/50 dark:text-[#f0ede8]/40">Pay when your order arrives</p>
+                  <p className="text-sm font-semibold text-[#0e1a3d] dark:text-[#e8edf8]">Cash on Delivery</p>
+                  <p className="text-xs text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">Pay when your order arrives</p>
                 </div>
-                <div className="ml-auto w-4 h-4 rounded-full bg-[#6d4aff] dark:bg-[#c9a96e] flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 rounded-full bg-white dark:bg-[#0a0a0f]" />
+                <div className="ml-auto w-4 h-4 rounded-full bg-[#1a2a6c] dark:bg-[#c9a028] flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white dark:bg-[#0a0e1f]" />
                 </div>
               </div>
             </div>
 
             {/* Shopee-style: Items grouped by seller */}
-            <div className="bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07] p-5 sm:p-6">
+            <div className="bg-white dark:bg-[#0e1520] rounded-2xl border border-[#c5cfe8] dark:border-white/[0.07] p-5 sm:p-6">
               <div className="flex items-center gap-3 mb-5">
-                <div className="w-7 h-7 rounded-lg bg-[#6d4aff] dark:bg-[#c9a96e] flex items-center justify-center text-xs font-bold text-white dark:text-[#0a0a0f]">
+                <div className="w-7 h-7 rounded-lg bg-[#1a2a6c] dark:bg-[#c9a028] flex items-center justify-center text-xs font-bold text-white dark:text-[#0a0e1f]">
                   4
                 </div>
-                <h2 className="text-sm font-bold text-[#1a1060] dark:text-[#f0ede8]">Order Items</h2>
+                <h2 className="text-sm font-bold text-[#0e1a3d] dark:text-[#e8edf8]">Order Items</h2>
               </div>
 
               {items.length === 0 ? (
-                <p className="text-sm text-[#1a1060]/50 dark:text-[#f0ede8]/40">No items to checkout.</p>
+                <p className="text-sm text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">No items to checkout.</p>
               ) : (
                 <div className="flex flex-col gap-5">
                   {Object.entries(sellerGroups).map(([seller, sellerItems]) => {
@@ -311,9 +311,9 @@ setTimeout(() => router.push("/my-orders"), 2500);
                     return (
                       <div key={seller} className="flex flex-col gap-3">
                         {/* Seller header */}
-                        <div className="flex items-center gap-2 pb-2 border-b border-[#e8e5f0] dark:border-white/[0.07]">
+                        <div className="flex items-center gap-2 pb-2 border-b border-[#c5cfe8] dark:border-white/[0.07]">
                           <span className="text-[11px]">🏪</span>
-                          <span className="text-xs font-bold text-[#6d4aff] dark:text-[#c9a96e]">
+                          <span className="text-xs font-bold text-[#1a2a6c] dark:text-[#c9a028]">
                             {seller}
                           </span>
                         </div>
@@ -325,33 +325,33 @@ setTimeout(() => router.push("/my-orders"), 2500);
                               src={item.image_url || "/placeholder.png"}
                               alt={item.name}
                               onError={(e) => { e.target.src = "/placeholder.png"; }}
-                              className="w-14 h-14 object-cover rounded-xl shrink-0 border border-[#e8e5f0] dark:border-white/[0.07]"
+                              className="w-14 h-14 object-cover rounded-xl shrink-0 border border-[#c5cfe8] dark:border-white/[0.07]"
                             />
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold text-[#1a1060] dark:text-[#f0ede8] truncate">
+                              <p className="text-xs font-semibold text-[#0e1a3d] dark:text-[#e8edf8] truncate">
                                 {item.name}
                               </p>
                               {item.variant && (
-                                <span className="inline-block mt-0.5 text-[10px] bg-[#ede9ff] dark:bg-white/[0.06] text-[#6d4aff] dark:text-[#c9a96e] px-2 py-0.5 rounded-full">
+                                <span className="inline-block mt-0.5 text-[10px] bg-[#f0f4ff] dark:bg-white/[0.06] text-[#1a2a6c] dark:text-[#c9a028] px-2 py-0.5 rounded-full">
                                   {item.variant}
                                 </span>
                               )}
-                              <p className="text-[11px] text-[#1a1060]/50 dark:text-[#f0ede8]/40 mt-0.5">
+                              <p className="text-[11px] text-[#0e1a3d]/50 dark:text-[#e8edf8]/40 mt-0.5">
                                 Qty: {item.quantity} × ₱{Number(item.price).toLocaleString()}
                               </p>
                             </div>
-                            <p className="text-xs font-bold text-[#1a1060] dark:text-[#f0ede8] shrink-0">
+                            <p className="text-xs font-bold text-[#0e1a3d] dark:text-[#e8edf8] shrink-0">
                               ₱{(item.price * item.quantity).toLocaleString()}
                             </p>
                           </div>
                         ))}
 
                         {/* Seller subtotal */}
-                        <div className="flex justify-between items-center pt-2 border-t border-dashed border-[#e8e5f0] dark:border-white/[0.07]">
-                          <span className="text-[11px] text-[#1a1060]/40 dark:text-[#f0ede8]/30">
+                        <div className="flex justify-between items-center pt-2 border-t border-dashed border-[#c5cfe8] dark:border-white/[0.07]">
+                          <span className="text-[11px] text-[#0e1a3d]/40 dark:text-[#e8edf8]/30">
                             Subtotal ({sellerItems.length} item{sellerItems.length > 1 ? "s" : ""})
                           </span>
-                          <span className="text-xs font-bold text-[#6d4aff] dark:text-[#c9a96e]">
+                          <span className="text-xs font-bold text-[#1a2a6c] dark:text-[#c9a028]">
                             ₱{sellerTotal.toLocaleString()}
                           </span>
                         </div>
@@ -365,14 +365,14 @@ setTimeout(() => router.push("/my-orders"), 2500);
 
           {/* RIGHT — Order Summary sticky */}
           <div className="lg:sticky lg:top-6 flex flex-col gap-3">
-            <div className="bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07] p-5">
-              <h3 className="text-sm font-bold text-[#1a1060] dark:text-[#f0ede8] mb-4">
+            <div className="bg-white dark:bg-[#0e1520] rounded-2xl border border-[#c5cfe8] dark:border-white/[0.07] p-5">
+                <h3 className="text-sm font-bold text-[#0e1a3d] dark:text-[#e8edf8] mb-4">
                 Order Summary
               </h3>
 
               {/* Compact items list */}
               {items.length === 0 ? (
-                <p className="text-sm text-[#1a1060]/50 dark:text-[#f0ede8]/40">No items to checkout.</p>
+                <p className="text-sm text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">No items to checkout.</p>
               ) : (
                 <div className="flex flex-col gap-2.5 mb-4">
                   {items.map((item, idx) => (
@@ -382,21 +382,21 @@ setTimeout(() => router.push("/my-orders"), 2500);
                           src={item.image_url || "/placeholder.png"}
                           alt={item.name}
                           onError={(e) => { e.target.src = "/placeholder.png"; }}
-                          className="w-10 h-10 object-cover rounded-lg border border-[#e8e5f0] dark:border-white/[0.07]"
+                          className="w-10 h-10 object-cover rounded-lg border border-[#c5cfe8] dark:border-white/[0.07]"
                         />
-                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#6d4aff] dark:bg-[#c9a96e] text-white dark:text-[#0a0a0f] text-[9px] font-bold rounded-full flex items-center justify-center">
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#1a2a6c] dark:bg-[#c9a028] text-white dark:text-[#0a0e1f] text-[9px] font-bold rounded-full flex items-center justify-center">
                           {item.quantity}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-semibold text-[#1a1060] dark:text-[#f0ede8] truncate">
+                        <p className="text-[11px] font-semibold text-[#0e1a3d] dark:text-[#e8edf8] truncate">
                           {item.name}
                         </p>
                         {item.variant && (
-                          <p className="text-[10px] text-[#1a1060]/40 dark:text-[#f0ede8]/30">{item.variant}</p>
+                          <p className="text-[10px] text-[#0e1a3d]/40 dark:text-[#e8edf8]/30">{item.variant}</p>
                         )}
                       </div>
-                      <p className="text-[11px] font-bold text-[#1a1060] dark:text-[#f0ede8] shrink-0">
+                      <p className="text-[11px] font-bold text-[#0e1a3d] dark:text-[#e8edf8] shrink-0">
                         ₱{(item.price * item.quantity).toLocaleString()}
                       </p>
                     </div>
@@ -404,16 +404,16 @@ setTimeout(() => router.push("/my-orders"), 2500);
                 </div>
               )}
 
-              <div className="border-t border-[#e8e5f0] dark:border-white/[0.07] pt-3 flex flex-col gap-2">
-                <div className="flex justify-between text-xs text-[#1a1060]/50 dark:text-[#f0ede8]/40">
+              <div className="border-t border-[#c5cfe8] dark:border-white/[0.07] pt-3 flex flex-col gap-2">
+                <div className="flex justify-between text-xs text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">
                   <span>Subtotal ({items.length} item{items.length !== 1 ? "s" : ""})</span>
                   <span>₱{total.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-[#1a1060]/50 dark:text-[#f0ede8]/40">Shipping</span>
+                  <span className="text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">Shipping</span>
                   <span className="text-green-500 font-semibold">Free</span>
                 </div>
-                <div className="flex justify-between text-sm font-bold text-[#1a1060] dark:text-[#f0ede8] mt-1">
+                <div className="flex justify-between text-sm font-bold text-[#0e1a3d] dark:text-[#e8edf8] mt-1">
                   <span>Total</span>
                   <span>₱{total.toLocaleString()}</span>
                 </div>
@@ -424,20 +424,20 @@ setTimeout(() => router.push("/my-orders"), 2500);
                 disabled={submitting || items.length === 0 || invalidItems.length === items.length}
                 className={`w-full mt-4 rounded-xl py-3.5 text-sm font-bold transition
                   ${submitting || items.length === 0 || invalidItems.length === items.length
-                    ? "bg-[#e8e5f0] dark:bg-white/10 text-[#1a1060]/30 dark:text-[#f0ede8]/30 cursor-not-allowed"
-                    : "bg-[#6d4aff] dark:bg-[#c9a96e] text-white dark:text-[#0a0a0f] hover:opacity-90"}`}
+                    ? "bg-[#e8edf8] dark:bg-white/10 text-[#0e1a3d]/30 dark:text-[#e8edf8]/30 cursor-not-allowed"
+                    : "bg-[#1a2a6c] dark:bg-[#c9a028] text-white dark:text-[#0a0e1f] hover:opacity-90"}`}
               >
                 {submitting ? "Placing Order..." : `Place Order · ₱${total.toLocaleString()}`}
               </button>
 
-              <p className="text-[11px] text-[#1a1060]/40 dark:text-[#f0ede8]/30 text-center mt-3 leading-relaxed">
+              <p className="text-[11px] text-[#0e1a3d]/40 dark:text-[#e8edf8]/30 text-center mt-3 leading-relaxed">
                 🔒 Secured checkout · Cash on Delivery only
               </p>
             </div>
 
             <button
               onClick={() => router.back()}
-              className="text-xs text-[#1a1060]/50 dark:text-[#f0ede8]/40 hover:text-[#6d4aff] dark:hover:text-[#c9a96e] transition text-center"
+              className="text-xs text-[#0e1a3d]/50 dark:text-[#e8edf8]/40 hover:text-[#1a2a6c] dark:hover:text-[#c9a028] transition text-center"
             >
               ← Back to Cart
             </button>
@@ -452,8 +452,8 @@ export default function CheckoutPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] flex items-center justify-center">
-          <p className="text-sm text-[#1a1060]/50 dark:text-[#f0ede8]/40">Loading checkout...</p>
+        <div className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] flex items-center justify-center">
+          <p className="text-sm text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">Loading checkout...</p>
         </div>
       }
     >

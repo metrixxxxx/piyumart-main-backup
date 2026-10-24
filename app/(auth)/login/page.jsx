@@ -151,7 +151,7 @@ export default function LoginPage() {
   signIn("google", { callbackUrl: "/set-password" });
 };
   return (
-    <div className="flex min-h-dvh w-full items-center justify-center bg-[#0e1140] p-4 sm:p-6">
+    <div className="flex min-h-dvh w-full items-center justify-center bg-[#f0eeff] dark:bg-[#070b14] p-4 sm:p-6">
       <div className="flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-[#2a2f6e] shadow-2xl md:flex-row">
 
         {/* ── Left: Login Panel ─────────────────────────────────────────── */}

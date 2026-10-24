@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 import ProductCard from "@/components/products/ProductCard";
 
 const SORT_OPTIONS = [
@@ -69,6 +70,12 @@ export default function ShopPage() {
     : products;
 
   const displayName = sellerInfo?.seller_name || "Shop";
+  const sellerImage = typeof sellerInfo?.seller_image === "string"
+    ? sellerInfo.seller_image.trim()
+    : "";
+  const sellerImageSrc = sellerImage && !sellerImage.startsWith("http") && !sellerImage.startsWith("/")
+    ? `/${sellerImage}`
+    : sellerImage;
 
   const initials = displayName
     .split(" ")
@@ -85,7 +92,7 @@ export default function ShopPage() {
     : null;
 
   return (
-    <main className="min-h-screen bg-[#eef2f7] dark:bg-[#070b14] transition-colors duration-300">
+    <main className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] transition-colors duration-300">
       {/* Seller Header */}
       <section className="bg-[#1a2a6c] dark:bg-[#0a0e1f] relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
@@ -117,8 +124,20 @@ export default function ShopPage() {
           <div className="flex items-start gap-4 sm:gap-6">
             {/* Avatar */}
             <div className="relative shrink-0">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-[#c9a028] to-[#e8b830] flex items-center justify-center text-[#1a2a6c] font-extrabold text-xl sm:text-2xl shadow-lg shadow-black/30 ring-2 ring-white/20">
+              <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white text-xl font-extrabold text-[#1a2a6c] shadow-lg shadow-black/30 ring-2 ring-white/50 sm:h-20 sm:w-20 sm:text-2xl">
                 {initials}
+                {sellerImage && (
+                  <Image
+                    key={sellerImageSrc}
+                    src={sellerImageSrc}
+                    alt={`${displayName} profile`}
+                    fill
+                    sizes="80px"
+                    unoptimized
+                    onError={(event) => { event.currentTarget.hidden = true; }}
+                    className="object-cover"
+                  />
+                )}
               </div>
 
               <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-[#1a2a6c]" />

@@ -7,6 +7,10 @@ import Link from "next/link";
 import Image from "next/image";
 import SearchAutocomplete from "@/components/SearchAutocomplete";
 
+const POPULAR_SEARCHES = ["uniform", "calculator", "lunch", "textbooks"];
+// TODO: Replace these illustrative figures with counts from an existing UI data source.
+const HERO_STATS = [{ key: "products", label: "All products" }, { key: "users", label: "Total users" }, { value: "Campus", label: "Meetups" }];
+
 // ─── Typewriter hook ──────────────────────────────────────────────────────────
 function useTypewriter(text, speed = 60) {
   const [state, dispatch] = useReducer(
@@ -33,9 +37,10 @@ function useTypewriter(text, speed = 60) {
   return { display: state.display, done: state.done };
 }
 
-export default function HeroSection() {
+export default function HeroSection({ productCount = 0 }) {
   const { data: session } = useSession();
   const router = useRouter();
+  const [userCount, setUserCount] = useState(null);
 
   // slider state
   const [products, setProducts] = useState([]);
@@ -44,6 +49,15 @@ export default function HeroSection() {
   const [visible, setVisible]   = useState(true);
   const [direction, setDirection] = useState("next");
   const intervalRef = useRef(null);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/users/count")
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => { if (active && Number.isFinite(Number(data?.total))) setUserCount(Number(data.total)); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   // greeting
   const h = typeof window !== "undefined" ? new Date().getHours() : 12;
@@ -95,10 +109,6 @@ export default function HeroSection() {
           from { opacity:0; transform:translateY(-12px); }
           to   { opacity:1; transform:translateY(0); }
         }
-        @keyframes shimmer {
-          0%   { background-position:-200% center; }
-          100% { background-position:200% center; }
-        }
         @keyframes progress {
           from { width:0%; }
           to   { width:100%; }
@@ -115,7 +125,7 @@ export default function HeroSection() {
           0%,100% { opacity:1; } 50% { opacity:0; }
         }
 
-        .hs-img     { animation:scaleIn 0.55s cubic-bezier(0.22,1,0.36,1) both; }
+        .hs-img { animation:scaleIn 0.7s cubic-bezier(0.22,1,0.36,1) both; will-change:transform,opacity; }
         .hs-tag     { animation:fadeDown 0.4s 0.05s ease both; }
         .hs-name    { animation:fadeUp  0.45s 0.1s  ease both; }
         .hs-desc    { animation:fadeUp  0.45s 0.2s  ease both; }
@@ -127,14 +137,6 @@ export default function HeroSection() {
         .hs-search  { animation:fadeUp  0.5s  0.48s ease both; }
         .hs-chips   { animation:fadeUp  0.5s  0.6s  ease both; }
 
-        .shimmer-gold {
-          background:linear-gradient(90deg,#c9a028 0%,#f5d87a 40%,#c9a028 60%,#f5d87a 100%);
-          background-size:200% auto;
-          -webkit-background-clip:text;
-          -webkit-text-fill-color:transparent;
-          background-clip:text;
-          animation:shimmer 3s linear infinite;
-        }
         .progress-bar { animation:progress 5s linear forwards; }
 
         .orb-a { animation:orb1 7s ease-in-out infinite; }
@@ -150,14 +152,18 @@ export default function HeroSection() {
         .arrow-btn:active { transform:scale(0.93); }
         .chip { transition:all 0.15s ease; }
         .chip:hover { background:rgba(201,160,40,0.15); border-color:rgba(201,160,40,0.45); color:#f5d87a; transform:translateY(-1px); }
-        .search-wrap:focus-within { border-color:rgba(201,160,40,0.55) !important; box-shadow:0 0 0 3px rgba(201,160,40,0.1); }
+        .search-wrap:focus-within { border-color:#f2c94c !important; box-shadow:0 0 0 2px #f2c94c; }
+        @media (prefers-reduced-motion: reduce) {
+          .hs-badge,.hs-h1,.hs-sub,.hs-search,.hs-chips,.orb-a,.orb-b,.progress-bar,.cursor { animation:none !important; }
+          .orb-a,.orb-b { transform:none !important; }
+        }
       `}</style>
 
       {/* OUTER CARD */}
-      <div className="w-full rounded-2xl overflow-visible flex flex-col lg:flex-row" style={{ minHeight:440, boxShadow:"0 0 0 1.5px rgba(201,160,40,0.25), 0 28px 70px rgba(0,0,0,0.6)" }}>
+      <div className="w-full rounded-2xl overflow-visible flex flex-col lg:flex-row" style={{ minHeight:500, boxShadow:"0 0 0 1.5px rgba(201,160,40,0.25), 0 28px 70px rgba(0,0,0,0.6)" }}>
 
         {/* ── LEFT: hero panel ─────────────────────────────────────── */}
-        <div className="relative lg:w-[45%] flex-shrink-0 flex flex-col justify-center px-8 sm:px-10 py-10 lg:py-0" style={{ minHeight:300, background:"linear-gradient(140deg,#112060 0%,#0c1840 45%,#080f25 100%)" }}>
+        <div className="relative lg:w-1/2 flex-shrink-0 flex flex-col justify-center px-8 sm:px-12 py-12 lg:py-10" style={{ minHeight:500, background:"linear-gradient(140deg,#112060 0%,#0c1840 45%,#080f25 100%)" }}>
 
           {/* blue glow */}
           <div className="absolute inset-0 pointer-events-none"
@@ -177,10 +183,15 @@ export default function HeroSection() {
             style={{ background:"linear-gradient(to bottom,transparent,rgba(201,160,40,0.35) 30%,rgba(201,160,40,0.35) 70%,transparent)" }} />
 
           {/* content */}
-          <div className="relative z-10 flex flex-col gap-0">
+          <div className="relative z-10 flex flex-1 flex-col gap-0">
+
+            <div className="mb-5 flex items-center gap-3">
+              <span aria-hidden="true" className="h-14 w-14 shrink-0 rounded-full bg-white ring-2 ring-white/40 shadow-lg sm:h-16 sm:w-16" style={{ backgroundImage: 'url("/img/lspu%20logo%20malupit.png")', backgroundPosition: "center", backgroundRepeat: "no-repeat", backgroundSize: "246px 138px" }} />
+              <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/75 sm:text-xs">Laguna State Polytechnic University<br />San Pablo City Campus</span>
+            </div>
 
             {/* badge */}
-            <div className="hs-badge mb-4">
+            <div className="hs-badge mb-6">
               {session ? (
                 <span className="inline-flex items-center gap-2 text-[11px] font-bold tracking-widest uppercase bg-[#c9a028]/15 border border-[#c9a028]/30 text-[#f5d87a] px-3.5 py-1.5 rounded-full">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#c9a028] animate-pulse shrink-0" />
@@ -202,24 +213,21 @@ export default function HeroSection() {
             </h1>
 
             {/* sub */}
-            <p className="hs-sub mt-3 text-white/40 text-xs sm:text-sm leading-relaxed max-w-[270px]">
+            <p className="hs-sub mt-3 max-w-[270px] text-xs leading-relaxed text-white/80 sm:text-sm">
               Discover student listings, second-hand finds, and local campus offers.
             </p>
 
             {/* search */}
-            <div className="hs-search mt-5 relative z-50">
+            <div className="hs-search mt-7 relative z-50">
               <SearchAutocomplete />
             </div>
 
             {/* chips */}
-            <div className="hs-chips mt-3 flex flex-wrap gap-2">
-              {["Electronics","Clothing","Books","Food"].map(tag => (
-                <button key={tag} onClick={() => router.push(`/?q=${tag}`)}
-                  className="chip text-[10px] font-semibold text-white/35 border border-white/[0.1] px-2.5 py-1 rounded-full">
-                  {tag}
-                </button>
-              ))}
+            <div className="hs-chips mt-5 flex flex-wrap items-center gap-x-2 text-xs text-white/85">
+              <span>Popular:</span>
+              {POPULAR_SEARCHES.map((term) => <button type="button" key={term} onClick={() => { if (typeof window !== "undefined" && window.location.pathname === "/") window.dispatchEvent(new CustomEvent("piyumart:search", { detail: term })); else router.push(`/?q=${encodeURIComponent(term)}`); }} className="font-semibold text-[#f2c94c] underline underline-offset-2 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2c94c]">{term}</button>)}
             </div>
+            <div className="mt-auto pt-10"><div className="mb-4 h-px w-full bg-white/25" /><div className="grid grid-cols-3 gap-3">{HERO_STATS.map(({ key, value, label }) => <div key={label}><div className="text-sm font-bold text-white sm:text-base">{key === "products" ? productCount : key === "users" ? userCount ?? "…" : value}</div><div className="mt-1 text-[10px] leading-tight text-white/75 sm:text-xs">{label}</div></div>)}</div></div>
           </div>
         </div>
 
@@ -281,15 +289,6 @@ export default function HeroSection() {
                   </svg>
                 </Link>
               </div>
-            </div>
-          )}
-
-          {/* slide counter */}
-          {products.length > 0 && (
-            <div className="absolute top-4 right-4 z-30 flex items-center gap-1">
-              <span className="text-white font-bold text-sm tabular-nums">{String(index+1).padStart(2,"0")}</span>
-              <span className="text-white/25 text-xs mx-0.5">/</span>
-              <span className="text-white/35 text-xs tabular-nums">{String(products.length).padStart(2,"0")}</span>
             </div>
           )}
 

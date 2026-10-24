@@ -90,7 +90,7 @@ export default function ProductDetailPage() {
   }
 
   if (loading) return (
-    <div className="flex items-center justify-center min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f]">
+    <div className="flex items-center justify-center min-h-screen bg-[#f0eeff] dark:bg-[#070b14]">
       <div className="text-center">
         <div className="w-10 h-10 border-[3px] border-[#e5e7eb] border-t-[#6d4aff] dark:border-t-[#c9a96e] rounded-full mx-auto mb-4 animate-spin" />
         <p className="text-[#1a1060]/50 dark:text-[#f0ede8]/40 text-sm">Loading product...</p>
@@ -99,7 +99,7 @@ export default function ProductDetailPage() {
   );
 
   if (!product) return (
-    <div className="flex items-center justify-center min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f]">
+    <div className="flex items-center justify-center min-h-screen bg-[#f0eeff] dark:bg-[#070b14]">
       <p className="text-[#1a1060]/50 dark:text-[#f0ede8]/40 text-lg">Product not found.</p>
     </div>
   );
@@ -116,7 +116,7 @@ export default function ProductDetailPage() {
   const hasVariants = product.variants?.length > 0;
 
   return (
-    <div className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] transition-colors duration-300">
+    <div className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] transition-colors duration-300">
 
       <div className="max-w-[960px] mx-auto px-5 py-8">
 

@@ -1,339 +1,62 @@
 "use client";
+
 import { useState } from "react";
 import Image from "next/image";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useSentiment } from '@/app/hooks/useSentiment';
-import LoadingModal from "@/components/ui/LoadingModal";
+import { useSentiment } from "@/app/hooks/useSentiment";
 
-export default function ProductCard({
-  product,
-  hideActions = false,
-  onClick,
-  onAddToCart,
-  onBuyNow,
-  priority = false,
-}) {
-  const [loading, setLoading] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const { data: session } = useSession();
+export function StockBadge({ stock }) {
+  if (Number(stock) === 0) return <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-200">Sold out</span>;
+  if (Number(stock) <= 5) return <span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-semibold text-amber-900 dark:bg-amber-400/20 dark:text-amber-200">{stock} left</span>;
+  return <span className="rounded-full bg-green-100 px-2 py-1 text-[10px] font-semibold text-green-900 dark:bg-green-400/20 dark:text-green-200">{stock} available</span>;
+}
+
+export default function ProductCard({ product, onClick, priority = false }) {
+  const [saved, setSaved] = useState(false);
   const router = useRouter();
-
   const { analyze, result: sentiment, loading: sentimentLoading } = useSentiment();
-
-  const isOutOfStock = product.stock === 0;
-
-  async function handleAddToCart(e) {
-    e.stopPropagation();
-    if (!session) { setShowModal(true); return; }
-    setLoading(true);
-    try {
-      await fetch("/api/cart", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product_id: product.id, quantity: 1 }),
-      });
-      router.push("/cart");
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleBuyNow(e) {
-    e.stopPropagation();
-    if (!session) { setShowModal(true); return; }
-    router.push(`/checkout?productId=${product.id}`);
-  }
-
-  function handleSellerClick(e) {
-    e.stopPropagation();
-    if (product.seller_id) router.push(`/seller/${product.seller_id}`);
-  }
-
-  const sentimentUI = () => {
-    if (!sentiment) return null;
-
-    const isNoReviews = sentiment.label === "NO_REVIEWS";
-
-    const config = {
-      positive: {
-        icon: "😊",
-        text: "Good",
-        bg: "bg-green-50",
-        textColor: "text-green-600",
-        border: "border-green-200",
-      },
-      negative: {
-        icon: "😡",
-        text: "Low rated",
-        bg: "bg-red-50",
-        textColor: "text-red-600",
-        border: "border-red-200",
-        extra: "animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.65)]",
-      },
-      mixed: {
-        icon: "😐",
-        text: "Mixed",
-        bg: "bg-yellow-50",
-        textColor: "text-yellow-600",
-        border: "border-yellow-200",
-      },
-      noreviews: {
-        icon: "📭",
-        text: "No reviews",
-        bg: "bg-red-50",
-        textColor: "text-red-600",
-        border: "border-red-200",
-        extra: "animate-pulse",
-      },
-    };
-
-    const type = isNoReviews ? "noreviews" : sentiment.tone;
-    const c = config[type];
-
-    return (
-      <span
-        className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${c.bg} ${c.textColor} ${c.border} ${c.extra || ""}`}
-      >
-        <span>{c.icon}</span>
-        <span>
-          {c.text}
-          {sentiment.averageRating
-            ? ` ${Number(sentiment.averageRating).toFixed(1)}`
-            : ""}
-        </span>
-      </span>
-    );
+  const isOutOfStock = Number(product.stock) === 0;
+  const sentimentType = sentiment?.label === "NO_REVIEWS" ? "noreviews" : sentiment?.tone;
+  const sentimentStyles = {
+    positive: "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950/40 dark:text-green-300",
+    negative: "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300",
+    mixed: "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
+    noreviews: "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
   };
+  const sentimentLabels = { positive: "Good feedback", negative: "Low rated", mixed: "Mixed reviews", noreviews: "No reviews yet" };
 
-  return (
-    <>
-      {/* CARD */}
-      <div
-        onClick={() => {
-          if (onClick) return onClick();
-          return router.push(`/products/${product.id}`);
-        }}
-        className="group flex flex-col cursor-pointer rounded-xl sm:rounded-[5px] overflow-hidden transition-transform duration-200 hover:-translate-y-[3px]"
-        style={{
-          opacity: isOutOfStock ? 0.8 : 1,
-          backgroundColor: "#ffffff",
-          border: "1px solid #eeeeee",
-          colorScheme: "light",
-        }}
-      >
-
-        {/* IMAGE */}
-        <div
-          className="aspect-square sm:aspect-[4/3] overflow-hidden relative"
-          style={{ backgroundColor: "#f3f4f6" }}
-        >
-          <Image
-            src={
-              product.image_url?.trim()
-                ? product.image_url
-                : "https://via.placeholder.com/400x300?text=No+Image"
-            }
-            alt={product.name}
-            width={400}
-            height={400}
-            priority={priority}
-            loading={priority ? "eager" : "lazy"}
-            unoptimized
-            className="w-full h-full object-cover"
-            style={{
-              filter: isOutOfStock ? "grayscale(40%)" : "none",
-              borderBottom: "1px solid black",
-              border: "1px solid black",
-              borderRadius: "12px",
-              bordertop: "1px solid black",
-            }}
-          />
-          {isOutOfStock && (
-            <div className="absolute inset-0 bg-black/45 flex items-center justify-center">
-              <span className="bg-[#e94560] text-white text-[10px] sm:text-[12px] font-bold px-3 py-1 rounded-full tracking-wide">
-                Out of Stock
-              </span>
-            </div>
-          )}
+  return <>
+    <article onClick={() => onClick ? onClick() : product.is_demo ? undefined : router.push(`/products/${product.id}`)} className={`product-card-enter group flex h-full ${product.is_demo ? "cursor-default" : "cursor-pointer"} flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-1 hover:border-[#f2c94c]/80 hover:shadow-[0_16px_36px_rgba(15,31,92,0.16)] motion-reduce:transform-none motion-reduce:transition-none dark:border-white/10 dark:bg-slate-900 dark:hover:shadow-[0_16px_36px_rgba(0,0,0,0.4)] ${isOutOfStock ? "opacity-75" : ""}`}>
+      <div className="relative aspect-[3/2] overflow-hidden rounded-t-xl bg-slate-100 dark:bg-slate-800">
+        {product.demo_icon ? <div aria-hidden="true" className={`flex h-full w-full items-center justify-center bg-gradient-to-br ${product.demo_tone || "from-slate-100 to-slate-200"}`}><span className="select-none text-6xl drop-shadow-sm transition-transform duration-300 group-hover:scale-110 motion-reduce:transition-none">{product.demo_icon}</span></div> : <Image src={product.image_url?.trim() ? product.image_url : "/placeholder.png"} alt={product.name || "Product"} width={400} height={300} priority={priority} loading={priority ? "eager" : "lazy"} unoptimized className={`h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105 motion-reduce:transition-none ${isOutOfStock ? "grayscale-[35%]" : ""}`} />}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/25 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 motion-reduce:transition-none" />
+        {product.is_demo && <span className="absolute bottom-2 left-2 rounded-full bg-white/90 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-slate-600">Sample</span>}
+        <button type="button" aria-label="Save" aria-pressed={saved} onClick={(e) => { e.stopPropagation(); setSaved((value) => !value); }} className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-[#0f1f5c] shadow transition duration-200 hover:scale-110 hover:text-[#f2c94c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2c94c] motion-reduce:transition-none dark:bg-slate-900/90 dark:text-white">
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill={saved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" /></svg>
+        </button>
+      </div>
+      <div className="flex flex-1 flex-col p-2.5 sm:p-3">
+        <h2 className={`line-clamp-2 min-h-8 text-[15px] font-extrabold leading-4 tracking-tight transition-colors duration-200 group-hover:text-[#0f1f5c] dark:group-hover:text-[#f2c94c] ${isOutOfStock ? "text-slate-500 dark:text-slate-400" : "text-[#0f1f5c] dark:text-slate-100"}`}>{product.name}</h2>
+        <p className="mt-0.5 line-clamp-2 min-h-8 text-xs leading-4 text-slate-600 dark:text-slate-300">{product.description || " "}</p>
+        <div className="mt-1.5 flex min-h-5 items-center justify-between gap-2">
+          {product.is_demo ? <span className="truncate rounded-full border border-[#0f1f5c]/10 bg-[#0f1f5c]/5 px-2.5 py-1 text-xs font-bold text-[#0f1f5c] dark:border-white/10 dark:bg-white/5 dark:text-slate-100">{product.seller_name}</span> : <button type="button" onClick={(e) => { e.stopPropagation(); if (product.seller_id) router.push(`/shop/${product.seller_id}`); }} className="truncate rounded-full border border-[#0f1f5c]/10 bg-[#0f1f5c]/5 px-2.5 py-1 text-left text-xs font-bold text-[#0f1f5c] underline-offset-2 transition-colors hover:border-[#f2c94c]/70 hover:bg-[#f2c94c]/15 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2c94c] dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:border-[#f2c94c]/50 dark:hover:bg-[#f2c94c]/10">{product.seller_name || "Campus seller"}</button>}
+          {Number(product.average_rating) > 0 ? <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-400/10 dark:text-amber-200"><span className="text-amber-500">★</span>{Number(product.average_rating).toFixed(1)}</span> : <span className="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">New listing</span>}
         </div>
-
-        {/* CONTENT */}
-        <div
-          className="flex flex-col flex-1 p-2.5 sm:p-[14px] overflow-hidden"
-          style={{ backgroundColor: "#ffffff" }}
-        >
-
-          {/* PRODUCT NAME */}
-          <h2
-            className="text-[12px] sm:text-[16px] font-semibold leading-tight line-clamp-2 mb-1 overflow-hidden"
-            style={{ color: "#1a1a2e" }}
-          >
-            {product.name}
-          </h2>
-
-          {/* DESCRIPTION */}
-          <p
-            className="hidden sm:block text-[12px] h-8 overflow-hidden mb-1"
-            style={{ color: "#777777" }}
-          >
-            {product.description}
-          </p>
-
-          {/* SELLER NAME */}
-          {product.seller_name && (
-            <button
-              onClick={handleSellerClick}
-              className="w-fit text-[10px] sm:text-[11px] hover:underline transition-colors truncate mb-1 text-left"
-              style={{ color: "#1a1a2e99" }}
-              onMouseEnter={e => e.currentTarget.style.color = "#e94560"}
-              onMouseLeave={e => e.currentTarget.style.color = "#1a1a2e99"}
-            >
-              🏪 {product.seller_name}
-            </button>
-          )}
-
-          {/* RATING + SOLD */}
-          <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-            {product.average_rating > 0 && (
-              <div className="flex items-center gap-0.5">
-                {Array.from({ length: 5 }).map((_, i) => {
-                  const filled = i < Math.floor(product.average_rating);
-                  const half =
-                    !filled &&
-                    i < product.average_rating &&
-                    product.average_rating % 1 >= 0.5;
-                  return (
-                    <svg
-                      key={i}
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 20 20"
-                      className="w-[10px] h-[10px] sm:w-3 sm:h-3"
-                      fill={filled ? "#f59e0b" : half ? "url(#half)" : "#e5e7eb"}
-                    >
-                      {half && (
-                        <defs>
-                          <linearGradient id="half">
-                            <stop offset="50%" stopColor="#f59e0b" />
-                            <stop offset="50%" stopColor="#e5e7eb" />
-                          </linearGradient>
-                        </defs>
-                      )}
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  );
-                })}
-                <span
-                  className="text-[10px] sm:text-[11px] ml-0.5"
-                  style={{ color: "#777777" }}
-                >
-                  {Number(product.average_rating).toFixed(1)}
-                </span>
-                {product.total_ratings > 0 && (
-                  <span
-                    className="text-[10px] sm:text-[11px]"
-                    style={{ color: "#aaaaaa" }}
-                  >
-                    ({product.total_ratings})
-                  </span>
-                )}
-              </div>
-            )}
-
-            {product.total_sold > 0 && (
-              <span
-                className="text-[10px] sm:text-[11px]"
-                style={{ color: "#aaaaaa" }}
-              >
-                · {product.total_sold >= 1000
-                  ? `${(product.total_sold / 1000).toFixed(1)}k`
-                  : product.total_sold} sold
-              </span>
-            )}
-          </div>
-
-          {/* PRICE + STOCK */}
-          <div className="flex items-end justify-between mt-auto pt-1 gap-1">
-            <p
-              className="text-[13px] sm:text-[16px] font-bold"
-              style={{ color: "#e94560" }}
-            >
-              ₱{Number(product.price).toLocaleString()}
-            </p>
-            {!isOutOfStock && product.stock > 0 && (
-              <span
-                className="text-[9px] sm:text-[11px] font-medium px-1.5 py-0.5 rounded-full"
-                style={
-                  product.stock <= 5
-                    ? { backgroundColor: "#fff7ed", color: "#f97316", border: "1px solid #fed7aa" }
-                    : { backgroundColor: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0" }
-                }
-              >
-                {product.stock <= 5 ? `⚠ ${product.stock} left` : `✓ ${product.stock} available`}
-              </span>
-            )}
-          </div>
-
-          {/* SENTIMENT */}
-          <div className="flex flex-col sm:flex-row mt-2 gap-1.5">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                analyze({
-                  productId: product.id,
-                  rating: product.average_rating,
-                  totalReviews: product.total_ratings,
-                  text: product.description,
-                });
-              }}
-              disabled={sentimentLoading}
-              className="text-[10px] px-2 py-0.5 rounded-full cursor-pointer"
-              style={{ border: "1px solid #dddddd", backgroundColor: "#f9f9f9", color: "#555555" }}
-            >
-              {sentimentLoading ? "..." : "Review insight"}
-            </button>
-
-            {sentimentUI()}
-          </div>
-
+        <div className="mt-2 flex min-h-6 items-center justify-between gap-2">
+          <span className={`border-none bg-transparent px-0 py-0 text-base font-semibold ${isOutOfStock ? "text-slate-500 dark:text-slate-400" : "product-price-maroon"}`}>{isOutOfStock ? `₱${Number(product.price || 0).toLocaleString()}` : `₱${Number(product.price || 0).toLocaleString()}`}</span>
+          <StockBadge stock={product.stock} />
+        </div>
+        <div className="mt-1.5 flex min-h-8 flex-wrap items-center gap-1.5">
+          <button type="button" onClick={(e) => { e.stopPropagation(); if (!product.is_demo) analyze({ productId: product.id, rating: product.average_rating, totalReviews: product.total_ratings, text: product.description }); }} disabled={sentimentLoading || product.is_demo} className="inline-flex items-center gap-1.5 rounded-full border border-[#0f1f5c]/15 bg-[#0f1f5c]/5 px-2.5 py-1 text-[10px] font-semibold text-[#0f1f5c] transition hover:bg-[#0f1f5c]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2c94c] disabled:opacity-60 dark:border-white/15 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10">
+            <span aria-hidden="true">✦</span>{product.is_demo ? "Sample reviews" : sentimentLoading ? "Reading reviews…" : "Review insight"}
+          </button>
+          {sentiment && <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold ${sentimentStyles[sentimentType] || sentimentStyles.noreviews}`}>
+            <span aria-hidden="true">{sentimentType === "positive" ? "☺" : sentimentType === "negative" ? "☹" : sentimentType === "mixed" ? "◐" : "✉"}</span>
+            {sentimentLabels[sentimentType] || "Review insight"}
+            {sentiment.averageRating ? <span className="tabular-nums">· {Number(sentiment.averageRating).toFixed(1)}</span> : null}
+          </span>}
         </div>
       </div>
-
-      {/* MODAL */}
-      {showModal && (
-        <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-          onClick={() => setShowModal(false)}
-        >
-          <div
-            className="bg-white p-6 rounded-xl w-[300px] text-center"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-[16px] font-semibold mb-2">Sign in required</h2>
-            <p className="text-[13px] text-[#777] mb-4">You need to login first.</p>
-            <button
-              onClick={() => router.push("/login")}
-              className="w-full py-2.5 bg-[#1a1a2e] text-white rounded-lg mb-2 text-sm"
-            >
-              Sign in
-            </button>
-            <button
-              onClick={() => setShowModal(false)}
-              className="w-full py-2.5 border border-[#ddd] rounded-lg text-sm"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      <LoadingModal
-        open={loading}
-        title="Adding to cart"
-        description="Saving this product to your cart."
-      />
-    </>
-  );
+    </article>
+  </>;
 }

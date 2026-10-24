@@ -252,7 +252,7 @@ export default function SellPage() {
 
   if (status === "loading" || loading)
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#eef2f7] dark:bg-[#070b14]">
+      <div className="flex items-center justify-center min-h-screen bg-[#f0eeff] dark:bg-[#070b14]">
         <p className="text-sm text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">Loading...</p>
       </div>
     );

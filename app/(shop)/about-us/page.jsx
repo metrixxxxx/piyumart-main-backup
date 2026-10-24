@@ -71,6 +71,18 @@ export default function AboutPage() {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-[#c9a028]/15 blur-3xl pointer-events-none" />
 
           <div className="relative z-10 max-w-2xl mx-auto">
+            <div
+              role="img"
+              aria-label="Laguna State Polytechnic University seal"
+              className="mx-auto mb-5 h-24 w-24 rounded-full border-2 border-white/80 bg-white shadow-xl ring-4 ring-white/15"
+              style={{
+                backgroundImage: 'url("/img/lspu%20logo%20malupit.png")',
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
+                backgroundSize: "360px 201px",
+              }}
+            />
+
             <span className="inline-flex items-center gap-2 bg-white/15 text-white text-[11px] font-semibold px-4 py-1.5 rounded-full mb-6">
               <span className="w-1.5 h-1.5 rounded-full bg-[#d4aa40] animate-pulse" />
               LSPU SPCC Campus · Est. 2024

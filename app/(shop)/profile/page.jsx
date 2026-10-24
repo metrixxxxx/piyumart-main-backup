@@ -21,12 +21,12 @@ function PwInput({ value, onChange, placeholder, autoComplete }) {
         onChange={onChange}
         placeholder={placeholder}
         autoComplete={autoComplete}
-        className="h-10 w-full rounded-lg border border-[#2e3460] bg-[#252a4a] pl-3 pr-10 text-sm text-[#e0e4ff] placeholder-[#4a5080] outline-none transition focus:border-[#4f8ef7] focus:ring-2 focus:ring-[#4f8ef7]/20"
+        className="h-10 w-full rounded-lg border border-[#c5cfe8] dark:border-white/10 bg-[#f0f4ff] dark:bg-[#101a30] pl-3 pr-10 text-sm text-[#0e1a3d] dark:text-[#e8edf8] placeholder:text-[#0e1a3d]/40 dark:placeholder:text-[#e8edf8]/40 outline-none transition focus:border-[#1a2a6c] dark:focus:border-[#c9a028] focus:ring-2 focus:ring-[#1a2a6c]/20 dark:focus:ring-[#c9a028]/20"
       />
       <button
         type="button"
         onClick={() => setShow((s) => !s)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#4a5080] hover:text-[#e0e4ff] transition"
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0e1a3d]/50 dark:text-[#e8edf8]/40 hover:text-[#1a2a6c] dark:hover:text-[#c9a028] transition"
         aria-label={show ? "Hide" : "Show"}
       >
         {show ? (
@@ -49,14 +49,14 @@ function PwInput({ value, onChange, placeholder, autoComplete }) {
 function StrengthMeter({ value }) {
   if (!value) return null;
   const score = pwScore(value);
-  const barColor = ["", "#e24b4a", "#ef9f27", "#4f8ef7"][score];
+  const barColor = ["", "#e24b4a", "#ef9f27", "#c9a028"][score];
   const label    = ["", "Weak", "Almost there", "Strong ✓"][score];
   return (
     <div className="mt-2 space-y-1.5">
       <div className="flex gap-1">
         {[1, 2, 3].map((i) => (
           <div key={i} className="h-1 flex-1 rounded-full transition-all duration-300"
-            style={{ background: i <= score ? barColor : "#2e3460" }} />
+            style={{ background: i <= score ? barColor : "#c5cfe8" }} />
         ))}
       </div>
       <ul className="space-y-0.5">
@@ -64,7 +64,7 @@ function StrengthMeter({ value }) {
           const met = r.test(value);
           return (
             <li key={r.id} className="flex items-center gap-1.5 text-[11px] transition-colors"
-              style={{ color: met ? "#4f8ef7" : "#4a5080" }}>
+              style={{ color: met ? "#c9a028" : "#0e1a3d" }}>
               <span>{met ? "✓" : "○"}</span>{r.label}
             </li>
           );
@@ -104,7 +104,7 @@ const TABS = [
 function Field({ label, type = "text", value, onChange, placeholder, editing, required, note }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-[11px] font-semibold uppercase tracking-wider text-[#4a5080]">
+      <label className="text-[11px] font-semibold uppercase tracking-wider text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">
         {label}
       </label>
       {editing ? (
@@ -114,14 +114,14 @@ function Field({ label, type = "text", value, onChange, placeholder, editing, re
           onChange={onChange}
           placeholder={placeholder}
           required={required}
-          className="h-10 w-full rounded-lg border border-[#2e3460] bg-[#252a4a] px-3 text-sm text-[#e0e4ff] placeholder-[#4a5080] outline-none transition focus:border-[#4f8ef7] focus:ring-2 focus:ring-[#4f8ef7]/20"
+          className="h-10 w-full rounded-lg border border-[#c5cfe8] dark:border-white/10 bg-[#f0f4ff] dark:bg-[#101a30] px-3 text-sm text-[#0e1a3d] dark:text-[#e8edf8] placeholder:text-[#0e1a3d]/40 dark:placeholder:text-[#e8edf8]/40 outline-none transition focus:border-[#1a2a6c] dark:focus:border-[#c9a028] focus:ring-2 focus:ring-[#1a2a6c]/20 dark:focus:ring-[#c9a028]/20"
         />
       ) : (
-        <div className="flex h-10 items-center rounded-lg border border-[#2e3460] bg-[#1a1d35] px-3 text-sm text-[#e0e4ff]">
-          {value || <span className="italic text-[#4a5080]">Not set</span>}
+        <div className="flex h-10 items-center rounded-lg border border-[#c5cfe8] dark:border-white/[0.07] bg-white dark:bg-[#0e1520] px-3 text-sm text-[#0e1a3d] dark:text-[#e8edf8]">
+          {value || <span className="italic text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">Not set</span>}
         </div>
       )}
-      {note && <p className="text-[10px] text-[#4a5080]">{note}</p>}
+      {note && <p className="text-[10px] text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">{note}</p>}
     </div>
   );
 }
@@ -129,7 +129,7 @@ function Field({ label, type = "text", value, onChange, placeholder, editing, re
 // ── Alert ──────────────────────────────────────────────────────────────────
 function Alert({ type, message, onClose }) {
   const s = type === "success"
-    ? { bg: "bg-[#4f8ef7]/10 border-[#4f8ef7]/30", text: "text-[#4f8ef7]", icon: "M5 13l4 4L19 7" }
+    ? { bg: "bg-[#1a2a6c]/10 dark:bg-[#c9a028]/10 border-[#1a2a6c]/30 dark:border-[#c9a028]/30", text: "text-[#1a2a6c] dark:text-[#c9a028]", icon: "M5 13l4 4L19 7" }
     : { bg: "bg-red-500/10 border-red-500/30",     text: "text-red-400",   icon: "M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" };
   return (
     <div className={`flex items-center gap-3 rounded-lg border px-4 py-3 ${s.bg}`}>
@@ -269,49 +269,49 @@ export default function ProfilePage() {
 
   if (status === "loading") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0f1123]">
+      <div className="flex min-h-screen items-center justify-center bg-[#f0eeff] dark:bg-[#070b14]">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#252a4a] border-t-[#4f8ef7]" />
-          <p className="text-sm text-[#4a5080]">Loading profile…</p>
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#c5cfe8] dark:border-white/10 border-t-[#1a2a6c] dark:border-t-[#c9a028]" />
+          <p className="text-sm text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">Loading profile…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1123] pb-16 pt-8">
+    <div className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] pb-16 pt-8 transition-colors duration-300">
       <div className="mx-auto max-w-5xl px-4">
 
         {/* Page title */}
         <div className="mb-6">
-          <h1 className="text-xl font-bold tracking-widest text-white">
-            PIYU<span className="text-[#4f8ef7]">MART</span>
+          <h1 className="text-xl font-bold tracking-widest text-[#0e1a3d] dark:text-[#e8edf8]">
+            PIYU<span className="text-[#1a2a6c] dark:text-[#c9a028]">MART</span>
           </h1>
-          <p className="mt-0.5 text-xs text-[#4a5080]">Account settings</p>
+          <p className="mt-0.5 text-xs text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">Account settings</p>
         </div>
 
         <div className="flex flex-col gap-5 md:flex-row md:items-start">
 
           {/* ── Sidebar ──────────────────────────────────────────────── */}
           <aside className="w-full shrink-0 md:w-56">
-            <div className="rounded-2xl bg-[#1a1d35] overflow-hidden border border-[#2e3460]">
+            <div className="rounded-2xl bg-white dark:bg-[#0e1520] overflow-hidden border border-[#c5cfe8] dark:border-white/[0.07]">
 
               {/* User card */}
-              <div className="flex items-center gap-3 border-b border-[#2e3460] px-4 py-4">
+              <div className="flex items-center gap-3 border-b border-[#c5cfe8] dark:border-white/[0.07] px-4 py-4">
                 <div
                   className="relative cursor-pointer shrink-0"
                   onClick={() => { if (tab === "profile" && editing) fileRef.current.click(); }}
                 >
                   {preview ? (
                     <img src={preview} alt="avatar"
-                      className="h-11 w-11 rounded-full border-2 border-[#4f8ef7]/40 object-cover" />
+                      className="h-11 w-11 rounded-full border-2 border-[#1a2a6c]/40 dark:border-[#c9a028]/40 object-cover" />
                   ) : (
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-[#4f8ef7]/40 bg-[#252a4a]">
-                      <span className="text-base font-bold text-[#4f8ef7]">{initials}</span>
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-[#1a2a6c]/40 dark:border-[#c9a028]/40 bg-[#f0f4ff] dark:bg-[#101a30]">
+                      <span className="text-base font-bold text-[#1a2a6c] dark:text-[#c9a028]">{initials}</span>
                     </div>
                   )}
                   {tab === "profile" && editing && (
-                    <div className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#4f8ef7] shadow">
+                    <div className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#1a2a6c] dark:bg-[#c9a028] shadow">
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
                         <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
                         <circle cx="12" cy="13" r="4"/>
@@ -320,10 +320,10 @@ export default function ProfilePage() {
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-[#e0e4ff]">
+                  <p className="truncate text-sm font-semibold text-[#0e1a3d] dark:text-[#e8edf8]">
                     {form.firstName} {form.lastName}
                   </p>
-                  <p className="truncate text-[10px] text-[#4a5080]">{form.email}</p>
+                  <p className="truncate text-[10px] text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">{form.email}</p>
                 </div>
               </div>
 
@@ -336,14 +336,14 @@ export default function ProfilePage() {
                     onClick={() => handleTabChange(t.id)}
                     className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
                       tab === t.id
-                        ? "bg-[#4f8ef7]/10 text-[#4f8ef7] border border-[#4f8ef7]/20"
-                        : "text-[#4a5080] hover:bg-[#252a4a] hover:text-[#e0e4ff]"
+                        ? "bg-[#1a2a6c]/10 dark:bg-[#c9a028]/10 text-[#1a2a6c] dark:text-[#c9a028] border border-[#1a2a6c]/20 dark:border-[#c9a028]/20"
+                        : "text-[#0e1a3d]/60 dark:text-[#e8edf8]/50 hover:bg-[#f0f4ff] dark:hover:bg-white/[0.04] hover:text-[#1a2a6c] dark:hover:text-[#c9a028]"
                     }`}
                   >
-                    <span className={tab === t.id ? "text-[#4f8ef7]" : ""}>{t.icon}</span>
+                    <span className={tab === t.id ? "text-[#1a2a6c] dark:text-[#c9a028]" : ""}>{t.icon}</span>
                     {t.label}
                     {tab === t.id && (
-                      <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#4f8ef7]" />
+                      <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#1a2a6c] dark:bg-[#c9a028]" />
                     )}
                   </button>
                 ))}
@@ -357,13 +357,13 @@ export default function ProfilePage() {
 
               {/* ── Profile tab ── */}
               {tab === "profile" && (
-                <div className="rounded-2xl bg-[#1a1d35] border border-[#2e3460] overflow-hidden">
+                <div className="rounded-2xl bg-white dark:bg-[#0e1520] border border-[#c5cfe8] dark:border-white/[0.07] overflow-hidden">
 
                   {/* Header row */}
-                  <div className="flex items-center justify-between border-b border-[#2e3460] px-6 py-4">
+                  <div className="flex items-center justify-between border-b border-[#c5cfe8] dark:border-white/[0.07] px-6 py-4">
                     <div>
-                      <h2 className="text-sm font-bold text-[#e0e4ff]">My Profile</h2>
-                      <p className="text-[11px] text-[#4a5080]">
+                      <h2 className="text-sm font-bold text-[#0e1a3d] dark:text-[#e8edf8]">My Profile</h2>
+                      <p className="text-[11px] text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">
                         {editing ? "Make changes and save" : "Manage your personal information"}
                       </p>
                     </div>
@@ -371,7 +371,7 @@ export default function ProfilePage() {
                       <button
                         type="button"
                         onClick={handleEditClick}
-                        className="flex items-center gap-1.5 rounded-lg border border-[#4f8ef7]/30 bg-[#4f8ef7]/10 px-3 py-1.5 text-xs font-semibold text-[#4f8ef7] transition hover:bg-[#4f8ef7]/20 active:scale-95"
+                        className="flex items-center gap-1.5 rounded-lg border border-[#1a2a6c]/30 dark:border-[#c9a028]/30 bg-[#1a2a6c]/10 dark:bg-[#c9a028]/10 px-3 py-1.5 text-xs font-semibold text-[#1a2a6c] dark:text-[#c9a028] transition hover:bg-[#1a2a6c]/20 dark:hover:bg-[#c9a028]/20 active:scale-95"
                       >
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.2" strokeLinecap="round">
                           <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
@@ -381,7 +381,7 @@ export default function ProfilePage() {
                       </button>
                     ) : (
                       <button type="button" onClick={handleCancel}
-                        className="text-xs text-[#4a5080] hover:text-[#e0e4ff] transition">
+                        className="text-xs text-[#0e1a3d]/50 dark:text-[#e8edf8]/40 hover:text-[#1a2a6c] dark:hover:text-[#c9a028] transition">
                         Cancel
                       </button>
                     )}
@@ -391,17 +391,17 @@ export default function ProfilePage() {
                   <div className="flex flex-col gap-0 md:flex-row">
 
                     {/* Avatar column */}
-                    <div className="flex flex-col items-center gap-3 border-b border-[#2e3460] px-6 py-8 md:w-48 md:border-b-0 md:border-r md:shrink-0">
+                    <div className="flex flex-col items-center gap-3 border-b border-[#c5cfe8] dark:border-white/[0.07] px-6 py-8 md:w-48 md:border-b-0 md:border-r md:shrink-0">
                       <div
                         className={`relative ${editing ? "cursor-pointer group" : ""}`}
                         onClick={() => editing && fileRef.current.click()}
                       >
                         {preview ? (
                           <img src={preview} alt="avatar"
-                            className="h-24 w-24 rounded-full border-4 border-[#2e3460] object-cover shadow-lg" />
+                            className="h-24 w-24 rounded-full border-4 border-[#c5cfe8] dark:border-white/10 object-cover shadow-lg" />
                         ) : (
-                          <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-[#2e3460] bg-[#252a4a] shadow-lg">
-                            <span className="text-3xl font-bold text-[#4f8ef7]">{initials}</span>
+                          <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-[#c5cfe8] dark:border-white/10 bg-[#f0f4ff] dark:bg-[#101a30] shadow-lg">
+                            <span className="text-3xl font-bold text-[#1a2a6c] dark:text-[#c9a028]">{initials}</span>
                           </div>
                         )}
                         {editing && (
@@ -417,15 +417,15 @@ export default function ProfilePage() {
                       {editing && (
                         <>
                           <button type="button" onClick={() => fileRef.current.click()}
-                            className="rounded-lg border border-[#2e3460] bg-[#252a4a] px-3 py-1.5 text-[11px] font-medium text-[#4a5080] hover:border-[#4f8ef7] hover:text-[#4f8ef7] transition">
+                            className="rounded-lg border border-[#c5cfe8] dark:border-white/10 bg-[#f0f4ff] dark:bg-[#101a30] px-3 py-1.5 text-[11px] font-medium text-[#0e1a3d]/60 dark:text-[#e8edf8]/50 hover:border-[#1a2a6c] dark:hover:border-[#c9a028] hover:text-[#1a2a6c] dark:hover:text-[#c9a028] transition">
                             Select Photo
                           </button>
-                          <p className="text-center text-[10px] leading-snug text-[#4a5080]">
+                          <p className="text-center text-[10px] leading-snug text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">
                             JPG, PNG, WebP<br />Max 5 MB
                           </p>
                         </>
                       )}
-                      <span className="rounded-full border border-[#4f8ef7]/20 bg-[#4f8ef7]/10 px-3 py-0.5 text-[11px] font-semibold text-[#4f8ef7]">
+                      <span className="rounded-full border border-[#1a2a6c]/20 dark:border-[#c9a028]/20 bg-[#1a2a6c]/10 dark:bg-[#c9a028]/10 px-3 py-0.5 text-[11px] font-semibold text-[#1a2a6c] dark:text-[#c9a028]">
                         Member
                       </span>
                       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
@@ -442,12 +442,12 @@ export default function ProfilePage() {
 
                       {/* Email — read-only */}
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[11px] font-semibold uppercase tracking-wider text-[#4a5080]">
+                        <label className="text-[11px] font-semibold uppercase tracking-wider text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">
                           Email Address
                         </label>
-                        <div className="flex h-10 items-center rounded-lg border border-[#2e3460] bg-[#13162b] px-3">
-                          <span className="text-sm text-[#4a5080]">{form.email}</span>
-                          <span className="ml-auto rounded-full bg-[#252a4a] px-2 py-0.5 text-[10px] font-medium text-[#4a5080]">
+                        <div className="flex h-10 items-center rounded-lg border border-[#c5cfe8] dark:border-white/[0.07] bg-[#f8f9ff] dark:bg-[#0a0e1f] px-3">
+                          <span className="text-sm text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">{form.email}</span>
+                          <span className="ml-auto rounded-full bg-[#f0f4ff] dark:bg-white/[0.04] px-2 py-0.5 text-[10px] font-medium text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">
                             Cannot change
                           </span>
                         </div>
@@ -458,7 +458,7 @@ export default function ProfilePage() {
 
                       {/* Address */}
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[11px] font-semibold uppercase tracking-wider text-[#4a5080]">
+                        <label className="text-[11px] font-semibold uppercase tracking-wider text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">
                           Address
                         </label>
                         {editing ? (
@@ -467,11 +467,11 @@ export default function ProfilePage() {
                             onChange={set("address")}
                             placeholder="Your full address"
                             rows={3}
-                            className="w-full resize-none rounded-lg border border-[#2e3460] bg-[#252a4a] px-3 py-2.5 text-sm text-[#e0e4ff] placeholder-[#4a5080] outline-none transition focus:border-[#4f8ef7] focus:ring-2 focus:ring-[#4f8ef7]/20"
+                            className="w-full resize-none rounded-lg border border-[#c5cfe8] dark:border-white/10 bg-[#f0f4ff] dark:bg-[#101a30] px-3 py-2.5 text-sm text-[#0e1a3d] dark:text-[#e8edf8] placeholder:text-[#0e1a3d]/40 dark:placeholder:text-[#e8edf8]/40 outline-none transition focus:border-[#1a2a6c] dark:focus:border-[#c9a028] focus:ring-2 focus:ring-[#1a2a6c]/20 dark:focus:ring-[#c9a028]/20"
                           />
                         ) : (
-                          <div className="min-h-[5rem] rounded-lg border border-[#2e3460] bg-[#1a1d35] px-3 py-2.5 text-sm text-[#e0e4ff]">
-                            {form.address || <span className="italic text-[#4a5080]">Not set</span>}
+                          <div className="min-h-[5rem] rounded-lg border border-[#c5cfe8] dark:border-white/[0.07] bg-white dark:bg-[#0e1520] px-3 py-2.5 text-sm text-[#0e1a3d] dark:text-[#e8edf8]">
+                            {form.address || <span className="italic text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">Not set</span>}
                           </div>
                         )}
                       </div>
@@ -484,11 +484,11 @@ export default function ProfilePage() {
                       {editing && (
                         <div className="flex gap-3">
                           <button type="button" onClick={handleCancel}
-                            className="h-10 flex-1 rounded-lg border border-[#2e3460] bg-transparent text-sm font-semibold text-[#4a5080] hover:border-[#4f8ef7] hover:text-[#e0e4ff] transition">
+                            className="h-10 flex-1 rounded-lg border border-[#c5cfe8] dark:border-white/10 bg-transparent text-sm font-semibold text-[#0e1a3d]/60 dark:text-[#e8edf8]/50 hover:border-[#1a2a6c] dark:hover:border-[#c9a028] hover:text-[#1a2a6c] dark:hover:text-[#c9a028] transition">
                             Cancel
                           </button>
                           <button type="submit" disabled={saving}
-                            className="h-10 flex-1 rounded-lg bg-[#4f8ef7] text-sm font-bold text-white transition hover:bg-[#3a7de8] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40">
+                            className="h-10 flex-1 rounded-lg bg-[#1a2a6c] dark:bg-[#c9a028] text-sm font-bold text-white dark:text-[#0a0e1f] transition hover:bg-[#142060] dark:hover:bg-[#b78f20] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40">
                             {saving ? (
                               <span className="flex items-center justify-center gap-2">
                                 <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -508,19 +508,19 @@ export default function ProfilePage() {
 
               {/* ── Password tab ── */}
               {tab === "password" && (
-                <div className="rounded-2xl bg-[#1a1d35] border border-[#2e3460] overflow-hidden">
-                  <div className="border-b border-[#2e3460] px-6 py-4">
-                    <h2 className="text-sm font-bold text-[#e0e4ff]">Change Password</h2>
-                    <p className="text-[11px] text-[#4a5080]">Keep your account secure with a strong password</p>
+                <div className="rounded-2xl bg-white dark:bg-[#0e1520] border border-[#c5cfe8] dark:border-white/[0.07] overflow-hidden">
+                  <div className="border-b border-[#c5cfe8] dark:border-white/[0.07] px-6 py-4">
+                    <h2 className="text-sm font-bold text-[#0e1a3d] dark:text-[#e8edf8]">Change Password</h2>
+                    <p className="text-[11px] text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">Keep your account secure with a strong password</p>
                   </div>
 
                   <div className="px-6 py-6">
                     {/* Security tip */}
-                    <div className="mb-6 flex items-start gap-3 rounded-lg border border-[#4f8ef7]/20 bg-[#4f8ef7]/5 px-4 py-3">
-                      <svg width="15" height="15" className="mt-0.5 shrink-0 text-[#4f8ef7]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round">
+                    <div className="mb-6 flex items-start gap-3 rounded-lg border border-[#1a2a6c]/20 dark:border-[#c9a028]/20 bg-[#1a2a6c]/5 dark:bg-[#c9a028]/5 px-4 py-3">
+                      <svg width="15" height="15" className="mt-0.5 shrink-0 text-[#1a2a6c] dark:text-[#c9a028]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round">
                         <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
                       </svg>
-                      <p className="text-[11px] leading-relaxed text-[#4f8ef7]/80">
+                      <p className="text-[11px] leading-relaxed text-[#1a2a6c]/80 dark:text-[#c9a028]/80">
                         For security, use 8+ characters with at least one number and one special character (e.g. !, @, #).
                       </p>
                     </div>
@@ -528,7 +528,7 @@ export default function ProfilePage() {
                     <div className="flex max-w-md flex-col gap-5">
                       {/* Current */}
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[11px] font-semibold uppercase tracking-wider text-[#4a5080]">
+                        <label className="text-[11px] font-semibold uppercase tracking-wider text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">
                           Current Password
                         </label>
                         <PwInput
@@ -541,7 +541,7 @@ export default function ProfilePage() {
 
                       {/* New */}
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[11px] font-semibold uppercase tracking-wider text-[#4a5080]">
+                        <label className="text-[11px] font-semibold uppercase tracking-wider text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">
                           New Password
                         </label>
                         <PwInput
@@ -569,11 +569,11 @@ export default function ProfilePage() {
                       <div className="flex gap-3 pt-1">
                         <button type="button"
                           onClick={() => { setForm((f) => ({ ...f, currentPassword: "", newPassword: "" })); setError(""); setSuccess(""); }}
-                          className="h-10 flex-1 rounded-lg border border-[#2e3460] bg-transparent text-sm font-semibold text-[#4a5080] hover:border-[#4f8ef7] hover:text-[#e0e4ff] transition">
+                          className="h-10 flex-1 rounded-lg border border-[#c5cfe8] dark:border-white/10 bg-transparent text-sm font-semibold text-[#0e1a3d]/60 dark:text-[#e8edf8]/50 hover:border-[#1a2a6c] dark:hover:border-[#c9a028] hover:text-[#1a2a6c] dark:hover:text-[#c9a028] transition">
                           Clear
                         </button>
                         <button type="submit" disabled={saving || !canSavePw}
-                          className="h-10 flex-1 rounded-lg bg-[#4f8ef7] text-sm font-bold text-white transition hover:bg-[#3a7de8] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40">
+                          className="h-10 flex-1 rounded-lg bg-[#1a2a6c] dark:bg-[#c9a028] text-sm font-bold text-white dark:text-[#0a0e1f] transition hover:bg-[#142060] dark:hover:bg-[#b78f20] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40">
                           {saving ? (
                             <span className="flex items-center justify-center gap-2">
                               <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">

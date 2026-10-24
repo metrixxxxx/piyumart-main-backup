@@ -124,8 +124,7 @@ export default function HeroSlider() {
         }
       `}</style>
 
-      <div className="relative w-full h-[280px] sm:h-[360px] lg:h-full lg:min-h-[440px] overflow-hidden shadow-none">
-
+     <div className="relative w-full h-[280px] sm:h-[360px] lg:h-full lg:min-h-[440px] overflow-hidden rounded-2xl border border-slate-700/50 shadow-none">
         {/* BG IMAGE */}
         {visible && (
           <img

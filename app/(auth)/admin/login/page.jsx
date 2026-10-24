@@ -24,7 +24,7 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#f0eeff] dark:bg-[#070b14] p-4">
       <div className="bg-white p-6 sm:p-8 rounded-xl shadow w-full max-w-80">
         <h1 className="text-2xl font-bold mb-6 text-center">Admin Login</h1>
         {error && <p className="text-red-500 text-sm mb-4">{error}</p>}

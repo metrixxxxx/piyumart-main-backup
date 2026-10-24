@@ -119,7 +119,7 @@ function ThemeToggle() {
         className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] bg-white shadow-sm transition-all duration-300
           ${state.dark ? "translate-x-5" : "translate-x-0"}`}
       >
-        {state.dark ? "🌙" : "☀️"}
+        {state.dark ? <span aria-hidden="true">☾</span> : <span aria-hidden="true">☼</span>}
       </span>
     </button>
   );
@@ -157,8 +157,9 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
   const isActive = (path) => pathname === path || pathname.startsWith(path + "/");
 
   const linkClass = (path) =>
-    `flex items-center gap-1.5 text-xs font-semibold tracking-wide transition-colors duration-150
-    ${isActive(path) ? "text-[#c9a028]" : "text-white/60 hover:text-white"}`;
+    `relative flex items-center gap-1.5 text-sm font-semibold tracking-wide transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2c94c]
+    ${isActive(path) ? "text-[#f2c94c]" : "text-white/75 hover:text-white"}
+    ${path === "/" && isActive(path) ? "after:absolute after:-bottom-2 after:left-0 after:h-0.5 after:w-full after:bg-[#f2c94c]" : ""}`;
 
   // ── Observe hero sentinel ───────────────────────────────────────────────────
   useEffect(() => {
@@ -303,6 +304,7 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
 
         {/* LOGO */}
         <Link href="/" className="flex items-center gap-2.5 shrink-0">
+          <span aria-hidden="true" className="h-9 w-9 shrink-0 rounded-full bg-white ring-1 ring-white/40" style={{ backgroundImage: 'url("/img/lspu%20logo%20malupit.png")', backgroundPosition: "center", backgroundRepeat: "no-repeat", backgroundSize: "138px 77px" }} />
           <h1 className="text-lg font-extrabold tracking-tight text-white">
             PIYU<span className="text-[#c9a028]">MART</span>
           </h1>

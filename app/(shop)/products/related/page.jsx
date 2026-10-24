@@ -35,7 +35,7 @@ export default function RelatedProductsPage() {
   }, [id]);
 
   if (loading) return (
-    <div className="flex items-center justify-center min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f]">
+    <div className="flex items-center justify-center min-h-screen bg-[#f0eeff] dark:bg-[#070b14]">
       <div className="text-center">
         <div className="w-10 h-10 border-[3px] border-[#e5e7eb] border-t-[#6d4aff] dark:border-t-[#c9a96e] rounded-full mx-auto mb-4 animate-spin" />
         <p className="text-[#1a1060]/50 dark:text-[#f0ede8]/40 text-sm">Loading...</p>
@@ -44,7 +44,7 @@ export default function RelatedProductsPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] transition-colors duration-300">
+    <main className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] transition-colors duration-300">
 
       {/* HEADER */}
       <section className="bg-white dark:bg-[#12121a] border-b border-[#e8e5f0] dark:border-white/[0.07] px-5 py-8">

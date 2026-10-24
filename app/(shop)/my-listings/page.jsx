@@ -131,13 +131,13 @@ return () => {
 
   if (!session)
     return (
-      <div className="min-h-screen bg-[#eef2f7] dark:bg-[#070b14] flex items-center justify-center text-sm text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">
+      <div className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] flex items-center justify-center text-sm text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">
         Please log in.
       </div>
     );
   if (loading)
     return (
-      <div className="min-h-screen bg-[#eef2f7] dark:bg-[#070b14] flex items-center justify-center">
+      <div className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] flex items-center justify-center">
         <div className="w-10 h-10 border-[3px] border-[#c5cfe8] dark:border-white/10 border-t-[#1a2a6c] dark:border-t-[#c9a028] rounded-full animate-spin" />
       </div>
     );

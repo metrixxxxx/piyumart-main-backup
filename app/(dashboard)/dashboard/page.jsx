@@ -153,13 +153,13 @@ export default function AdminDashboard() {
   const pendingOrders = orders.filter((o) => o.status === "pending").length;
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-950">
+    <div className="min-h-screen flex items-center justify-center bg-[#070b14]">
       <p className="text-gray-400 text-sm">Loading dashboard...</p>
     </div>
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-950 text-white md:flex-row">
+    <div className="min-h-screen flex flex-col bg-[#070b14] text-white md:flex-row">
       {/* Sidebar */}
       <aside className="w-full bg-gray-900 border-b border-gray-800 flex flex-col md:w-56 md:border-b-0 md:border-r md:sticky md:top-0 md:h-screen">
         {/* Logo */}

@@ -56,7 +56,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-dvh w-full items-center justify-center bg-[#0f1123] p-4 sm:p-6">
+    <div className="flex min-h-dvh w-full items-center justify-center bg-[#f0eeff] dark:bg-[#070b14] p-4 sm:p-6">
       <div className="flex w-full max-w-3xl overflow-hidden rounded-2xl shadow-2xl">
 
         {/* Left: Hero Panel */}

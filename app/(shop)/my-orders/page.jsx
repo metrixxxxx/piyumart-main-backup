@@ -412,7 +412,7 @@ export default function OrdersPage() {
   }, [status, session?.user?.id]);
 
   if (status === "loading" || loading) return (
-    <div className="min-h-screen bg-[#eef2f7] dark:bg-[#070b14] flex items-center justify-center">
+    <div className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] flex items-center justify-center">
       <div className="text-center">
         <div className="w-10 h-10 border-[3px] border-[#c5cfe8] dark:border-white/10 border-t-[#1a2a6c] dark:border-t-[#c9a028] rounded-full mx-auto mb-4 animate-spin" />
         <p className="text-sm text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">Loading orders...</p>

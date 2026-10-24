@@ -35,12 +35,12 @@ export default async function SellerPage({ params }) {
   );
 
   return (
-    <main className="min-h-screen bg-[#f0eeff] dark:bg-[#0a0a0f] text-[#1a1060] dark:text-[#f0ede8] transition-colors duration-300">
+    <main className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] text-[#1a1060] dark:text-[#f0ede8] transition-colors duration-300">
       <section className="max-w-[1100px] mx-auto px-4 sm:px-5 py-8 sm:py-10">
         <div className="bg-white dark:bg-[#12121a] rounded-3xl border border-[#e8e5f0] dark:border-white/[0.07] shadow-[0_16px_48px_rgba(16,24,40,0.08)] dark:shadow-[0_16px_48px_rgba(0,0,0,0.4)] overflow-hidden">
           <div className="px-6 py-8 md:px-10 md:py-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-col text-center sm:text-left sm:flex-row sm:items-center gap-5">
-              <div className="mx-auto sm:mx-0 w-24 h-24 rounded-3xl overflow-hidden bg-[#ede9ff] dark:bg-[#c9a96e]/10 flex items-center justify-center text-4xl font-bold text-[#6d4aff] dark:text-[#c9a96e]">
+              <div className="mx-auto sm:mx-0 w-24 h-24 rounded-3xl overflow-hidden bg-white flex items-center justify-center text-4xl font-bold text-[#1a2a6c]">
                 {seller.image ? (
                   <img src={seller.image} alt={sellerName} className="w-full h-full object-cover" />
                 ) : (

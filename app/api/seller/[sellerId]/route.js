@@ -10,15 +10,17 @@ export async function GET(req, { params }) {
       `SELECT
         p.seller_id,
         p.seller_name,
+        u.image AS seller_image,
         COUNT(*)                                             AS total_products,
         COALESCE(SUM(p.sold_count), 0)                      AS total_sold,
         ROUND(AVG(NULLIF(p.average_rating, 0))::numeric, 1) AS avg_rating,
         COALESCE(SUM(p.total_ratings), 0)                   AS total_reviews,
         MIN(p.created_at)                                   AS member_since
        FROM products p
+       LEFT JOIN users u ON u.id = p.seller_id
        WHERE p.seller_id = $1::integer
          AND p.is_visible = true
-       GROUP BY p.seller_id, p.seller_name`,
+       GROUP BY p.seller_id, p.seller_name, u.image`,
       [sellerId]
     );
 
