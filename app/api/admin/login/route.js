@@ -1,13 +1,17 @@
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
-import { cookies } from "next/headers";
+import { setAdminSession } from "@/lib/admin-session";
 
 export async function POST(req) {
   try {
     const { email, password } = await req.json();
+    if (typeof email !== "string" || typeof password !== "string") {
+      return Response.json({ error: "Invalid credentials" }, { status: 400 });
+    }
 
     const [rows] = await db.query(
-      "SELECT * FROM users WHERE email = $1", [email]
+      "SELECT id, name, email, password, role, status, is_verified FROM users WHERE LOWER(email) = $1",
+      [email.trim().toLowerCase()]
     );
 
     if (rows.length === 0) {
@@ -19,23 +23,19 @@ export async function POST(req) {
     if (user.role !== "admin") {
       return Response.json({ error: "Access denied — not an admin" }, { status: 403 });
     }
+    if (user.status !== "active" || user.is_verified !== true) {
+      return Response.json(
+        { error: "Admin access requires an active, verified account." },
+        { status: 403 }
+      );
+    }
 
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) {
       return Response.json({ error: "Wrong password" }, { status: 401 });
     }
 
-    const cookieStore = await cookies();
-    cookieStore.set("admin_session", JSON.stringify({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    }), {
-      httpOnly: true,
-      path: "/",
-      maxAge: 60 * 60 * 24,
-    });
+    await setAdminSession(user);
 
     return Response.json({ success: true });
   } catch (err) {

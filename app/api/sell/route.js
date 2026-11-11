@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { saveFile } from "@/lib/savefile";
+import { isActiveSellerAccount } from "@/lib/seller-access";
 
 export async function GET() {
   try {
@@ -53,6 +54,9 @@ export async function POST(req) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return Response.json({ error: "Not logged in" }, { status: 401 });
+    if (!(await isActiveSellerAccount(session.user.id))) {
+      return Response.json({ error: "An active account is required to manage listings." }, { status: 403 });
+    }
 
     const formData = await req.formData();
 
@@ -81,7 +85,7 @@ export async function POST(req) {
         (name, description, price, image_url, seller_id, seller_name, category_id, stock, is_visible, is_featured, status) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING id`,
-      [name, description, price, image_url, session.user.id, session.user.name, category_id, stock, true, false, "approved"]
+      [name, description, price, image_url, session.user.id, session.user.name, category_id, stock, true, false, "pending"]
     );
     const product_id = rows[0].id;
 
@@ -123,16 +127,7 @@ export async function POST(req) {
       );
     }
 
-    if (global.io) {
-      global.io.emit("products:new", {
-        id: product_id, name, description, price, image_url,
-        images: imageUrls, category_id, stock,
-        seller_id: session.user.id, seller_name: session.user.name,
-        is_visible: true, is_featured: false, status: "approved",
-      });
-    }
-
-    return Response.json({ success: true, id: product_id });
+    return Response.json({ success: true, id: product_id, status: "pending" });
   } catch (err) {
     console.error("POST /api/sell error:", err.message, err.stack);
     return Response.json({ error: err.message }, { status: 500 });
@@ -143,6 +138,9 @@ export async function PUT(req) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return Response.json({ error: "Not logged in" }, { status: 401 });
+    if (!(await isActiveSellerAccount(session.user.id))) {
+      return Response.json({ error: "An active account is required to manage listings." }, { status: 403 });
+    }
 
     const formData = await req.formData();
 
@@ -155,6 +153,14 @@ export async function PUT(req) {
     const is_visible   = formData.get("is_visible") === "1";
     const attributes   = JSON.parse(formData.get("attributes") || "[]");
     const variantCount = parseInt(formData.get("variant_count")) || 0;
+
+    const [ownedProducts] = await db.query(
+      "SELECT id FROM products WHERE id = $1 AND seller_id = $2",
+      [id, session.user.id]
+    );
+    if (!ownedProducts.length) {
+      return Response.json({ error: "Product not found." }, { status: 404 });
+    }
 
     const imageFiles = formData.getAll("images");
     const newImageUrls = [];
@@ -169,12 +175,18 @@ export async function PUT(req) {
     const allImageUrls = [...existingUrls, ...newImageUrls];
     const image_url = allImageUrls[0] || null;
 
-    await db.query(
+    const [updatedProducts] = await db.query(
       `UPDATE products 
-       SET name=$1, description=$2, price=$3, image_url=$4, category_id=$5, stock=$6, is_visible=$7 
-       WHERE id=$8 AND seller_id=$9`,
+       SET name=$1, description=$2, price=$3, image_url=$4, category_id=$5, stock=$6, is_visible=$7,
+           status = CASE WHEN status = 'suspended' THEN status ELSE 'pending' END
+       WHERE id=$8 AND seller_id=$9
+       RETURNING id, name, description, price, image_url, category_id, stock,
+                 is_visible, is_featured, status, seller_id, seller_name`,
       [name, description, price, image_url, category_id, stock, is_visible, id, session.user.id]
     );
+    if (!updatedProducts.length) {
+      return Response.json({ error: "Product not found." }, { status: 404 });
+    }
 
     if (allImageUrls.length > 0) {
       await db.query("DELETE FROM product_images WHERE product_id = $1", [id]);
@@ -217,14 +229,11 @@ export async function PUT(req) {
       );
     }
 
-    if (global.io) {
-      global.io.emit("products:updated", {
-        id, name, description, price, image_url,
-        images: allImageUrls, category_id, stock, is_visible,
-      });
+    if (global.io && updatedProducts[0]) {
+      global.io.emit("products:updated", updatedProducts[0]);
     }
 
-    return Response.json({ success: true });
+    return Response.json({ success: true, status: "pending" });
   } catch (err) {
     console.error("PUT /api/sell error:", err.message, err.stack);
     return Response.json({ error: err.message }, { status: 500 });
@@ -235,8 +244,19 @@ export async function DELETE(req) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return Response.json({ error: "Not logged in" }, { status: 401 });
+    if (!(await isActiveSellerAccount(session.user.id))) {
+      return Response.json({ error: "An active account is required to manage listings." }, { status: 403 });
+    }
 
     const { id } = await req.json();
+
+    const [ownedProducts] = await db.query(
+      "SELECT id FROM products WHERE id = $1 AND seller_id = $2",
+      [id, session.user.id]
+    );
+    if (!ownedProducts.length) {
+      return Response.json({ error: "Product not found." }, { status: 404 });
+    }
 
     await db.query("DELETE FROM product_attributes WHERE product_id = $1", [id]);
     await db.query("DELETE FROM product_images WHERE product_id = $1", [id]);

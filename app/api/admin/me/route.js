@@ -1,17 +1,14 @@
-import { cookies } from "next/headers";
+import { getAdminAccess } from "@/lib/admin-session";
 
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const adminCookie = cookieStore.get("admin_session");
-
-    if (!adminCookie) {
-      return Response.json({ admin: null });
-    }
-
-    const admin = JSON.parse(adminCookie.value);
-    return Response.json({ admin });
+    const access = await getAdminAccess();
+    return Response.json(
+      { admin: access.admin },
+      { status: access.status === 403 ? 403 : 200 }
+    );
   } catch (err) {
-    return Response.json({ admin: null });
+    console.error("Admin session check failed:", err);
+    return Response.json({ admin: null }, { status: 500 });
   }
 }

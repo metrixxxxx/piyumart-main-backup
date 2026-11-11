@@ -1,11 +1,15 @@
 import { db } from "@/lib/db";
-import { cookies } from "next/headers";
+import { getAdminAccess } from "@/lib/admin-session";
 
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const adminCookie = cookieStore.get("admin_session");
-    if (!adminCookie) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const access = await getAdminAccess();
+    if (!access.admin) {
+      return Response.json(
+        { error: access.status === 401 ? "Unauthorized" : "Forbidden" },
+        { status: access.status }
+      );
+    }
 
     const [rows] = await db.query("SELECT id, name, email, role FROM users");
     return Response.json(rows);

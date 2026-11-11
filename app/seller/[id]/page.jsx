@@ -17,7 +17,7 @@ export default async function SellerPage({ params }) {
     [sellerId]
   );
 
-  if (!sellerRows || sellerRows.length === 0) {
+  if (!sellerRows || sellerRows.length === 0 || sellerRows[0].status !== "active") {
     notFound();
   }
 
@@ -29,6 +29,7 @@ export default async function SellerPage({ params }) {
      FROM products p
      LEFT JOIN categories c ON c.id = p.category_id
      WHERE p.seller_id = $1
+       AND p.status = 'approved'
        AND p.is_visible = true
      ORDER BY p.created_at DESC`,
     [sellerId]

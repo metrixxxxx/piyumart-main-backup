@@ -22,13 +22,6 @@ function PasswordInput({ id, value, onChange, placeholder = "••••••�
   const [show, setShow] = useState(false);
   return (
     <div className="relative">
-      <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <rect x="2" y="6" width="10" height="7" rx="2" stroke="#6b73b0" strokeWidth="1.4" />
-          <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="#6b73b0" strokeWidth="1.4" strokeLinecap="round" />
-          <circle cx="7" cy="9.5" r="1" fill="#6b73b0" />
-        </svg>
-      </span>
       <input
         id={id}
         type={show ? "text" : "password"}
@@ -36,13 +29,13 @@ function PasswordInput({ id, value, onChange, placeholder = "••••••�
         value={value}
         onChange={onChange}
         autoComplete={autoComplete}
-        className="h-10 w-full rounded-full border border-[#2a3272] bg-[#1c2260] pl-10 pr-10 text-sm text-[#e8ecff] placeholder-[#6b73b0] outline-none transition focus:border-[#c9922a]"
+        className="h-11 w-full rounded-lg border border-[#b8bfd7] bg-white px-3 pr-10 text-sm text-[#11183f] placeholder-[#7180a3] outline-none transition focus:border-[#e5a51b] focus:ring-2 focus:ring-[#e5a51b]/20"
       />
       <button
         type="button"
         aria-label={show ? "Hide password" : "Show password"}
         onClick={() => setShow((s) => !s)}
-        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6b73b0] transition hover:text-[#e8ecff]"
+        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#65718f] transition hover:text-[#11183f]"
       >
         {show ? (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
@@ -60,53 +53,12 @@ function PasswordInput({ id, value, onChange, placeholder = "••••••�
   );
 }
 
-function StrengthMeter({ value }) {
-  if (!value) return null;
-  const score = pwScore(value);
-  const colors = ["", "#e24b4a", "#ef9f27", "#c9922a"];
-  const labels = ["", "Weak", "Almost there", "Strong"];
-  return (
-    <div className="mt-2 space-y-2">
-      <div className="flex gap-1">
-        {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="h-1 flex-1 rounded-full transition-all duration-300"
-            style={{ background: i <= score ? colors[score] : "#2a3272" }}
-          />
-        ))}
-      </div>
-      <ul className="space-y-1">
-        {RULES.map((r) => {
-          const met = r.test(value);
-          return (
-            <li
-              key={r.id}
-              className="flex items-center gap-1.5 text-[11px] transition-colors"
-              style={{ color: met ? "#c9922a" : "#6b73b0" }}
-            >
-              <span className="text-[10px]">{met ? "✓" : "○"}</span>
-              {r.label}
-            </li>
-          );
-        })}
-      </ul>
-      {value.length > 0 && (
-        <p className="text-right text-[10px]" style={{ color: colors[score] }}>
-          {labels[score]}
-        </p>
-      )}
-    </div>
-  );
-}
-
 export default function LoginPage() {
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [error, setError]       = useState("");
   const [loading, setLoading]   = useState(false);
   const [feedback, setFeedback] = useState(null);
-  const [mode, setMode]         = useState("none");
   const router = useRouter();
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -141,80 +93,109 @@ export default function LoginPage() {
       setLoading(false);
     } else {
       const session = await getSession();
-      router.push(session?.user?.role === "admin" ? "/admin/dashboard" : "/");
+      if (session?.user?.role === "admin") {
+        try {
+          const adminSession = await fetch("/api/admin/session", { method: "POST" });
+          if (!adminSession.ok) {
+            const data = await adminSession.json();
+            throw new Error(data.error || "Unable to open the admin dashboard.");
+          }
+          router.push("/dashboard");
+        } catch (sessionError) {
+          const msg = sessionError.message || "Unable to open the admin dashboard.";
+          setError(msg);
+          setFeedback({ type: "error", title: "Admin access unavailable", description: msg });
+          setLoading(false);
+        }
+      } else {
+        router.push(session?.user?.role === "bao" ? "/bao/dashboard" : "/");
+      }
     }
   };
 
   const handleGoogleSignIn = () => {
   sessionStorage.removeItem("pm_shuffle_seed"); // ← add
   setLoading(true);
-  signIn("google", { callbackUrl: "/set-password" });
+    signIn("google", { callbackUrl: "/auth/google-callback" });
 };
   return (
-    <div className="flex min-h-dvh w-full items-center justify-center bg-[#f0eeff] dark:bg-[#070b14] p-4 sm:p-6">
-      <div className="flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-[#2a2f6e] shadow-2xl md:flex-row">
-
-        {/* ── Left: Login Panel ─────────────────────────────────────────── */}
-        <div className="flex w-full flex-shrink-0 flex-col bg-[#151a4e] px-6 py-8 sm:px-8 md:w-80 md:py-9">
-
-          {/* Brand */}
-          <div className="mb-8 text-sm font-black tracking-[3px] text-white">
-            PIYU<span className="text-[#c9922a]">MART</span>
-          </div>
-
-          {/* Avatar */}
-          <div className="mb-6 flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-[#2a3070] bg-[#1e2460]">
-              <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
-                <circle cx="16" cy="12" r="6" fill="#c9922a" opacity="0.85" />
-                <path d="M3 28c0-7.18 5.82-13 13-13s13 5.82 13 13" stroke="#c9922a" strokeWidth="2" strokeLinecap="round" />
+    <main className="flex min-h-dvh w-full items-center justify-center bg-[radial-gradient(ellipse_at_18%_22%,#252d74_0%,#1a2057_46%,#101436_100%)] px-5 py-10 sm:px-8 lg:px-12">
+      <div className="grid w-full max-w-[1280px] items-center gap-10 min-[900px]:grid-cols-[minmax(0,1fr)_minmax(420px,460px)] min-[900px]:gap-12">
+        <section className="mx-auto w-full max-w-[620px] text-white min-[900px]:mx-0">
+          <div className="mb-8 flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#e6a51a]">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M5 8h14l-1.5 12h-11L5 8Z" stroke="#11183f" strokeWidth="1.8" strokeLinejoin="round" />
+                <path d="M9 8V6a3 3 0 0 1 6 0v2" stroke="#11183f" strokeWidth="1.8" strokeLinecap="round" />
               </svg>
-            </div>
+            </span>
+            <p className="text-[20px] font-black tracking-[2px]">
+              PIYU<span className="text-[#e6a51a]">MART</span>
+            </p>
           </div>
 
-          {/* Headline */}
-          <h1 className="mb-1 text-center text-base font-bold text-white">Sign in</h1>
-          <p className="mb-5 text-center text-[10px] tracking-[0.5px] text-[#6b73b0]">
-            LSPU students only · @lspu.edu.ph
+          <h1 className="max-w-[600px] text-[40px] font-extrabold leading-[1.08] tracking-tight sm:text-[52px]">
+            The campus marketplace, <span className="text-[#e6a51a]">made for students.</span>
+          </h1>
+          <p className="mt-6 max-w-[520px] text-[16px] leading-[1.65] text-[#e1e5ff] sm:text-[17px]">
+            Buy, sell and swap with verified LSPU students. Textbooks, gadgets, uniforms, food and services, all in one place.
           </p>
 
-          {/* ── Steps card ── */}
-          <div className="mb-4 rounded-[14px] border border-[#2a3272] bg-[#1c2260] p-4">
+          <div className="mt-8 grid max-w-[440px] grid-cols-3 gap-3">
             {[
-              { n: 1, title: "First time? Sign in with Google", desc: "Use your LSPU Google account (@lspu.edu.ph) to verify you're a real student.", active: true },
-              { n: 2, title: "Set your password",               desc: "After Google sign-in, you'll be asked to create a password for future logins.", active: false },
-              { n: 3, title: "Next time, use email + password", desc: 'Once your password is set, just use "Continue with email" below.', active: false },
-            ].map((step, i) => (
-              <div key={step.n}>
-                <div className="flex gap-2.5">
-                  <div
-                    className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
-                    style={{
-                      background: step.active ? "#c9922a" : "#2a3272",
-                      color: step.active ? "#fff" : "#6b73b0",
-                      boxShadow: step.active ? "0 0 0 3px rgba(201,146,42,0.2)" : "none",
-                    }}
-                  >
-                    {step.n}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-[11px] font-bold text-[#e8ecff]">{step.title}</p>
-                    <p className="mt-0.5 text-[10px] leading-[1.4] text-[#6b73b0]">{step.desc}</p>
-                  </div>
-                </div>
-                {i < 2 && <div className="ml-[9px] my-1 h-2.5 w-px bg-[#2a3272]" />}
+              {
+                label: "Books",
+                icon: <path d="M5 4.5h12a2 2 0 0 1 2 2v13H7a2 2 0 0 1-2-2v-13Zm0 13a2 2 0 0 1 2-2h12" />,
+              },
+              {
+                label: "Gadgets",
+                icon: <><rect x="7" y="3" width="10" height="18" rx="2" /><path d="M11 18h2" /></>,
+              },
+              {
+                label: "Uniforms",
+                icon: <path d="m9 4 3 2 3-2 5 3-2 4-2-1v10H8V10l-2 1-2-4 5-3Z" />,
+              },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="flex min-h-[128px] flex-col items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/[0.07] text-center"
+              >
+                <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#e6a51a" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  {item.icon}
+                </svg>
+                <span className="text-[13px] font-semibold text-white">{item.label}</span>
               </div>
             ))}
           </div>
 
-          {/* ── Google button ── */}
+          <p className="mt-6 flex items-center gap-2 text-[13px] text-[#e1e5ff]">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M8 1.5 13 3.5v4c0 3.1-2.1 5.5-5 7-2.9-1.5-5-3.9-5-7v-4l5-2Z" stroke="#e6a51a" strokeWidth="1.5" strokeLinejoin="round" />
+              <path d="m6 7.5 1.3 1.3L10 6" stroke="#e6a51a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Student-only: sign-in is checked against @lspu.edu.ph
+          </p>
+        </section>
+
+        <section className="mx-auto w-full max-w-[460px] rounded-[20px] bg-white px-7 py-8 text-[#11183f] shadow-[0_24px_70px_rgba(4,8,35,0.28)] sm:px-9 sm:py-9">
+          <h2 className="text-[26px] font-bold leading-tight">Sign in</h2>
+          <p className="mt-1.5 text-[13px] text-[#65718f]">LSPU students only · @lspu.edu.ph</p>
+
+          <div className="mt-4 flex items-center gap-2 text-[12px] text-[#465275]">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#11183f] text-[10px] font-bold text-white">1</span>
+            <span className="whitespace-nowrap">Verify with Google</span>
+            <span className="h-px flex-1 bg-[#d9ddec]" />
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#e9ecf5] text-[10px] font-bold text-[#35405f]">2</span>
+            <span className="whitespace-nowrap">Set a password</span>
+          </div>
+
           <button
             type="button"
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className="mb-3 flex h-10 w-full items-center justify-center gap-2.5 rounded-full border border-[#2a3272] bg-[#1c2260] text-xs font-semibold tracking-wide text-[#e8ecff] transition hover:border-[#c9922a] hover:bg-[#1a1f56] active:scale-95 disabled:opacity-50"
+            className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#e6a51a] text-[14px] font-bold text-[#11183f] transition hover:bg-[#d9960d] active:scale-[0.99] disabled:opacity-50"
           >
-            <svg width="15" height="15" viewBox="0 0 48 48">
+            <svg width="15" height="15" viewBox="0 0 48 48" aria-hidden="true">
               <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
               <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
               <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
@@ -223,208 +204,55 @@ export default function LoginPage() {
             First time? Continue with Google
           </button>
 
-          {/* Divider */}
-          <div className="mb-3 flex items-center gap-2">
-            <div className="h-px flex-1 bg-[#2a3272]" />
-            <span className="text-[10px] text-[#6b73b0]">returning user</span>
-            <div className="h-px flex-1 bg-[#2a3272]" />
+          <div className="my-5 flex items-center gap-2">
+            <span className="h-px flex-1 bg-[#d9ddec]" />
+            <span className="text-[12px] text-[#65718f]">returning user</span>
+            <span className="h-px flex-1 bg-[#d9ddec]" />
           </div>
 
-          {/* ── Option B: Email toggle ── */}
-         <button
-            type="button"
-            onClick={() => setMode((m) => (m === "email" ? "none" : "email"))}
-            disabled={loading}
-            className="flex h-10 w-full items-center justify-center rounded-full border border-[#2e3460] bg-[#252a4a] px-4 text-xs font-semibold tracking-wide text-[#e0e4ff] transition hover:border-[#4f8ef7] hover:bg-[#1e2340] active:scale-95 disabled:opacity-50"
-          >
-            <div className="flex w-full items-center justify-center gap-2.5">
-              {/* Email icon */}
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 14 14"
-                fill="none"
-                className="shrink-0"
-              >
-                <rect
-                  x="1"
-                  y="3"
-                  width="12"
-                  height="9"
-                  rx="2"
-                  stroke="#4a5080"
-                  strokeWidth="1.4"
-                />
-                <path
-                  d="M1 5l6 4 6-4"
-                  stroke="#4a5080"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                />
-              </svg>
-
-              <span>Continue with email</span>
-
-              {/* Chevron */}
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 12 12"
-                fill="none"
-                className="shrink-0 transition-transform duration-200"
-                style={{
-                  transform:
-                    mode === "email" ? "rotate(180deg)" : "rotate(0deg)",
-                }}
-              >
-                <path
-                  d="M2 4l4 4 4-4"
-                  stroke="#4a5080"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+          <form onSubmit={handleLogin} className="flex flex-col gap-4">
+            <div>
+              <label htmlFor="login-email" className="mb-1.5 block text-[13px] font-medium">School email</label>
+              <input
+                id="login-email"
+                type="email"
+                placeholder="yourname@lspu.edu.ph"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setError(""); }}
+                required
+                autoComplete="email"
+                className="h-11 w-full rounded-lg border border-[#b8bfd7] bg-white px-3 text-sm text-[#11183f] placeholder-[#7180a3] outline-none transition focus:border-[#e5a51b] focus:ring-2 focus:ring-[#e5a51b]/20"
+              />
             </div>
-          </button>
 
-          {/* ── Email + Password form ── */}
-          {mode === "email" && (
-            <form onSubmit={handleLogin} className="mt-4 flex flex-col gap-3">
-              <div className="relative">
-                <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2">
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                    <rect x="1" y="3" width="12" height="9" rx="2" stroke="#6b73b0" strokeWidth="1.4" />
-                    <path d="M1 5l6 4 6-4" stroke="#6b73b0" strokeWidth="1.4" strokeLinecap="round" />
-                  </svg>
-                </span>
-                <input
-                  type="email"
-                  placeholder="yourname@lspu.edu.ph"
-                  value={email}
-                  onChange={(e) => { setEmail(e.target.value); setError(""); }}
-                  required
-                  autoComplete="email"
-                  className="h-10 w-full rounded-full border border-[#2a3272] bg-[#1c2260] pl-10 pr-4 text-xs text-[#e8ecff] placeholder-[#6b73b0] outline-none transition focus:border-[#c9922a]"
-                />
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <label htmlFor="login-pw" className="text-[13px] font-medium">Password</label>
+                <Link href="/forgotpass" className="text-[13px] text-[#9a6800] underline underline-offset-2 hover:text-[#704b00]">
+                  Forgot password?
+                </Link>
               </div>
+              <PasswordInput
+                id="login-pw"
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); setError(""); }}
+                autoComplete="current-password"
+              />
+            </div>
 
-              <div>
-                <PasswordInput
-                  id="login-pw"
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setError(""); }}
-                  autoComplete="current-password"
-                />
-                <StrengthMeter value={password} />
-              </div>
+            {error && (
+              <p role="alert" className="text-center text-[11px] text-red-600">{error}</p>
+            )}
 
-              {error && (
-                <p className="text-center text-[11px] text-red-400">{error}</p>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading || !emailValid || !pwValid}
-                className="h-10 w-full rounded-full bg-[#c9922a] text-xs font-bold uppercase tracking-widest text-white transition hover:bg-[#b5821f] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {loading ? "Logging in…" : "Login"}
-              </button>
-
-              <label className="flex cursor-pointer items-center justify-center gap-1.5 text-[11px] text-[#6b73b0]">
-                <input type="checkbox" className="h-3 w-3 accent-[#c9922a]" />
-                Remember me
-              </label>
-            </form>
-          )}
-
-          {/* Dots */}
-          <div className="mt-auto flex justify-center gap-1.5 pt-6">
-            <div className="h-2 w-5 rounded-full bg-[#c9922a]" />
-            <div className="h-2 w-2 rounded-full bg-[#2a3272]" />
-            <div className="h-2 w-2 rounded-full bg-[#2a3272]" />
-          </div>
-        </div>
-
-        {/* ── Right: Hero Panel ──────────────────────────────────────────── */}
-        <div className="relative hidden flex-1 flex-col overflow-hidden bg-[#1a1f5e] md:flex">
-
-          {/* Grid bg */}
-          <div
-            className="pointer-events-none absolute inset-0"
-            style={{
-              backgroundImage: `linear-gradient(rgba(201,146,42,0.07) 1px, transparent 1px),
-                                linear-gradient(90deg, rgba(201,146,42,0.07) 1px, transparent 1px)`,
-              backgroundSize: "32px 32px",
-              maskImage: "radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%)",
-              WebkitMaskImage: "radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%)",
-            }}
-          />
-
-          {/* Decorative rings */}
-          <div className="pointer-events-none absolute left-1/2 top-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#c9922a26]" />
-          <div className="pointer-events-none absolute left-1/2 top-1/2 h-[200px] w-[200px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#c9922a1a]" />
-
-          {/* Nav */}
-          <nav className="relative z-10 flex items-center justify-end gap-5 px-5 py-4">
-            <Link
-              href="/about-us"
-              className="text-[10px] uppercase tracking-widest text-[#6b73b0] hover:text-white"
+            <button
+              type="submit"
+              disabled={loading || !emailValid || !pwValid}
+              className="mt-0.5 h-12 w-full rounded-lg bg-[#11183f] text-sm font-bold text-white transition hover:bg-[#1d285d] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45"
             >
-              About Us
-            </Link>
-            <button className="rounded-full bg-[#c9922a] px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white hover:bg-[#b5821f]">
-              Sign In
+              {loading ? "Logging in…" : "Sign in"}
             </button>
-          </nav>
-
-          {/* Center logo lockup */}
-          <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-0 px-6 py-4">
-            {/* Icon */}
-            <div
-              className="relative mb-4 flex h-[72px] w-[72px] items-center justify-center rounded-[20px] bg-[#c9922a]"
-              style={{ boxShadow: "0 8px 32px rgba(201,146,42,0.3)" }}
-            >
-              <div className="pointer-events-none absolute inset-[-4px] rounded-[24px] border border-[#c9922a59]" />
-              <svg width="38" height="38" viewBox="0 0 38 38" fill="none">
-                <path d="M8 13h22l-2.5 16H10.5L8 13z" fill="rgba(255,255,255,0.2)" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round"/>
-                <path d="M14 13v-3a5 5 0 0110 0v3" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/>
-                <circle cx="15" cy="20" r="1.2" fill="#fff"/>
-                <circle cx="23" cy="20" r="1.2" fill="#fff"/>
-              </svg>
-            </div>
-
-            {/* Wordmark */}
-            <p className="mb-1 text-[28px] font-black tracking-[4px] text-white">
-              PIYU<span className="text-[#c9922a]">MART</span>
-            </p>
-            <p className="mb-5 text-[10px] uppercase tracking-[2px] text-[#6b73b0]">
-              Student Marketplace · LSPU
-            </p>
-
-            {/* Gold line */}
-            <div className="mb-5 h-0.5 w-10 rounded-full bg-[#c9922a]" />
-
-            {/* Badge */}
-            <div className="flex items-center gap-1.5 rounded-full border border-[#c9922a40] bg-white/5 px-3.5 py-1.5">
-              <div className="h-1.5 w-1.5 rounded-full bg-[#c9922a]" />
-              <span className="text-[10px] tracking-[0.5px] text-[#b0b8e8]">
-                LSPU SPCC Campus · Est. 2024
-              </span>
-            </div>
-          </div>
-
-          {/* Bottom welcome */}
-          <div className="relative z-10 p-6 pb-7">
-            <h1 className="mb-1.5 text-[30px] font-black leading-none tracking-tight text-white">
-              Welcome<span className="text-[#c9922a]">.</span>
-            </h1>
-            <p className="max-w-[160px] text-[11px] leading-relaxed text-[#6b73b0]">
-              Discover student deals on campus. Sign in with your LSPU Google account to get started.
-            </p>
-          </div>
-        </div>
-
+          </form>
+        </section>
       </div>
 
       <LoadingModal open={loading} title="Logging in" description="Checking your account and preparing your session." />
@@ -435,6 +263,6 @@ export default function LoginPage() {
         description={feedback?.description}
         onClose={() => setFeedback(null)}
       />
-    </div>
+    </main>
   );
 }

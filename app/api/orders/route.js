@@ -80,12 +80,20 @@ export async function POST(req) {
           ) AS resolved_image_url
         FROM products p
         LEFT JOIN users u ON u.id = p.seller_id
-        WHERE p.id = $1`,
+        WHERE p.id = $1
+          AND p.status = 'approved'
+          AND p.is_visible = true
+          AND u.status = 'active'`,
         [item.product_id, item.variant || null]
       );
 
       const product = productRows[0];
-      if (!product) continue;
+      if (!product) {
+        return NextResponse.json(
+          { error: "A selected product is no longer available. Refresh your cart and try again." },
+          { status: 409 }
+        );
+      }
 
       enrichedItems.push({ ...item, product });
     }

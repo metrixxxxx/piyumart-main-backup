@@ -99,6 +99,7 @@ export const authOptions = {
             );
           }
 
+          user.isFirstGoogleSignIn = rows.length === 0;
           return true;
         } catch (err) {
           console.error("Google signIn error:", err);
@@ -119,6 +120,7 @@ export const authOptions = {
         token.contactNumber = user.contactNumber;
         token.address = user.address;
         token.hasPassword = user.hasPassword;
+        token.isFirstGoogleSignIn = user.isFirstGoogleSignIn;
       }
 
       // Refresh user data from DB
@@ -152,6 +154,7 @@ export const authOptions = {
       session.user.contactNumber = token.contactNumber;
       session.user.address = token.address;
       session.user.hasPassword = token.hasPassword;
+      session.user.isFirstGoogleSignIn = Boolean(token.isFirstGoogleSignIn);
 
       return session;
     },

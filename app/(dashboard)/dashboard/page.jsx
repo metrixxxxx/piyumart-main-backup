@@ -9,6 +9,7 @@ const NAV = [
   { key: "orders", label: "Orders", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" },
   { key: "products", label: "Products", icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" },
   { key: "users", label: "Users", icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" },
+  { key: "bao-accounts", label: "BAO Accounts", icon: "M12 11c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v3h16v-3c0-2.66-5.33-4-8-4zm5-9h2v2h-2zm1 3h2v2h-2zm-1 3h2v2h-2z" },
 ];
 
 export default function AdminDashboard() {
@@ -22,6 +23,17 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const [notifications, setNotifications] = useState([]);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [baoAccounts, setBaoAccounts] = useState([]);
+  const [baoUsers, setBaoUsers] = useState([]);
+  const [baoSearchInput, setBaoSearchInput] = useState("");
+  const [baoSearch, setBaoSearch] = useState("");
+  const [baoPage, setBaoPage] = useState(1);
+  const [baoPageInfo, setBaoPageInfo] = useState(null);
+  const [baoLoading, setBaoLoading] = useState(true);
+  const [baoError, setBaoError] = useState("");
+  const [baoNotice, setBaoNotice] = useState("");
+  const [baoRefresh, setBaoRefresh] = useState(0);
+  const [baoActionPending, setBaoActionPending] = useState(null);
   const router = useRouter();
 
   const unread = notifications.filter((n) => !n.is_read).length;
@@ -65,7 +77,37 @@ export default function AdminDashboard() {
       socket.off("products:deleted");
       socket.off("products:updated");
     };
-  }, []);
+  }, [router]);
+
+  useEffect(() => {
+    if (activeTab !== "bao-accounts") return;
+
+    let active = true;
+    const params = new URLSearchParams({ page: String(baoPage) });
+    if (baoSearch) params.set("search", baoSearch);
+
+    fetch(`/api/admin/bao-accounts?${params.toString()}`, { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Unable to load BAO accounts.");
+        if (!active) return;
+        setBaoAccounts(data.baoAccounts);
+        setBaoUsers(data.users);
+        setBaoPageInfo(data.page);
+        setBaoError("");
+      })
+      .catch((error) => {
+        console.error("BAO account list request failed:", error);
+        if (active) setBaoError(error.message || "Unable to load BAO accounts.");
+      })
+      .finally(() => {
+        if (active) setBaoLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [activeTab, baoPage, baoRefresh, baoSearch]);
 
   async function fetchData() {
     const [productsRes, usersRes, ordersRes] = await Promise.all([
@@ -139,6 +181,61 @@ export default function AdminDashboard() {
     });
   }
 
+  function openBaoRoleModal(user, action) {
+    const assigning = action === "assign";
+    setBaoError("");
+    setBaoNotice("");
+    setConfirmModal({
+      title: assigning ? "Grant BAO access?" : "Revoke BAO access?",
+      description: assigning
+        ? `Grant ${user.name || user.email} access to BAO management? The account must already be active and email-verified; its status will not be changed.`
+        : `Remove BAO access from ${user.name || user.email}? The account and its data will remain, and its role will return to user.`,
+      confirmText: assigning ? "Grant access" : "Revoke access",
+      cancelText: "Cancel",
+      onConfirm: async () => {
+        setBaoActionPending(user.id);
+        setBaoLoading(true);
+        try {
+          const response = await fetch(`/api/admin/bao-accounts/${user.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action }),
+          });
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || "Unable to update BAO access.");
+          }
+
+          setUsers((current) =>
+            current.map((item) =>
+              item.id === user.id ? { ...item, role: data.user.role } : item
+            )
+          );
+          setBaoNotice(
+            assigning
+              ? "BAO access granted. The account status was unchanged."
+              : "BAO access revoked. The account and its data were preserved."
+          );
+          setBaoRefresh((current) => current + 1);
+        } catch (error) {
+          console.error("BAO account update failed:", error);
+          setBaoError(error.message || "Unable to update BAO access.");
+        } finally {
+          setBaoActionPending(null);
+        }
+      },
+    });
+  }
+
+  function submitBaoSearch(event) {
+    event.preventDefault();
+    const nextSearch = baoSearchInput.trim();
+    if (nextSearch === baoSearch && baoPage === 1) return;
+    setBaoLoading(true);
+    setBaoPage(1);
+    setBaoSearch(nextSearch);
+  }
+
   function markAllRead() {
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: 1 })));
   }
@@ -173,7 +270,10 @@ export default function AdminDashboard() {
           {NAV.map((item) => (
             <button
               key={item.key}
-              onClick={() => setActiveTab(item.key)}
+              onClick={() => {
+                if (item.key === "bao-accounts") setBaoLoading(true);
+                setActiveTab(item.key);
+              }}
               className={`flex shrink-0 items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition md:w-full text-left ${
                 activeTab === item.key
                   ? "bg-blue-600 text-white"
@@ -220,7 +320,9 @@ export default function AdminDashboard() {
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Top bar */}
         <header className="bg-gray-900 border-b border-gray-800 px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-10">
-          <h2 className="text-sm font-medium text-gray-300 capitalize">{activeTab}</h2>
+          <h2 className="text-sm font-medium text-gray-300">
+            {NAV.find((item) => item.key === activeTab)?.label || activeTab}
+          </h2>
           {/* Notification bell */}
           <div className="relative">
             <button
@@ -479,7 +581,7 @@ export default function AdminDashboard() {
                         }`}>{user.role}</span>
                       </td>
                       <td className="px-4 py-3">
-                        {user.role !== "admin" && (
+                        {user.role !== "admin" && user.role !== "bao" && (
                           <button onClick={() => openDeleteUserModal(user.id)}
                             className="text-xs px-3 py-1.5 rounded-lg bg-red-900/40 text-red-400 hover:bg-red-900/70 transition">
                             Delete
@@ -491,6 +593,219 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
             </div>
+          )}
+
+          {activeTab === "bao-accounts" && (
+            <section className="space-y-5">
+              <div className="rounded-xl border border-[#c9a028]/40 bg-[#1a2a6c]/30 p-4 text-sm text-gray-200">
+                BAO access is limited to existing LSPU accounts that are already active and email-verified.
+                Granting or revoking access does not change account status or remove user data.
+              </div>
+
+              {baoNotice ? (
+                <div role="status" className="rounded-xl border border-emerald-800 bg-emerald-950/50 px-4 py-3 text-sm text-emerald-200">
+                  {baoNotice}
+                </div>
+              ) : null}
+              {baoError ? (
+                <div role="alert" className="rounded-xl border border-red-800 bg-red-950/50 px-4 py-3 text-sm text-red-200">
+                  {baoError}
+                </div>
+              ) : null}
+
+              <section className="overflow-hidden rounded-xl border border-gray-800 bg-gray-900">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-800 px-4 py-4">
+                  <div>
+                    <h3 className="font-semibold text-white">Current BAO accounts</h3>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {baoAccounts.length} account(s); access is rechecked on every BAO request.
+                    </p>
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[760px] text-sm">
+                    <thead className="border-b border-gray-800 text-left text-xs uppercase text-gray-500">
+                      <tr>
+                        <th className="px-4 py-3">Name</th>
+                        <th className="px-4 py-3">Email</th>
+                        <th className="px-4 py-3">Account status</th>
+                        <th className="px-4 py-3">Email verification</th>
+                        <th className="px-4 py-3">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {baoLoading ? (
+                        <tr>
+                          <td colSpan={5} className="px-4 py-8 text-center text-gray-500">Loading BAO accounts...</td>
+                        </tr>
+                      ) : baoAccounts.length ? baoAccounts.map((user) => (
+                        <tr key={user.id} className="border-b border-gray-800 last:border-0">
+                          <td className="px-4 py-3 font-medium text-white">
+                            {[user.name, user.last_name].filter(Boolean).join(" ") || `User ${user.id}`}
+                          </td>
+                          <td className="px-4 py-3 text-gray-400">{user.email}</td>
+                          <td className="px-4 py-3">
+                            <span className={`rounded-full px-2 py-1 text-xs font-medium ${
+                              user.status === "active"
+                                ? "bg-green-900/50 text-green-300"
+                                : "bg-amber-900/50 text-amber-300"
+                            }`}>
+                              {user.status || "Unknown"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-300">
+                            {user.is_verified === true ? "Verified" : "Not verified"}
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              type="button"
+                              disabled={baoActionPending === user.id}
+                              onClick={() => openBaoRoleModal(user, "revoke")}
+                              className="rounded-lg border border-red-800 px-3 py-1.5 text-xs font-semibold text-red-300 transition hover:bg-red-950/60 disabled:opacity-50"
+                            >
+                              Revoke access
+                            </button>
+                          </td>
+                        </tr>
+                      )) : (
+                        <tr>
+                          <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                            No BAO accounts have been assigned.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+              <section className="overflow-hidden rounded-xl border border-gray-800 bg-gray-900">
+                <div className="border-b border-gray-800 px-4 py-4">
+                  <h3 className="font-semibold text-white">Find an existing user</h3>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Search by name or email. Admin accounts cannot be promoted.
+                  </p>
+                  <form onSubmit={submitBaoSearch} className="mt-4 flex flex-col gap-2 sm:flex-row">
+                    <label className="sr-only" htmlFor="bao-user-search">Search users by name or email</label>
+                    <input
+                      id="bao-user-search"
+                      type="search"
+                      value={baoSearchInput}
+                      onChange={(event) => setBaoSearchInput(event.target.value)}
+                      maxLength={200}
+                      placeholder="Name or email"
+                      className="min-w-0 flex-1 rounded-lg border border-gray-700 bg-gray-950 px-3 py-2.5 text-sm text-white outline-none focus:border-[#c9a028]"
+                    />
+                    <button
+                      type="submit"
+                      className="rounded-lg bg-[#1a2a6c] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#24377f]"
+                    >
+                      Search users
+                    </button>
+                  </form>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[920px] text-sm">
+                    <thead className="border-b border-gray-800 text-left text-xs uppercase text-gray-500">
+                      <tr>
+                        <th className="px-4 py-3">Name</th>
+                        <th className="px-4 py-3">Email</th>
+                        <th className="px-4 py-3">Role</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3">Verified</th>
+                        <th className="px-4 py-3">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {baoLoading ? (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-8 text-center text-gray-500">Loading users...</td>
+                        </tr>
+                      ) : baoUsers.length ? baoUsers.map((user) => (
+                        <tr key={user.id} className="border-b border-gray-800 last:border-0">
+                          <td className="px-4 py-3 font-medium text-white">
+                            {[user.name, user.last_name].filter(Boolean).join(" ") || `User ${user.id}`}
+                          </td>
+                          <td className="px-4 py-3 text-gray-400">{user.email}</td>
+                          <td className="px-4 py-3 capitalize text-gray-300">{user.role || "user"}</td>
+                          <td className="px-4 py-3">
+                            <span className={`rounded-full px-2 py-1 text-xs font-medium ${
+                              user.status === "active"
+                                ? "bg-green-900/50 text-green-300"
+                                : "bg-amber-900/50 text-amber-300"
+                            }`}>
+                              {user.status || "Unknown"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-300">
+                            {user.is_verified === true ? "Yes" : "No"}
+                          </td>
+                          <td className="px-4 py-3">
+                            {user.role === "admin" ? (
+                              <span className="text-xs text-gray-500">Protected admin account</span>
+                            ) : user.role === "bao" ? (
+                              <span className="text-xs text-gray-500">Already assigned</span>
+                            ) : user.eligible_for_bao ? (
+                              <button
+                                type="button"
+                                disabled={baoActionPending === user.id}
+                                onClick={() => openBaoRoleModal(user, "assign")}
+                                className="rounded-lg bg-[#c9a028] px-3 py-1.5 text-xs font-bold text-[#1a2a6c] transition hover:bg-[#dfb93f] disabled:opacity-50"
+                              >
+                                Assign BAO
+                              </button>
+                            ) : (
+                              <span className="text-xs text-amber-300">
+                                {user.role !== "user"
+                                  ? "Only regular users are eligible"
+                                  : user.status !== "active"
+                                    ? "Account must already be active"
+                                    : user.is_verified !== true
+                                      ? "Email verification required"
+                                      : "LSPU email required"}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      )) : (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                            No users found. Try a different name or email.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                {baoPageInfo?.totalPages > 1 ? (
+                  <div className="flex items-center justify-between border-t border-gray-800 px-4 py-3 text-xs text-gray-400">
+                    <button
+                      type="button"
+                      disabled={baoLoading || baoPageInfo.current <= 1}
+                      onClick={() => {
+                        setBaoLoading(true);
+                        setBaoPage((current) => Math.max(1, current - 1));
+                      }}
+                      className="rounded-lg border border-gray-700 px-3 py-2 disabled:opacity-50"
+                    >
+                      Previous
+                    </button>
+                    <span>Page {baoPageInfo.current} of {baoPageInfo.totalPages}</span>
+                    <button
+                      type="button"
+                      disabled={baoLoading || baoPageInfo.current >= baoPageInfo.totalPages}
+                      onClick={() => {
+                        setBaoLoading(true);
+                        setBaoPage((current) => current + 1);
+                      }}
+                      className="rounded-lg border border-gray-700 px-3 py-2 disabled:opacity-50"
+                    >
+                      Next
+                    </button>
+                  </div>
+                ) : null}
+              </section>
+            </section>
           )}
         </main>
 

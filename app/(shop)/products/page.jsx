@@ -7,6 +7,8 @@ import ProductCard from "@/components/products/ProductCard";
 import SearchAutocomplete from "@/components/SearchAutocomplete";
 import { getSocket } from "@/lib/socket";
 
+const HIDDEN_CATEGORY_NAMES = new Set(["toys", "home & living", "food & drinks"]);
+
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -21,6 +23,9 @@ export default function ProductsPage() {
   const selectedCategory = searchParams.get("category")
     ? Number(searchParams.get("category"))
     : null;
+  const visibleCategories = categories.filter(
+    (cat) => !HIDDEN_CATEGORY_NAMES.has(cat.name?.trim().toLowerCase())
+  );
 
   // ─── Fetch categories ─────────────────────────────
   useEffect(() => {
@@ -65,6 +70,11 @@ export default function ProductsPage() {
 
     socket.on("products:new", (newProduct) => {
       if (
+        newProduct.status !== "approved" ||
+        newProduct.is_visible !== true ||
+        (newProduct.seller_status && newProduct.seller_status !== "active")
+      ) return;
+      if (
         session?.user?.id &&
         String(newProduct.seller_id) === String(session.user.id)
       )
@@ -74,6 +84,14 @@ export default function ProductsPage() {
     });
 
     socket.on("products:updated", (updated) => {
+      if (
+        updated.status !== "approved" ||
+        updated.is_visible !== true ||
+        (updated.seller_status && updated.seller_status !== "active")
+      ) {
+        setProducts((prev) => prev.filter((p) => String(p.id) !== String(updated.id)));
+        return;
+      }
       setProducts((prev) =>
         prev.map((p) =>
           String(p.id) === String(updated.id) ? { ...p, ...updated } : p
@@ -160,7 +178,8 @@ export default function ProductsPage() {
       <section className="max-w-[1200px] mx-auto px-4 sm:px-5 py-8">
 
         {/* Category Filter */}
-        <div className="flex gap-2 flex-wrap mb-6">
+        <div className="sticky top-[76px] z-40 -mx-4 mb-6 bg-[#f0eeff]/95 px-4 py-3 backdrop-blur-md dark:bg-[#070b14]/95 sm:-mx-5 sm:px-5 md:top-[84px]">
+          <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => router.push("/products")}
             className={`px-4 py-1.5 rounded-full border text-xs font-medium transition-all duration-150
@@ -173,7 +192,7 @@ export default function ProductsPage() {
             All
           </button>
 
-          {categories.map((cat) => (
+          {visibleCategories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => router.push(`/products?category=${cat.id}`)}
@@ -187,6 +206,7 @@ export default function ProductsPage() {
               {cat.name}
             </button>
           ))}
+          </div>
         </div>
 
         {/* Header */}

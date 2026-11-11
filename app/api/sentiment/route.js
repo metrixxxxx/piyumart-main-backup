@@ -55,8 +55,14 @@ async function getProductReviewData(productId) {
     `SELECT 
       COALESCE(average_rating, 0) as average_rating,
       COALESCE(total_ratings, 0) as total_ratings
-     FROM products
-     WHERE id = $1`,
+      FROM products AS p
+      WHERE p.id = $1
+        AND p.status = 'approved'
+        AND p.is_visible = true
+        AND EXISTS (
+          SELECT 1 FROM users seller
+          WHERE seller.id = p.seller_id AND seller.status = 'active'
+        )`,
     [productId]
   );
 

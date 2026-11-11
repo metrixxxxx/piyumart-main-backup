@@ -19,7 +19,9 @@ export async function GET(req, { params }) {
        FROM products p
        LEFT JOIN users u ON u.id = p.seller_id
        WHERE p.seller_id = $1::integer
+         AND p.status = 'approved'
          AND p.is_visible = true
+         AND u.status = 'active'
        GROUP BY p.seller_id, p.seller_name, u.image`,
       [sellerId]
     );

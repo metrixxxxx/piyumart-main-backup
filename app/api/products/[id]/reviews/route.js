@@ -9,6 +9,19 @@ export async function GET(req, { params }) {
   try {
     const { id } = await params;
     const { sortBy = "recent" } = Object.fromEntries(new URL(req.url).searchParams);
+    const [productRows] = await db.query(
+      `SELECT p.id
+       FROM products AS p
+       JOIN users AS seller ON seller.id = p.seller_id
+       WHERE p.id = $1
+         AND p.status = 'approved'
+         AND p.is_visible = true
+         AND seller.status = 'active'`,
+      [id]
+    );
+    if (!productRows.length) {
+      return NextResponse.json({ error: "Product not found." }, { status: 404 });
+    }
 
     let sortOrder = "pr.created_at DESC";
     if (sortBy === "highest_rated") sortOrder = "pr.rating DESC, pr.created_at DESC";
@@ -79,6 +92,20 @@ export async function POST(req, { params }) {
     const { id } = await params;
     const { rating, comment } = await req.json();
 
+    const [productCheck] = await db.query(
+      `SELECT p.id
+       FROM products AS p
+       JOIN users AS seller ON seller.id = p.seller_id
+       WHERE p.id = $1
+         AND p.status = 'approved'
+         AND p.is_visible = true
+         AND seller.status = 'active'`,
+      [id]
+    );
+    if (productCheck.length === 0) {
+      return NextResponse.json({ error: "Product not found." }, { status: 404 });
+    }
+
     // Validate rating
     if (!rating || rating < 1 || rating > 5) {
       return NextResponse.json(
@@ -102,15 +129,6 @@ export async function POST(req, { params }) {
         { error: "You can only review products you have purchased" },
         { status: 403 }
       );
-    }
-
-    // Check if product exists
-    const [productCheck] = await db.query(
-      `SELECT id FROM products WHERE id = $1`,
-      [id]
-    );
-    if (productCheck.length === 0) {
-      return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
     // Insert or update review (upsert)

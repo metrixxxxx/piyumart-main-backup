@@ -41,6 +41,11 @@ export async function GET(req) {
        FROM products p
        LEFT JOIN categories c ON c.id = p.category_id
        WHERE p.is_visible = true
+         AND p.status = 'approved'
+         AND EXISTS (
+           SELECT 1 FROM users seller
+           WHERE seller.id = p.seller_id AND seller.status = 'active'
+         )
          AND p.id != $3
          AND (p.category_id = $1 OR p.seller_id = $2)
          ${excludeSeller}

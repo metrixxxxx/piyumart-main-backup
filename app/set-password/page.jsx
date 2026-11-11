@@ -19,13 +19,6 @@ function PasswordInput({ id, value, onChange, placeholder = "••••••�
   const [show, setShow] = useState(false);
   return (
     <div className="relative">
-      <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <rect x="2" y="6" width="10" height="7" rx="2" stroke="#4a5080" strokeWidth="1.4" />
-          <path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="#4a5080" strokeWidth="1.4" strokeLinecap="round" />
-          <circle cx="7" cy="9.5" r="1" fill="#4a5080" />
-        </svg>
-      </span>
       <input
         id={id}
         type={show ? "text" : "password"}
@@ -33,13 +26,13 @@ function PasswordInput({ id, value, onChange, placeholder = "••••••�
         value={value}
         onChange={onChange}
         autoComplete={autoComplete}
-        className="h-10 w-full rounded-full border border-[#2e3460] bg-[#252a4a] pl-10 pr-10 text-sm text-[#e0e4ff] placeholder-[#4a5080] outline-none transition focus:border-[#4f8ef7]"
+        className="h-11 w-full rounded-lg border border-[#b8bfd7] bg-white px-3 pr-10 text-sm text-[#11183f] placeholder-[#7180a3] outline-none transition focus:border-[#e5a51b] focus:ring-2 focus:ring-[#e5a51b]/20"
       />
       <button
         type="button"
         aria-label={show ? "Hide password" : "Show password"}
         onClick={() => setShow((s) => !s)}
-        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#4a5080] transition hover:text-[#e0e4ff]"
+        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#65718f] transition hover:text-[#11183f]"
       >
         {show ? (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
@@ -60,7 +53,7 @@ function PasswordInput({ id, value, onChange, placeholder = "••••••�
 function StrengthMeter({ value }) {
   if (!value) return null;
   const score = pwScore(value);
-  const barColors = ["", "#e24b4a", "#ef9f27", "#4f8ef7"];
+  const barColors = ["", "#e24b4a", "#ef9f27", "#e6a51a"];
   const labels    = ["", "Weak", "Almost there", "Strong ✓"];
   return (
     <div className="mt-2 space-y-2">
@@ -69,7 +62,7 @@ function StrengthMeter({ value }) {
           <div
             key={i}
             className="h-1 flex-1 rounded-full transition-all duration-300"
-            style={{ background: i <= score ? barColors[score] : "#2e3460" }}
+            style={{ background: i <= score ? barColors[score] : "#d9ddec" }}
           />
         ))}
       </div>
@@ -80,7 +73,7 @@ function StrengthMeter({ value }) {
             <li
               key={r.id}
               className="flex items-center gap-1.5 text-[11px] transition-colors"
-              style={{ color: met ? "#4f8ef7" : "#4a5080" }}
+              style={{ color: met ? "#b77900" : "#7180a3" }}
             >
               <span className="text-[10px]">{met ? "✓" : "○"}</span>
               {r.label}
@@ -147,41 +140,43 @@ export default function SetPasswordPage() {
   };
 
   return (
-    <div className="flex min-h-dvh w-full items-center justify-center bg-[#f0eeff] dark:bg-[#070b14] p-4 sm:p-6">
-      <div className="w-full max-w-sm rounded-2xl bg-[#1a1d35] shadow-2xl">
-
-        {/* Top accent bar */}
-        <div className="h-1 w-full rounded-t-2xl bg-[#4f8ef7]" />
-
-        <div className="px-6 py-8 sm:px-8">
-          {/* Brand */}
-          <div className="mb-6 text-sm font-bold tracking-widest text-white">
-            PIYU<span className="text-[#4f8ef7]">MART</span>
+    <main className="flex min-h-dvh w-full items-center justify-center bg-[radial-gradient(ellipse_at_18%_22%,#252d74_0%,#1a2057_46%,#101436_100%)] px-5 py-8 sm:px-8">
+      <section className="w-full max-w-[460px] rounded-[20px] bg-white px-7 py-8 text-[#11183f] shadow-[0_24px_70px_rgba(4,8,35,0.28)] sm:px-9 sm:py-9">
+          <div className="mb-7 flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#e6a51a]">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M5 8h14l-1.5 12h-11L5 8Z" stroke="#11183f" strokeWidth="1.8" strokeLinejoin="round" />
+                <path d="M9 8V6a3 3 0 0 1 6 0v2" stroke="#11183f" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </span>
+            <p className="text-[20px] font-black tracking-[2px]">
+              PIYU<span className="text-[#e6a51a]">MART</span>
+            </p>
           </div>
 
           {/* Google avatar hint */}
           {session?.user?.image && (
-            <div className="mb-5 flex items-center gap-3">
+            <div className="mb-6 flex items-center gap-3 rounded-xl bg-[#f5f6fa] p-3">
               <img
                 src={session.user.image}
                 alt="avatar"
-                className="h-9 w-9 rounded-full border border-[#2e3460]"
+                className="h-10 w-10 rounded-full border border-[#d9ddec]"
               />
               <div>
-                <p className="text-xs font-semibold text-[#e0e4ff]">{session.user.name}</p>
-                <p className="text-[10px] text-[#4a5080]">Signed in with Google</p>
+                <p className="text-sm font-semibold text-[#11183f]">{session.user.name}</p>
+                <p className="mt-0.5 text-xs text-[#65718f]">Signed in with Google</p>
               </div>
             </div>
           )}
 
-          <h2 className="mb-1 text-base font-bold text-white">Set your password</h2>
-          <p className="mb-6 text-[11px] leading-relaxed text-[#4a5080]">
+          <h1 className="text-[26px] font-bold leading-tight">Set your password</h1>
+          <p className="mb-7 mt-1.5 text-sm leading-relaxed text-[#65718f]">
             Create a password so you can also log in with your LSPU email next time.
           </p>
 
           {/* New password */}
-          <div className="mb-3">
-            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-[#4a5080]">
+          <div className="mb-4">
+            <label htmlFor="set-pw" className="mb-1.5 block text-[13px] font-medium">
               New password
             </label>
             <PasswordInput
@@ -194,8 +189,8 @@ export default function SetPasswordPage() {
           </div>
 
           {/* Confirm password */}
-          <div className="mb-4">
-            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-[#4a5080]">
+          <div className="mb-5">
+            <label htmlFor="confirm-pw" className="mb-1.5 block text-[13px] font-medium">
               Confirm password
             </label>
             <PasswordInput
@@ -207,8 +202,8 @@ export default function SetPasswordPage() {
             {/* match indicator */}
             {confirm.length > 0 && (
               <p
-                className="mt-1.5 text-right text-[11px]"
-                style={{ color: matchOk ? "#4f8ef7" : "#e24b4a" }}
+                className="mt-1.5 text-right text-xs"
+                style={{ color: matchOk ? "#9a6800" : "#dc2626" }}
               >
                 {matchOk ? "✓ Passwords match" : "✗ Passwords do not match"}
               </p>
@@ -216,15 +211,15 @@ export default function SetPasswordPage() {
           </div>
 
           {/* Error / success */}
-          {error   && <p className="mb-3 text-center text-[11px] text-red-400">{error}</p>}
-          {success && <p className="mb-3 text-center text-[11px] text-green-400">{success}</p>}
+          {error   && <p role="alert" className="mb-3 text-center text-sm text-red-600">{error}</p>}
+          {success && <p className="mb-3 text-center text-sm text-green-700">{success}</p>}
 
           {/* Actions */}
           <button
             type="button"
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="h-10 w-full rounded-full bg-[#4f8ef7] text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-[#3a7de8] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+            className="h-12 w-full rounded-lg bg-[#11183f] text-sm font-bold text-white transition hover:bg-[#1d285d] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45"
           >
             {loading ? "Saving…" : "Set Password"}
           </button>
@@ -232,12 +227,11 @@ export default function SetPasswordPage() {
           <button
             type="button"
             onClick={() => router.push("/")}
-            className="mt-3 w-full text-center text-[11px] text-[#4a5080] transition hover:text-[#e0e4ff]"
+            className="mt-4 w-full text-center text-sm font-medium text-[#9a6800] transition hover:text-[#704b00]"
           >
             Skip for now
           </button>
-        </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

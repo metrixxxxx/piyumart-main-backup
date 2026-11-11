@@ -122,8 +122,10 @@ export default function SellPage() {
     resetForm();
     setFeedback({
       type: "success",
-      title: editProduct ? "Product updated" : "Product posted",
-      description: editProduct ? "Your listing changes are now live." : "Your product is now available in the marketplace.",
+      title: "Product submitted for BAO review",
+      description: editProduct
+        ? "Your changes were saved and the listing must be reviewed again before buyers can see it."
+        : "Your listing is saved. It will appear in the marketplace after it is approved.",
     });
   } catch (err) {
     setFeedback({
@@ -488,6 +490,17 @@ export default function SellPage() {
                 {/* Info */}
                 <div className="mt-3">
                   <h4 className="font-semibold text-sm text-[#0e1a3d] dark:text-[#e8edf8]">{product.name}</h4>
+                  <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold capitalize ${
+                    product.status === "approved"
+                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200"
+                      : product.status === "rejected"
+                        ? "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-200"
+                        : product.status === "suspended"
+                          ? "bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-100"
+                          : "bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200"
+                  }`}>
+                    {product.status === "pending" ? "Pending BAO approval" : product.status || "Unknown"}
+                  </span>
                   <p className="text-sm font-bold text-[#1a2a6c] dark:text-[#c9a028]">₱{Number(product.price).toLocaleString()}</p>
                   <p className={`text-xs mt-0.5 font-medium ${product.stock === 0 ? "text-[#e94560]" : "text-[#16a34a]"}`}>
                     {product.stock === 0 ? "Out of stock" : `${product.stock} in stock`}

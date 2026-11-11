@@ -1,14 +1,27 @@
 import { db } from "@/lib/db";
-import { cookies } from "next/headers";
+import { getAdminAccess } from "@/lib/admin-session";
 
 export async function DELETE(req, { params }) {
   try {
-    const cookieStore = await cookies();
-    const adminCookie = cookieStore.get("admin_session");
-    if (!adminCookie) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const access = await getAdminAccess();
+    if (!access.admin) {
+      return Response.json(
+        { error: access.status === 401 ? "Unauthorized" : "Forbidden" },
+        { status: access.status }
+      );
+    }
 
     const { id } = await params;
-    await db.query("DELETE FROM users WHERE id = $1", [id]);
+    const [rows] = await db.query(
+      "DELETE FROM users WHERE id = $1 AND role NOT IN ('admin', 'bao') RETURNING id",
+      [id]
+    );
+    if (!rows.length) {
+      return Response.json(
+        { error: "User not found or protected from deletion." },
+        { status: 404 }
+      );
+    }
     return Response.json({ success: true });
   } catch (err) {
     return Response.json({ error: err.message }, { status: 500 });

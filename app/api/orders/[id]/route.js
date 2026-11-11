@@ -4,6 +4,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { notify } from "@/lib/notify";
 import { supabaseAdmin } from "@/lib/supabase";
+import { isActiveSellerAccount } from "@/lib/seller-access";
+import { recordOrderCommission } from "@/lib/bao-commission";
 
 const ACTION_TO_STATUS = {
   confirm_delivery: "completed",
@@ -26,61 +28,108 @@ export async function PATCH(req, { params }) {
     const status = body.status ?? ACTION_TO_STATUS[body.action];
     if (!status) return NextResponse.json({ error: "Invalid action or status" }, { status: 400 });
 
-    const [rows] = await db.query(`SELECT * FROM orders WHERE id = $1`, [orderId]);
-    const order = rows[0];
-    if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    const transition = await db.transaction(async (client) => {
+      const { rows } = await client.query(
+        `SELECT * FROM orders WHERE id = $1 FOR UPDATE`,
+        [orderId]
+      );
+      const order = rows[0];
+      if (!order) return { error: "Order not found", status: 404 };
 
-    const isAdmin = session.user.role === "admin";
-    const isSeller = Number(order.seller_id) === Number(session.user.id);
-    const isBuyer = Number(order.user_id) === Number(session.user.id);
+      const isAdmin = session.user.role === "admin";
+      const isSeller = Number(order.seller_id) === Number(session.user.id);
+      const isBuyer = Number(order.user_id) === Number(session.user.id);
 
-    const buyerAllowedActions = {
-      cancelled: order.status === "pending",
-      completed: order.status === "shipped",
-    };
-
-    if (!isAdmin && !isSeller) {
-      if (!isBuyer || !buyerAllowedActions[status]) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      if (isSeller && !isAdmin && !(await isActiveSellerAccount(session.user.id))) {
+        return {
+          error: "An active account is required to manage seller orders.",
+          status: 403,
+        };
       }
-    }
 
-    if (order.status === "cancelled" || order.status === "completed") {
-      return NextResponse.json({ error: "Order already finalized" }, { status: 400 });
-    }
+      const buyerAllowedActions = {
+        cancelled: order.status === "pending",
+        completed: order.status === "shipped",
+      };
 
-    await db.query("BEGIN");
-
-    if (status === "completed" && order.status !== "completed") {
-      const [items] = await db.query(`SELECT product_id, quantity FROM order_items WHERE order_id = $1`, [orderId]);
-      for (const item of items) {
-        await db.query(`UPDATE products SET sold_count = sold_count + $1 WHERE id = $2`, [item.quantity, item.product_id]);
-        await db.query(`UPDATE products SET stock = stock - $1 WHERE id = $2 AND stock >= $3`, [item.quantity, item.product_id, item.quantity]);
+      if (isSeller && !isAdmin && status === "completed") {
+        return { error: "Only the buyer can confirm order completion.", status: 403 };
       }
-    }
 
-    if (status === "cancelled") {
-      const [items] = await db.query(`SELECT * FROM order_items WHERE order_id = $1`, [orderId]);
-      for (const item of items) {
-        if (item.variant_id) {
-          await db.query(`UPDATE product_variants SET stock = stock + $1 WHERE id = $2`, [item.quantity, item.variant_id]);
-        } else {
-          await db.query(`UPDATE products SET stock = stock + $1 WHERE id = $2`, [item.quantity, item.product_id]);
+      if (!isAdmin && !isSeller && (!isBuyer || !buyerAllowedActions[status])) {
+        return { error: "Forbidden", status: 403 };
+      }
+
+      if (order.status === "cancelled" || order.status === "completed") {
+        return { error: "Order already finalized", status: 400 };
+      }
+
+      if (status === "completed") {
+        const { rows: items } = await client.query(
+          `SELECT product_id, quantity FROM order_items WHERE order_id = $1`,
+          [orderId]
+        );
+        for (const item of items) {
+          await client.query(
+            `UPDATE products SET sold_count = sold_count + $1 WHERE id = $2`,
+            [item.quantity, item.product_id]
+          );
+          await client.query(
+            `UPDATE products SET stock = stock - $1 WHERE id = $2 AND stock >= $3`,
+            [item.quantity, item.product_id, item.quantity]
+          );
         }
       }
+
+      if (status === "cancelled") {
+        const { rows: items } = await client.query(
+          `SELECT * FROM order_items WHERE order_id = $1`,
+          [orderId]
+        );
+        for (const item of items) {
+          if (item.variant_id) {
+            await client.query(
+              `UPDATE product_variants SET stock = stock + $1 WHERE id = $2`,
+              [item.quantity, item.variant_id]
+            );
+          } else {
+            await client.query(
+              `UPDATE products SET stock = stock + $1 WHERE id = $2`,
+              [item.quantity, item.product_id]
+            );
+          }
+        }
+      }
+
+      const { rows: updatedRows } = await client.query(
+        `UPDATE orders
+         SET status = $1,
+             completed_at = CASE
+               WHEN $1 = 'completed' THEN COALESCE(completed_at, NOW())
+               ELSE completed_at
+             END
+         WHERE id = $2
+         RETURNING *`,
+        [status, orderId]
+      );
+      const updatedOrder = updatedRows[0];
+
+      if (status === "completed") {
+        await recordOrderCommission(client, orderId);
+      }
+
+      return { order: updatedOrder };
+    });
+
+    if (transition.error) {
+      return NextResponse.json({ error: transition.error }, { status: transition.status });
     }
 
-    const [updatedRows] = await db.query(
-      `UPDATE orders SET status = $1 WHERE id = $2 RETURNING *`,
-      [status, orderId]
-    );
-    const updatedOrder = updatedRows[0];
-
-    await db.query("COMMIT");
+    const updatedOrder = transition.order;
 
     try {
       await supabaseAdmin
-        .channel(`buyer:${order.user_id}`)
+        .channel(`buyer:${updatedOrder.user_id}`)
         .send({
           type: "broadcast",
           event: "orders:updated",
@@ -114,15 +163,14 @@ export async function PATCH(req, { params }) {
     }
 
     if (status === "completed") {
-      await notify({ userId: order.user_id, type: "order_completed", message: `Your order #${orderId} has been marked as received. Thank you!` });
+      await notify({ userId: updatedOrder.user_id, type: "order_completed", message: `Your order #${orderId} has been marked as received. Thank you!` });
     }
     if (status === "cancelled") {
-      await notify({ userId: order.user_id, type: "order_cancelled", message: `Your order #${orderId} has been cancelled.` });
+      await notify({ userId: updatedOrder.user_id, type: "order_cancelled", message: `Your order #${orderId} has been cancelled.` });
     }
 
     return NextResponse.json({ success: true, status, order: updatedOrder });
   } catch (err) {
-    await db.query("ROLLBACK");
     console.error("PATCH /orders/[id] error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
@@ -150,6 +198,17 @@ export async function DELETE(req, { params }) {
         { error: "Only cancelled or completed orders can be deleted." },
         { status: 400 }
       );
+
+    const [commissionRows] = await db.query(
+      `SELECT 1 FROM order_commissions WHERE order_id = $1 LIMIT 1`,
+      [orderId]
+    );
+    if (commissionRows.length) {
+      return NextResponse.json(
+        { error: "Orders with recorded BAO commissions cannot be deleted." },
+        { status: 409 }
+      );
+    }
 
     await db.query(`DELETE FROM order_items WHERE order_id = $1`, [orderId]);
     await db.query(`DELETE FROM orders WHERE id = $1`, [orderId]);

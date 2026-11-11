@@ -45,10 +45,23 @@ export default function ProductDetailPage() {
 
     const socket = getSocket();
     socket.on("products:updated", (updated) => {
-      if (String(updated.id) === String(id))
-        setProduct((prev) => ({ ...prev, ...updated }));
+      if (String(updated.id) === String(id)) {
+        if (
+          updated.status !== "approved" ||
+          updated.is_visible !== true ||
+          (updated.seller_status && updated.seller_status !== "active")
+        ) {
+          router.push("/products");
+        } else {
+          setProduct((prev) => ({ ...prev, ...updated }));
+        }
+      }
       setRelatedProducts((prev) =>
-        prev.map((p) => String(p.id) === String(updated.id) ? { ...p, ...updated } : p)
+        updated.status !== "approved" ||
+        updated.is_visible !== true ||
+        (updated.seller_status && updated.seller_status !== "active")
+          ? prev.filter((p) => String(p.id) !== String(updated.id))
+          : prev.map((p) => String(p.id) === String(updated.id) ? { ...p, ...updated } : p)
       );
     });
     socket.on("products:deleted", ({ id: deletedId }) => {
@@ -56,6 +69,11 @@ export default function ProductDetailPage() {
       setRelatedProducts((prev) => prev.filter((p) => String(p.id) !== String(deletedId)));
     });
     socket.on("products:new", (newProduct) => {
+      if (
+        newProduct.status !== "approved" ||
+        newProduct.is_visible !== true ||
+        (newProduct.seller_status && newProduct.seller_status !== "active")
+      ) return;
       setRelatedProducts((prev) => [newProduct, ...prev]);
     });
     return () => {
@@ -63,7 +81,7 @@ export default function ProductDetailPage() {
       socket.off("products:deleted");
       socket.off("products:new");
     };
-  }, [id]);
+  }, [id, router]);
 
   async function handleAddToCart() {
     if (!session) { setShowModal(true); return; }

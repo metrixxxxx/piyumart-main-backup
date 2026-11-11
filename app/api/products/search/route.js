@@ -43,10 +43,18 @@ export async function GET(req) {
       LEFT JOIN categories c ON p.category_id = c.id
 
       WHERE
-        p.name        ILIKE $2
-        OR c.name     ILIKE $2
-        OR p.description ILIKE $2
-        OR CAST(p.price AS TEXT) ILIKE $2
+        p.status = 'approved'
+        AND p.is_visible = true
+        AND EXISTS (
+          SELECT 1 FROM users seller
+          WHERE seller.id = p.seller_id AND seller.status = 'active'
+        )
+        AND (
+          p.name ILIKE $2
+          OR c.name ILIKE $2
+          OR p.description ILIKE $2
+          OR CAST(p.price AS TEXT) ILIKE $2
+        )
 
       ORDER BY relevance_score DESC, p.sold_count DESC, p.created_at DESC
       LIMIT 10

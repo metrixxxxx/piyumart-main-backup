@@ -79,15 +79,13 @@ export default function MessagesPage() {
   return (
     <main className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] transition-colors duration-300">
       <section className="bg-[#1a2a6c] dark:bg-[#0a0e1f]">
-        <div className="max-w-5xl mx-auto px-5 sm:px-8 py-8 sm:py-10">
+        <div className="max-w-5xl mx-auto px-5 sm:px-8 py-8 sm:py-10 text-center">
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#d8b94e]">Your inbox</p>
-          <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white">Messages</h1>
-              <p className="mt-1 text-sm text-white/65">
-                {totalUnread > 0 ? `${totalUnread} unread message${totalUnread !== 1 ? "s" : ""}` : "You’re all caught up"}
-              </p>
-            </div>
+          <div className="mt-2 flex flex-col items-center gap-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">Messages</h1>
+            <p className="text-sm text-white/65">
+              {totalUnread > 0 ? `${totalUnread} unread message${totalUnread !== 1 ? "s" : ""}` : "You’re all caught up"}
+            </p>
             <span className="text-xs text-white/55">{conversations.length} conversation{conversations.length === 1 ? "" : "s"}</span>
           </div>
         </div>

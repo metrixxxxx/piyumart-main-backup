@@ -59,6 +59,8 @@ const CATEGORY_ICONS = {
   "Toys": "🧸",
 };
 
+const HIDDEN_CATEGORY_NAMES = new Set(["toys", "home & living", "food & drinks"]);
+
 function SkeletonCard() {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 animate-pulse dark:border-white/10 dark:bg-slate-900">
@@ -172,6 +174,9 @@ export default function HomePage() {
     category === "all"
       ? "All Products"
       : categories.find((c) => String(c.id) === category)?.name || "Products";
+  const visibleCategories = categories.filter(
+    (cat) => !HIDDEN_CATEGORY_NAMES.has(cat.name?.trim().toLowerCase())
+  );
 
   return (
     <main className="min-h-screen scroll-smooth bg-[#f0eeff] transition-colors duration-300 dark:bg-[#070b14]">
@@ -185,7 +190,8 @@ export default function HomePage() {
       <section className="mx-auto max-w-7xl px-3 pb-10 pt-7 sm:px-5 sm:pt-9">
 
         {/* category tabs */}
-        <div className="mb-7 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-none sm:flex-wrap">
+        <div className="sticky top-[76px] z-40 -mx-3 mb-7 bg-[#f0eeff]/95 px-3 py-3 backdrop-blur-md dark:bg-[#070b14]/95 sm:-mx-5 sm:px-5 md:top-[84px]">
+          <div className="flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-none sm:flex-wrap">
           <button
             onClick={() => { setCategory("all"); setVisibleCount(PRODUCTS_PER_PAGE); }}
             className={`flex-shrink-0 px-4 py-1.5 rounded-full border text-xs font-medium transition-all duration-150
@@ -196,7 +202,7 @@ export default function HomePage() {
           >
             🛍️ All
           </button>
-          {categories.map((cat) => (
+          {visibleCategories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => { setCategory(String(cat.id)); setVisibleCount(PRODUCTS_PER_PAGE); }}
@@ -209,6 +215,7 @@ export default function HomePage() {
               {CATEGORY_ICONS[cat.name] || "🏷️"} {cat.name}
             </button>
           ))}
+          </div>
         </div>
 
         {/* header row */}

@@ -28,7 +28,13 @@ const [items] = await db.query(
    LEFT JOIN product_variants pv 
      ON pv.product_id = cart_items.product_id 
      AND pv.label = cart_items.variant
-   WHERE carts.user_id = $1`,
+   WHERE carts.user_id = $1
+     AND products.status = 'approved'
+     AND products.is_visible = true
+     AND EXISTS (
+       SELECT 1 FROM users seller
+       WHERE seller.id = products.seller_id AND seller.status = 'active'
+     )`,
   [userId]
 );
 
@@ -48,6 +54,22 @@ export async function POST(req) {
 
     const userId = session.user.id;
     const { product_id, quantity, variant } = await req.json();
+
+    const [availableProducts] = await db.query(
+      `SELECT p.id
+       FROM products AS p
+       WHERE p.id = $1
+         AND p.status = 'approved'
+         AND p.is_visible = true
+         AND EXISTS (
+           SELECT 1 FROM users seller
+           WHERE seller.id = p.seller_id AND seller.status = 'active'
+         )`,
+      [product_id]
+    );
+    if (!availableProducts.length) {
+      return Response.json({ error: "This product is no longer available." }, { status: 404 });
+    }
 
     const [cart] = await db.query(
       "SELECT id FROM carts WHERE user_id = $1",

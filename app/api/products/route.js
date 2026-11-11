@@ -20,7 +20,11 @@ export async function GET(req) {
     else if (sortBy === "price_high") orderByClause = "p.price DESC, p.id DESC";
 
     // Build WHERE clause
-    let whereConditions = ["p.is_visible = true"];
+    let whereConditions = [
+      "p.is_visible = true",
+      "p.status = 'approved'",
+      "EXISTS (SELECT 1 FROM users seller WHERE seller.id = p.seller_id AND seller.status = 'active')",
+    ];
     let params = [];
 
     // On a seller's shop page, don't exclude their own products

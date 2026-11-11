@@ -8,6 +8,21 @@ export async function POST(req) {
     if (!session) return new Response("Unauthorized", { status: 401 });
 
     const { productId } = await req.json();
+    const [availableProducts] = await db.query(
+      `SELECT p.id
+       FROM products AS p
+       WHERE p.id = $1
+         AND p.status = 'approved'
+         AND p.is_visible = true
+         AND EXISTS (
+           SELECT 1 FROM users seller
+           WHERE seller.id = p.seller_id AND seller.status = 'active'
+         )`,
+      [productId]
+    );
+    if (!availableProducts.length) {
+      return Response.json({ error: "This product is no longer available." }, { status: 404 });
+    }
 
     const [users] = await db.query("SELECT * FROM users WHERE email=$1", [session.user.email]);
     const user = users[0];

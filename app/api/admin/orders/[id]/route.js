@@ -3,18 +3,18 @@ import { db } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { notify } from "@/lib/notify";
+import { recordOrderCommission } from "@/lib/bao-commission";
 
 export async function PATCH(req, { params }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { id } = params;
+    const { id } = await params;
     const { action } = await req.json();
 
     const [rows] = await db.query(`SELECT * FROM orders WHERE id = $1`, [id]);
     const order = rows[0];
-    let inTransaction = false;
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
     if (String(order.user_id) !== String(session.user.id))
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -23,39 +23,68 @@ export async function PATCH(req, { params }) {
       if (order.status !== "shipped")
         return NextResponse.json({ error: "Order is not shipped yet" }, { status: 400 });
 
-      await db.query("BEGIN");
-      inTransaction = true;
-      const [items] = await db.query(
-        `SELECT product_id, quantity FROM order_items WHERE order_id = $1`,
-        [id]
-      );
-      for (const item of items) {
-        await db.query(
-          `UPDATE products SET sold_count = sold_count + $1 WHERE id = $2`,
-          [item.quantity, item.product_id]
+      const completion = await db.transaction(async (client) => {
+        const { rows: lockedRows } = await client.query(
+          `SELECT * FROM orders WHERE id = $1 FOR UPDATE`,
+          [id]
         );
+        const lockedOrder = lockedRows[0];
+        if (!lockedOrder) return { error: "Order not found", status: 404 };
+        if (String(lockedOrder.user_id) !== String(session.user.id)) {
+          return { error: "Forbidden", status: 403 };
+        }
+        if (lockedOrder.status !== "shipped") {
+          return { error: "Order is not shipped yet", status: 400 };
+        }
+
+        const { rows: items } = await client.query(
+          `SELECT product_id, quantity FROM order_items WHERE order_id = $1`,
+          [id]
+        );
+        for (const item of items) {
+          await client.query(
+            `UPDATE products SET sold_count = sold_count + $1 WHERE id = $2`,
+            [item.quantity, item.product_id]
+          );
+        }
+
+        const { rows: updatedRows } = await client.query(
+          `UPDATE orders
+           SET status = 'completed', completed_at = COALESCE(completed_at, NOW())
+           WHERE id = $1 AND status = 'shipped'
+           RETURNING *`,
+          [id]
+        );
+        const updatedOrder = updatedRows[0];
+        if (!updatedOrder) {
+          return { error: "Order is not shipped yet", status: 400 };
+        }
+
+        await recordOrderCommission(client, updatedOrder.id);
+        const { rows: sellerRows } = await client.query(
+          `SELECT DISTINCT p.seller_id
+           FROM order_items oi
+           JOIN products p ON p.id = oi.product_id
+           WHERE oi.order_id = $1`,
+          [id]
+        );
+
+        return { order: updatedOrder, sellerId: sellerRows[0]?.seller_id };
+      });
+
+      if (completion.error) {
+        return NextResponse.json({ error: completion.error }, { status: completion.status });
       }
-      await db.query(
-        `UPDATE orders SET status = 'completed', completed_at = NOW() WHERE id = $1`,
-        [id]
-      );
-      await db.query("COMMIT");
 
       // notify seller
-      const [itemRows] = await db.query(
-        `SELECT p.seller_id FROM order_items oi
-         JOIN products p ON p.id = oi.product_id
-         WHERE oi.order_id = $1 LIMIT 1`,
-        [id]
-      );
-      if (itemRows[0]) {
+      if (completion.sellerId) {
         await notify({
-          userId: itemRows[0].seller_id,
+          userId: completion.sellerId,
           type: "order_completed",
           message: `✅ Order #${id} has been received by the buyer. Order completed!`,
         });
         // notify seller's room
-        global.io?.to(`user_${itemRows[0].seller_id}`).emit("orders:updated", {
+        global.io?.to(`user_${completion.sellerId}`).emit("orders:updated", {
           id: Number(id),
           status: "completed",
         });
@@ -120,9 +149,6 @@ export async function PATCH(req, { params }) {
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (err) {
-    if (inTransaction) {
-      await db.query("ROLLBACK");
-    }
     console.error("PATCH /api/orders/[id] error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

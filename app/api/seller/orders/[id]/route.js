@@ -4,11 +4,15 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { notify } from "@/lib/notify";
 import { supabaseAdmin } from "@/lib/supabase";
+import { isActiveSellerAccount } from "@/lib/seller-access";
 
 export async function PATCH(req, { params }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!(await isActiveSellerAccount(session.user.id))) {
+      return NextResponse.json({ error: "An active account is required to manage seller orders." }, { status: 403 });
+    }
 
     const { id } = await params;
     const orderId = Number(id);

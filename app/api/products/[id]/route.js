@@ -1,8 +1,11 @@
 import { db } from "@/lib/db";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/authOptions";
 
 export async function GET(req, { params }) {
   try {
     const { id } = await params;
+    const session = await getServerSession(authOptions);
 
     const result = await db.query(
   `SELECT p.*, 
@@ -11,9 +14,14 @@ export async function GET(req, { params }) {
     COALESCE(p.sold_count, 0) as sold_count,
     c.name as category_name
    FROM products p
+   LEFT JOIN users seller ON seller.id = p.seller_id
    LEFT JOIN categories c ON c.id = p.category_id
-   WHERE p.id = $1`,
-  [id]
+   WHERE p.id = $1
+     AND (
+       (p.status = 'approved' AND p.is_visible = true AND seller.status = 'active')
+       OR p.seller_id = $2
+     )`,
+  [id, session?.user?.id ?? null]
 );
 const rows = result[0]; // result[0] is the array of rows
 
