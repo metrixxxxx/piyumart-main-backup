@@ -208,3 +208,38 @@ body::-webkit-scrollbar,
 *::-webkit-scrollbar {
   display: none; /* Chrome / Safari */
 }
+
+.seller-orders-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #1a2a6c #e8edf8;
+  -ms-overflow-style: auto;
+}
+
+.seller-orders-scrollbar::-webkit-scrollbar {
+  display: block;
+  height: 12px;
+}
+
+.seller-orders-scrollbar::-webkit-scrollbar-track {
+  border-radius: 9999px;
+  background: #e8edf8;
+}
+
+.seller-orders-scrollbar::-webkit-scrollbar-thumb {
+  border: 2px solid #e8edf8;
+  border-radius: 9999px;
+  background: #1a2a6c;
+}
+
+.dark .seller-orders-scrollbar {
+  scrollbar-color: #c9a028 #111827;
+}
+
+.dark .seller-orders-scrollbar::-webkit-scrollbar-track {
+  background: #111827;
+}
+
+.dark .seller-orders-scrollbar::-webkit-scrollbar-thumb {
+  border-color: #111827;
+  background: #c9a028;
+}

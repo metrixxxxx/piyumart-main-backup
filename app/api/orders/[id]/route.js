@@ -105,12 +105,12 @@ export async function PATCH(req, { params }) {
         `UPDATE orders
          SET status = $1,
              completed_at = CASE
-               WHEN $1 = 'completed' THEN COALESCE(completed_at, NOW())
+               WHEN $3 THEN COALESCE(completed_at, NOW())
                ELSE completed_at
              END
          WHERE id = $2
          RETURNING *`,
-        [status, orderId]
+        [status, orderId, status === "completed"]
       );
       const updatedOrder = updatedRows[0];
 

@@ -13,7 +13,7 @@ export default function BaoHeader({ active }) {
   return (
     <header className="bg-[#1a2a6c] text-white shadow-md">
       <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
           <Link href="/bao/dashboard" className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c9a028] text-sm font-black text-[#1a2a6c]">
               PM
@@ -21,12 +21,6 @@ export default function BaoHeader({ active }) {
             <span className="text-sm font-bold tracking-wide sm:text-base">
               PIYUMART <span className="font-medium text-white/70">| BAO</span>
             </span>
-          </Link>
-          <Link
-            href="/"
-            className="rounded-lg border border-white/25 px-3 py-2 text-sm font-semibold transition hover:bg-white/10 lg:hidden"
-          >
-            Marketplace
           </Link>
         </div>
 
@@ -48,12 +42,6 @@ export default function BaoHeader({ active }) {
               </Link>
             );
           })}
-          <Link
-            href="/"
-            className="hidden rounded-lg border border-white/25 px-3 py-2 text-sm font-semibold transition hover:bg-white/10 lg:inline-flex"
-          >
-            Marketplace
-          </Link>
         </nav>
       </div>
     </header>

@@ -10,18 +10,74 @@ export async function GET() {
   const userId = session.user.id;
 
   const [result] = await db.query(
-    `SELECT 
-      COUNT(DISTINCT o.id) as totalOrders,
-      COALESCE(SUM(oi.quantity * oi.price), 0) as revenue
-     FROM orders o
-     JOIN order_items oi ON oi.order_id = o.id
-     JOIN products p ON p.id = oi.product_id
-     WHERE p.seller_id = $1`,
+    `WITH seller_orders AS (
+       SELECT
+         o.id,
+         o.status,
+         o.total,
+         oc.id AS commission_record_id,
+         rate.percentage AS applicable_rate,
+         CASE
+           WHEN o.status = 'cancelled' THEN 0::numeric
+           WHEN oc.id IS NOT NULL THEN oc.commission_amount
+           WHEN rate.percentage IS NOT NULL THEN ROUND(o.total * rate.percentage / 100, 2)
+           ELSE 0::numeric
+         END AS commission_amount,
+         CASE
+           WHEN oc.id IS NOT NULL THEN oc.seller_earnings
+           ELSE o.total - CASE
+             WHEN o.status = 'cancelled' THEN 0::numeric
+             WHEN rate.percentage IS NOT NULL THEN ROUND(o.total * rate.percentage / 100, 2)
+             ELSE 0::numeric
+           END
+         END AS seller_earnings
+       FROM orders AS o
+       LEFT JOIN order_commissions AS oc ON oc.order_id = o.id
+       LEFT JOIN LATERAL (
+         SELECT percentage
+         FROM bao_commission_rates
+         WHERE effective_at <= (o.created_at AT TIME ZONE current_setting('TimeZone'))
+         ORDER BY effective_at DESC, created_at DESC, id DESC
+         LIMIT 1
+       ) AS rate ON true
+       WHERE o.seller_id = $1
+          OR EXISTS (
+            SELECT 1
+            FROM order_items AS oi
+            JOIN products AS p ON p.id = oi.product_id
+            WHERE oi.order_id = o.id AND p.seller_id = $1
+          )
+     )
+     SELECT
+       COUNT(*) AS \"totalOrders\",
+       COUNT(*) FILTER (WHERE status = 'completed') AS \"completedOrders\",
+       COALESCE(SUM(total) FILTER (WHERE status = 'completed'), 0) AS \"grossRevenue\",
+       COALESCE(SUM(commission_amount) FILTER (WHERE status = 'completed'), 0) AS commission,
+       COALESCE(SUM(seller_earnings) FILTER (WHERE status = 'completed'), 0) AS revenue,
+       COUNT(*) FILTER (
+         WHERE status = 'completed'
+           AND commission_record_id IS NULL
+           AND applicable_rate IS NOT NULL
+       ) AS \"unrecordedCompletedOrders\",
+       COALESCE(
+         SUM(commission_amount) FILTER (
+           WHERE status = 'completed'
+             AND commission_record_id IS NULL
+             AND applicable_rate IS NOT NULL
+         ),
+         0
+       ) AS \"unrecordedCommission\"
+     FROM seller_orders`,
     [userId]
   );
 
   return NextResponse.json({
-    totalOrders: result[0]?.totalorders || 0,
+    totalOrders: Number(result[0]?.totalOrders) || 0,
+    completedOrders: Number(result[0]?.completedOrders) || 0,
+    grossRevenue: result[0]?.grossRevenue || 0,
+    commission: result[0]?.commission || 0,
     revenue: result[0]?.revenue || 0,
+    unrecordedCompletedOrders: Number(result[0]?.unrecordedCompletedOrders) || 0,
+    unrecordedCommission: result[0]?.unrecordedCommission || 0,
   });
 }
