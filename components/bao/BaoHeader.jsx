@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BaoLogoutButton from "@/components/bao/BaoLogoutButton";
 
 const links = [
   { href: "/bao/dashboard", label: "Overview", key: "overview" },
@@ -42,6 +43,7 @@ export default function BaoHeader({ active }) {
               </Link>
             );
           })}
+          <BaoLogoutButton />
         </nav>
       </div>
     </header>

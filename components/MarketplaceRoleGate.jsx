@@ -8,12 +8,7 @@ export default function MarketplaceRoleGate({ children }) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const role = session?.user?.role;
-  const destination =
-    role === "admin"
-      ? "/dashboard"
-      : role === "bao"
-        ? "/bao/dashboard"
-        : null;
+  const destination = role === "admin" ? "/dashboard" : null;
 
   useEffect(() => {
     if (destination) router.replace(destination);

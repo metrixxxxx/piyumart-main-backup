@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { setAdminSession } from "@/lib/admin-session";
+import { setBaoSession } from "@/lib/bao-session";
 
 export async function POST(req) {
   try {
@@ -28,12 +29,21 @@ export async function POST(req) {
       return Response.json({ error: "Wrong password" }, { status: 401 });
     }
 
+    if (user.role === "bao") {
+      if (user.status !== "active") {
+        return Response.json(
+          { error: "BAO access requires an active account." },
+          { status: 403 }
+        );
+      }
+
+      await setBaoSession(user);
+      return Response.json({ success: true, role: "bao" });
+    }
+
     if (user.role !== "admin") {
       return Response.json(
-        {
-          error: "Access denied — not an admin",
-          ...(user.role === "bao" ? { role: "bao" } : {}),
-        },
+        { error: "Access denied — not an admin" },
         { status: 403 }
       );
     }
@@ -46,7 +56,7 @@ export async function POST(req) {
 
     await setAdminSession(user);
 
-    return Response.json({ success: true });
+    return Response.json({ success: true, role: "admin" });
   } catch (err) {
     console.error("Admin login error:", err.message);
     return Response.json({ error: err.message }, { status: 500 });

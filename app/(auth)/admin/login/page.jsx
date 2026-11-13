@@ -1,6 +1,5 @@
 "use client";
 
-import { getSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -24,28 +23,7 @@ export default function AdminLoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        router.replace("/dashboard");
-        return;
-      }
-
-      if (data.role === "bao") {
-        const result = await signIn("credentials", {
-          email: form.email,
-          password: form.password,
-          redirect: false,
-        });
-        if (result?.error) {
-          setError("Invalid email or password.");
-          return;
-        }
-
-        const session = await getSession();
-        if (session?.user?.role === "bao") {
-          router.replace("/bao/dashboard");
-          return;
-        }
-
-        setError("This page is for authorized Admin and BAO accounts.");
+        router.replace(data.role === "bao" ? "/bao/dashboard" : "/dashboard");
         return;
       }
 

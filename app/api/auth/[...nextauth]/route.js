@@ -44,7 +44,7 @@ export const authOptions = {
         );
 
         if (!isValid) return null;
-        if (user.role === "admin") return null;
+        if (user.role === "admin" || user.role === "bao") return null;
 
         return {
           id: user.id,
@@ -78,7 +78,7 @@ export const authOptions = {
             [email]
           );
 
-          if (rows[0]?.role === "admin") {
+          if (rows[0]?.role === "admin" || rows[0]?.role === "bao") {
             return false;
           }
 
