@@ -1,6 +1,6 @@
 "use client";
 
-import { getSession, signIn, signOut } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -16,37 +16,41 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
-      const result = await signIn("credentials", {
-        email: form.email,
-        password: form.password,
-        redirect: false,
+      const response = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
       });
+      const data = await response.json();
 
-      if (result?.error) {
-        setError("Invalid email or password.");
-        return;
-      }
-
-      const session = await getSession();
-      if (session?.user?.role === "bao") {
-        router.replace("/bao/dashboard");
-        return;
-      }
-
-      if (session?.user?.role === "admin") {
-        const adminSession = await fetch("/api/admin/session", { method: "POST" });
-        if (!adminSession.ok) {
-          const data = await adminSession.json();
-          throw new Error(data.error || "Admin access is unavailable for this account.");
-        }
+      if (response.ok) {
         router.replace("/dashboard");
         return;
       }
 
-      await signOut({ redirect: false });
-      setError("This page is for authorized Admin and BAO accounts.");
+      if (data.role === "bao") {
+        const result = await signIn("credentials", {
+          email: form.email,
+          password: form.password,
+          redirect: false,
+        });
+        if (result?.error) {
+          setError("Invalid email or password.");
+          return;
+        }
+
+        const session = await getSession();
+        if (session?.user?.role === "bao") {
+          router.replace("/bao/dashboard");
+          return;
+        }
+
+        setError("This page is for authorized Admin and BAO accounts.");
+        return;
+      }
+
+      setError(data.error || "Unable to sign in. Please check your credentials.");
     } catch (loginError) {
-      await signOut({ redirect: false });
       setError(loginError.message || "Unable to sign in. Please try again.");
     } finally {
       setLoading(false);

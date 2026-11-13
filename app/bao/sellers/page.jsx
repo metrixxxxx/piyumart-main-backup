@@ -12,11 +12,13 @@ const currencyFormatter = new Intl.NumberFormat("en-PH", {
 });
 
 function formatCount(value) {
-  return countFormatter.format(Number(value));
+  const count = Number(value);
+  return Number.isFinite(count) ? countFormatter.format(count) : "—";
 }
 
 function formatCurrency(value) {
-  return currencyFormatter.format(Number(value));
+  const amount = Number(value);
+  return Number.isFinite(amount) ? currencyFormatter.format(amount) : "—";
 }
 
 function formatDate(value) {

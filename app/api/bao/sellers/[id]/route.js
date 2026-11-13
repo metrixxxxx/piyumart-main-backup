@@ -139,7 +139,7 @@ export async function GET(_req, { params }) {
         seller: sellerRows[0],
         products: products[0],
         orders: orders[0],
-        stats: stats[0],
+        stats: stats[0][0],
         history: history[0],
         statusOptions,
         suspensionSupported: statusOptions.includes("suspended"),

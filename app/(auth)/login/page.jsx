@@ -10,7 +10,6 @@ import Link from "next/link";
 // ── Password validation rules ──────────────────────────────────────────────
 const RULES = [
   { id: "len", label: "At least 8 characters",       test: (v) => v.length >= 8 },
-  { id: "num", label: "At least 1 number",            test: (v) => /[0-9]/.test(v) },
   { id: "spc", label: "At least 1 special character", test: (v) => /[^a-zA-Z0-9]/.test(v) },
 ];
 
@@ -28,8 +27,11 @@ function PasswordInput({ id, value, onChange, placeholder = "••••••�
         placeholder={placeholder}
         value={value}
         onChange={onChange}
+        minLength={8}
+        pattern="(?=.*[^a-zA-Z0-9]).*"
+        title="Password must be at least 8 characters and include a special character."
         autoComplete={autoComplete}
-        className="h-11 w-full rounded-lg border border-[#b8bfd7] bg-white px-3 pr-10 text-sm text-[#11183f] placeholder-[#7180a3] outline-none transition focus:border-[#e5a51b] focus:ring-2 focus:ring-[#e5a51b]/20"
+        className="h-11 w-full rounded-lg border border-[#b8bfd7] bg-white px-3 pr-10 text-sm text-[#11183f] placeholder-[#7180a3] outline-none transition focus:border-[#FABB00] focus:ring-2 focus:ring-[#FABB00]/20"
       />
       <button
         type="button"
@@ -62,7 +64,7 @@ export default function LoginPage() {
   const router = useRouter();
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const pwValid    = pwScore(password) === 3;
+  const pwValid    = pwScore(password) === 2;
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -76,7 +78,7 @@ export default function LoginPage() {
     }
 
     if (!pwValid) {
-      const msg = "Password must be 8+ characters with a number and special character.";
+      const msg = "Password must be at least 8 characters and include a special character.";
       setError(msg);
       setFeedback({ type: "error", title: "Weak password", description: msg });
       return;
@@ -94,19 +96,7 @@ export default function LoginPage() {
     } else {
       const session = await getSession();
       if (session?.user?.role === "admin") {
-        try {
-          const adminSession = await fetch("/api/admin/session", { method: "POST" });
-          if (!adminSession.ok) {
-            const data = await adminSession.json();
-            throw new Error(data.error || "Unable to open the admin dashboard.");
-          }
-          router.push("/dashboard");
-        } catch (sessionError) {
-          const msg = sessionError.message || "Unable to open the admin dashboard.";
-          setError(msg);
-          setFeedback({ type: "error", title: "Admin access unavailable", description: msg });
-          setLoading(false);
-        }
+        router.replace("/admin/login");
       } else {
         router.push(session?.user?.role === "bao" ? "/bao/dashboard" : "/");
       }
@@ -123,19 +113,25 @@ export default function LoginPage() {
       <div className="grid w-full max-w-[1280px] items-center gap-10 min-[900px]:grid-cols-[minmax(0,1fr)_minmax(420px,460px)] min-[900px]:gap-12">
         <section className="mx-auto w-full max-w-[620px] text-white min-[900px]:mx-0">
           <div className="mb-8 flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#e6a51a]">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M5 8h14l-1.5 12h-11L5 8Z" stroke="#11183f" strokeWidth="1.8" strokeLinejoin="round" />
-                <path d="M9 8V6a3 3 0 0 1 6 0v2" stroke="#11183f" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
+            <span role="img" aria-label="LSPU logo" className="flex h-10 w-10 shrink-0 rounded-[12px] bg-[#FABB00] p-[2px]">
+              <span
+                aria-hidden="true"
+                className="h-full w-full rounded-[10px] bg-white"
+                style={{
+                  backgroundImage: 'url("/img/lspu%20logo%20malupit.png")',
+                  backgroundPosition: "center 32%",
+                  backgroundRepeat: "no-repeat",
+                  backgroundSize: "138px 98px",
+                }}
+              />
             </span>
             <p className="text-[20px] font-black tracking-[2px]">
-              PIYU<span className="text-[#e6a51a]">MART</span>
+              PIYU<span className="text-[#FABB00]">MART</span>
             </p>
           </div>
 
           <h1 className="max-w-[600px] text-[40px] font-extrabold leading-[1.08] tracking-tight sm:text-[52px]">
-            The campus marketplace, <span className="text-[#e6a51a]">made for students.</span>
+            The campus marketplace, <span className="text-[#FABB00]">made for students.</span>
           </h1>
           <p className="mt-6 max-w-[520px] text-[16px] leading-[1.65] text-[#e1e5ff] sm:text-[17px]">
             Buy, sell and swap with verified LSPU students. Textbooks, gadgets, uniforms, food and services, all in one place.
@@ -160,7 +156,7 @@ export default function LoginPage() {
                 key={item.label}
                 className="flex min-h-[128px] flex-col items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/[0.07] text-center"
               >
-                <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#e6a51a" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#FABB00" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   {item.icon}
                 </svg>
                 <span className="text-[13px] font-semibold text-white">{item.label}</span>
@@ -170,8 +166,8 @@ export default function LoginPage() {
 
           <p className="mt-6 flex items-center gap-2 text-[13px] text-[#e1e5ff]">
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M8 1.5 13 3.5v4c0 3.1-2.1 5.5-5 7-2.9-1.5-5-3.9-5-7v-4l5-2Z" stroke="#e6a51a" strokeWidth="1.5" strokeLinejoin="round" />
-              <path d="m6 7.5 1.3 1.3L10 6" stroke="#e6a51a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M8 1.5 13 3.5v4c0 3.1-2.1 5.5-5 7-2.9-1.5-5-3.9-5-7v-4l5-2Z" stroke="#FABB00" strokeWidth="1.5" strokeLinejoin="round" />
+              <path d="m6 7.5 1.3 1.3L10 6" stroke="#FABB00" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             Student-only: sign-in is checked against @lspu.edu.ph
           </p>
@@ -193,7 +189,7 @@ export default function LoginPage() {
             type="button"
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#e6a51a] text-[14px] font-bold text-[#11183f] transition hover:bg-[#d9960d] active:scale-[0.99] disabled:opacity-50"
+            className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#FABB00] text-[14px] font-bold text-[#11183f] transition hover:bg-[#e2a800] active:scale-[0.99] disabled:opacity-50"
           >
             <svg width="15" height="15" viewBox="0 0 48 48" aria-hidden="true">
               <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -221,7 +217,7 @@ export default function LoginPage() {
                 onChange={(e) => { setEmail(e.target.value); setError(""); }}
                 required
                 autoComplete="email"
-                className="h-11 w-full rounded-lg border border-[#b8bfd7] bg-white px-3 text-sm text-[#11183f] placeholder-[#7180a3] outline-none transition focus:border-[#e5a51b] focus:ring-2 focus:ring-[#e5a51b]/20"
+                className="h-11 w-full rounded-lg border border-[#b8bfd7] bg-white px-3 text-sm text-[#11183f] placeholder-[#7180a3] outline-none transition focus:border-[#FABB00] focus:ring-2 focus:ring-[#FABB00]/20"
               />
             </div>
 
@@ -238,6 +234,9 @@ export default function LoginPage() {
                 onChange={(e) => { setPassword(e.target.value); setError(""); }}
                 autoComplete="current-password"
               />
+              <p className="mt-1.5 text-xs text-[#65718f]">
+                At least 8 characters and 1 special character.
+              </p>
             </div>
 
             {error && (

@@ -19,20 +19,29 @@ export async function POST(req) {
     }
 
     const user = rows[0];
+    if (typeof user.password !== "string") {
+      return Response.json({ error: "Wrong password" }, { status: 401 });
+    }
+
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) {
+      return Response.json({ error: "Wrong password" }, { status: 401 });
+    }
 
     if (user.role !== "admin") {
-      return Response.json({ error: "Access denied — not an admin" }, { status: 403 });
+      return Response.json(
+        {
+          error: "Access denied — not an admin",
+          ...(user.role === "bao" ? { role: "bao" } : {}),
+        },
+        { status: 403 }
+      );
     }
     if (user.status !== "active" || user.is_verified !== true) {
       return Response.json(
         { error: "Admin access requires an active, verified account." },
         { status: 403 }
       );
-    }
-
-    const isValid = await bcrypt.compare(password, user.password);
-    if (!isValid) {
-      return Response.json({ error: "Wrong password" }, { status: 401 });
     }
 
     await setAdminSession(user);

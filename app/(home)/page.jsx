@@ -196,8 +196,8 @@ export default function HomePage() {
             onClick={() => { setCategory("all"); setVisibleCount(PRODUCTS_PER_PAGE); }}
             className={`flex-shrink-0 px-4 py-1.5 rounded-full border text-xs font-medium transition-all duration-150
               ${category === "all"
-                ? "bg-[#1a2a6c] dark:bg-[#d4aa40] border-[#1a2a6c] dark:border-[#d4aa40] text-white dark:text-[#0e1a3d] font-bold"
-                : "bg-white dark:bg-white/4 border-[#c5cfe8] dark:border-white/10 text-[#4a5a7a] dark:text-[#e8edf8]/55 hover:border-[#1a2a6c] dark:hover:border-[#d4aa40] hover:text-[#1a2a6c] dark:hover:text-[#d4aa40]"
+                ? "bg-[#1a2a6c] dark:bg-[#FABB00] border-[#1a2a6c] dark:border-[#FABB00] text-white dark:text-[#0e1a3d] font-bold"
+                : "bg-white dark:bg-white/4 border-[#c5cfe8] dark:border-white/10 text-[#4a5a7a] dark:text-[#e8edf8]/55 hover:border-[#1a2a6c] dark:hover:border-[#FABB00] hover:text-[#1a2a6c] dark:hover:text-[#FABB00]"
               }`}
           >
             🛍️ All
@@ -208,8 +208,8 @@ export default function HomePage() {
               onClick={() => { setCategory(String(cat.id)); setVisibleCount(PRODUCTS_PER_PAGE); }}
               className={`flex-shrink-0 px-4 py-1.5 rounded-full border text-xs font-medium transition-all duration-150
                 ${category === String(cat.id)
-                  ? "bg-[#1a2a6c] dark:bg-[#d4aa40] border-[#1a2a6c] dark:border-[#d4aa40] text-white dark:text-[#0e1a3d] font-bold"
-                  : "bg-white dark:bg-white/4 border-[#c5cfe8] dark:border-white/10 text-[#4a5a7a] dark:text-[#e8edf8]/55 hover:border-[#1a2a6c] dark:hover:border-[#d4aa40] hover:text-[#1a2a6c] dark:hover:text-[#d4aa40]"
+                  ? "bg-[#1a2a6c] dark:bg-[#FABB00] border-[#1a2a6c] dark:border-[#FABB00] text-white dark:text-[#0e1a3d] font-bold"
+                  : "bg-white dark:bg-white/4 border-[#c5cfe8] dark:border-white/10 text-[#4a5a7a] dark:text-[#e8edf8]/55 hover:border-[#1a2a6c] dark:hover:border-[#FABB00] hover:text-[#1a2a6c] dark:hover:text-[#FABB00]"
                 }`}
             >
               {CATEGORY_ICONS[cat.name] || "🏷️"} {cat.name}
@@ -227,7 +227,7 @@ export default function HomePage() {
             <select
               value={sortBy}
               onChange={(e) => { setSortBy(e.target.value); setVisibleCount(PRODUCTS_PER_PAGE); }}
-              className="flex-1 rounded-full border border-[#c5cfe8] bg-white px-3 py-2 text-sm font-semibold text-[#0e1a3d] transition-colors hover:border-[#0f1f5c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2c94c] dark:border-white/10 dark:bg-[#0e1520] dark:text-white sm:flex-none"
+              className="flex-1 rounded-full border border-[#c5cfe8] bg-white px-3 py-2 text-sm font-semibold text-[#0e1a3d] transition-colors hover:border-[#0f1f5c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FABB00] dark:border-white/10 dark:bg-[#0e1520] dark:text-white sm:flex-none"
             >
               <option value="newest">Newest First</option>
               <option value="best_rated">Best Rated</option>
@@ -235,7 +235,7 @@ export default function HomePage() {
               <option value="price_low">Price: Low to High</option>
               <option value="price_high">Price: High to Low</option>
             </select>
-            <span className="flex-shrink-0 rounded-full bg-[#e8edf8] px-3 py-2 text-sm font-semibold text-[#0f1f5c] dark:bg-[#f2c94c]/10 dark:text-[#f2c94c]">
+            <span className="flex-shrink-0 rounded-full bg-[#e8edf8] px-3 py-2 text-sm font-semibold text-[#0f1f5c] dark:bg-[#FABB00]/10 dark:text-[#FABB00]">
               {displayed.length} item{displayed.length !== 1 ? "s" : ""}
             </span>
           </div>
@@ -268,7 +268,7 @@ export default function HomePage() {
           <div className="mt-8 flex flex-col items-center gap-2">
             <button
               onClick={() => setVisibleCount((prev) => prev + PRODUCTS_PER_PAGE)}
-              className="px-8 py-2.5 rounded-full bg-[#1a2a6c] dark:bg-[#d4aa40] text-white dark:text-[#0e1a3d] text-sm font-bold tracking-wide hover:bg-[#142060] dark:hover:bg-[#c9922a] active:scale-95 transition-all duration-150"
+              className="px-8 py-2.5 rounded-full bg-[#1a2a6c] dark:bg-[#FABB00] text-white dark:text-[#0e1a3d] text-sm font-bold tracking-wide hover:bg-[#142060] dark:hover:bg-[#e2a800] active:scale-95 transition-all duration-150"
             >
               Show More
             </button>

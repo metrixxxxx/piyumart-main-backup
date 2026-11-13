@@ -1,13 +1,11 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { getAdminAccess } from "@/lib/admin-session";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  // Check if logged in user is admin
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const access = await getAdminAccess();
+  if (!access.admin) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: access.status });
   }
 
   try {

@@ -25,7 +25,7 @@ function HomeIcon({ className }) {
 
 function CartIcon({ className }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c.51 0 .962-.343 1.087-.835l1.564-5.873A1.125 1.125 0 0017.5 7.5H5.884M7.5 14.25L5.106 5.272M15 19.5a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm-7.5 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
     </svg>
@@ -113,7 +113,7 @@ function ThemeToggle() {
       onClick={toggle}
       aria-label="Toggle dark mode"
       className={`relative w-11 h-6 rounded-full border transition-all duration-300 flex items-center px-0.5 shrink-0
-        ${state.dark ? "bg-[#c9a028] border-[#c9a028]" : "bg-white/20 border-white/20"}`}
+        ${state.dark ? "bg-[#FABB00] border-[#FABB00]" : "bg-white/20 border-white/20"}`}
     >
       <span
         className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] bg-white shadow-sm transition-all duration-300
@@ -157,9 +157,9 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
   const isActive = (path) => pathname === path || pathname.startsWith(path + "/");
 
   const linkClass = (path) =>
-    `relative flex items-center gap-1.5 text-sm font-semibold tracking-wide transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2c94c]
-    ${isActive(path) ? "text-[#f2c94c]" : "text-white/75 hover:text-white"}
-    ${path === "/" && isActive(path) ? "after:absolute after:-bottom-2 after:left-0 after:h-0.5 after:w-full after:bg-[#f2c94c]" : ""}`;
+    `relative flex items-center gap-1.5 text-sm font-semibold tracking-wide transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FABB00]
+    ${isActive(path) ? "text-[#FABB00]" : "text-white/75 hover:text-white"}
+    ${path === "/" && isActive(path) ? "after:absolute after:-bottom-2 after:left-0 after:h-0.5 after:w-full after:bg-[#FABB00]" : ""}`;
 
   // ── Observe hero sentinel ───────────────────────────────────────────────────
   useEffect(() => {
@@ -291,9 +291,9 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
           background: linear-gradient(
             90deg,
             transparent 0%,
-            rgba(201,160,40,0.35) 20%,
-            rgba(201,160,40,0.8) 50%,
-            rgba(201,160,40,0.35) 80%,
+            rgba(250,187,0,0.35) 20%,
+            rgba(250,187,0,0.8) 50%,
+            rgba(250,187,0,0.35) 80%,
             transparent 100%
           );
         }
@@ -306,7 +306,7 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
         <Link href="/" className="flex items-center gap-2.5 shrink-0">
           <span aria-hidden="true" className="h-9 w-9 shrink-0 rounded-full bg-white ring-1 ring-white/40" style={{ backgroundImage: 'url("/img/lspu%20logo%20malupit.png")', backgroundPosition: "center", backgroundRepeat: "no-repeat", backgroundSize: "138px 77px" }} />
           <h1 className="text-lg font-extrabold tracking-tight text-white">
-            PIYU<span className="text-[#c9a028]">MART</span>
+            PIYU<span className="text-[#FABB00]">MART</span>
           </h1>
         </Link>
 
@@ -358,10 +358,10 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
                   <img
                     src={session.user.image}
                     alt="avatar"
-                    className="w-9 h-9 rounded-full object-cover border-2 border-[#c9a028]"
+                    className="w-9 h-9 rounded-full object-cover border-2 border-[#FABB00]"
                   />
                 ) : (
-                  <div className="w-9 h-9 rounded-full bg-[#c9a028] flex items-center justify-center text-xs font-bold text-[#0e1a3d]">
+                  <div className="w-9 h-9 rounded-full bg-[#FABB00] flex items-center justify-center text-xs font-bold text-[#0e1a3d]">
                     {session.user.name?.charAt(0).toUpperCase()}
                   </div>
                 )}
@@ -375,7 +375,7 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
               </button>
 
               {open && (
-                <div className="absolute right-0 mt-2.5 w-56 bg-white dark:bg-[#08091c] rounded-xl border border-[#c5cfe8] dark:border-[#c9a028]/20 shadow-2xl dark:shadow-[0_8px_32px_rgba(0,0,0,0.7)] overflow-hidden z-50">
+                <div className="absolute right-0 mt-2.5 w-56 bg-white dark:bg-[#08091c] rounded-xl border border-[#c5cfe8] dark:border-[#FABB00]/20 shadow-2xl dark:shadow-[0_8px_32px_rgba(0,0,0,0.7)] overflow-hidden z-50">
                   <div className="px-4 py-3 border-b border-[#c5cfe8] dark:border-white/[0.07] bg-[#131f50] dark:bg-[#0b1230]">
                     <p className="text-sm font-semibold text-white truncate">{session.user.name}</p>
                     <p className="text-xs text-white/60 truncate">{session.user.email}</p>
@@ -386,7 +386,7 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
                         key={href}
                         href={href}
                         onClick={() => setOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 text-xs text-[#0e1a3d]/70 dark:text-[#e8edf8]/60 hover:bg-[#e8edf8] dark:hover:bg-white/[0.04] hover:text-[#1a2a6c] dark:hover:text-[#c9a028] transition-colors"
+                        className="flex items-center gap-3 px-4 py-3 text-xs text-[#0e1a3d]/70 dark:text-[#e8edf8]/60 hover:bg-[#e8edf8] dark:hover:bg-white/[0.04] hover:text-[#1a2a6c] dark:hover:text-[#FABB00] transition-colors"
                       >
                         <Icon className="w-4 h-4 shrink-0 opacity-60" />
                         {label}
@@ -413,7 +413,7 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
           ) : (
             <Link
               href="/login"
-              className="text-xs font-semibold px-5 py-2 rounded-full bg-[#c9a028] text-[#0e1a3d] hover:bg-[#dbb030] transition-colors"
+              className="text-xs font-semibold px-5 py-2 rounded-full bg-[#FABB00] text-[#0e1a3d] hover:bg-[#e2a800] transition-colors"
             >
               Login
             </Link>
@@ -472,12 +472,12 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
                     src={session.user.image}
                     alt="avatar"
                     className={`w-9 h-9 rounded-full object-cover border-2 transition-all duration-200
-                      ${mobileOpen ? "border-white" : "border-[#c9a028]"}`}
+                      ${mobileOpen ? "border-white" : "border-[#FABB00]"}`}
                   />
                 ) : (
                   <div
                     className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200
-                      ${mobileOpen ? "bg-white text-[#1a2a6c]" : "bg-[#c9a028] text-[#0e1a3d]"}`}
+                      ${mobileOpen ? "bg-white text-[#1a2a6c]" : "bg-[#FABB00] text-[#0e1a3d]"}`}
                   >
                     {session.user.name?.charAt(0).toUpperCase()}
                   </div>
@@ -499,7 +499,7 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
       <div
         className={`md:hidden fixed inset-x-0 top-[65px] bottom-0 z-40
           bg-[#131f50] dark:bg-[#0b1230]
-          border-t border-[#c9a028]/20
+          border-t border-[#FABB00]/20
           flex flex-col px-6 py-7 gap-1 overflow-y-auto overscroll-contain
           transition-all duration-300
           ${mobileOpen ? "translate-y-0 opacity-100" : "-translate-y-3 opacity-0 pointer-events-none"}`}
@@ -508,9 +508,9 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
           <div className="flex items-center gap-3 pb-5 border-b border-white/10 mb-2">
             {session.user.image ? (
               <img src={session.user.image} alt="avatar"
-                className="w-11 h-11 rounded-full object-cover border-2 border-[#c9a028]" />
+                className="w-11 h-11 rounded-full object-cover border-2 border-[#FABB00]" />
             ) : (
-              <div className="w-11 h-11 rounded-full bg-[#c9a028] flex items-center justify-center text-sm font-bold text-[#0e1a3d]">
+              <div className="w-11 h-11 rounded-full bg-[#FABB00] flex items-center justify-center text-sm font-bold text-[#0e1a3d]">
                 {session.user.name?.charAt(0).toUpperCase()}
               </div>
             )}
@@ -527,7 +527,7 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
             href={href}
             onClick={() => setMobileOpen(false)}
             className={`flex items-center gap-3 border-b border-white/10 py-4 text-sm transition-colors
-              ${isActive(href) ? "text-[#c9a028]" : "text-white/80 hover:text-white"}`}
+              ${isActive(href) ? "text-[#FABB00]" : "text-white/80 hover:text-white"}`}
           >
             <Icon className="w-5 h-5 shrink-0 opacity-70" />
             {label}
@@ -551,7 +551,7 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
           <Link
             href="/login"
             onClick={() => setMobileOpen(false)}
-            className="flex items-center justify-center gap-2 bg-[#c9a028] text-[#0e1a3d] text-sm font-bold py-3 rounded-xl mt-4"
+            className="flex items-center justify-center gap-2 bg-[#FABB00] text-[#0e1a3d] text-sm font-bold py-3 rounded-xl mt-4"
           >
             <ProfileIcon className="w-5 h-5" />
             Login

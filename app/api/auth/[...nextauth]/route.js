@@ -44,6 +44,7 @@ export const authOptions = {
         );
 
         if (!isValid) return null;
+        if (user.role === "admin") return null;
 
         return {
           id: user.id,
@@ -76,6 +77,10 @@ export const authOptions = {
             "SELECT * FROM users WHERE email=$1",
             [email]
           );
+
+          if (rows[0]?.role === "admin") {
+            return false;
+          }
 
           // Auto create user if not existing
           if (rows.length === 0) {

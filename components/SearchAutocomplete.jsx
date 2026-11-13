@@ -138,7 +138,7 @@ export default function SearchAutocomplete() {
       {/* SEARCH INPUT */}
       <div className="relative">
         <svg
-          className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#0f1f5c] dark:text-[#f2c94c] pointer-events-none"
+          className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#0f1f5c] dark:text-[#FABB00] pointer-events-none"
           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
@@ -154,12 +154,12 @@ export default function SearchAutocomplete() {
             if (query.trim() && (suggestions.length > 0 || notFound)) setIsOpen(true);
           }}
           onKeyDown={handleKeyDown}
-          className="h-11 w-full rounded-xl border-[1.5px] border-[#c5cfe8] bg-white py-2 pl-10 pr-10 text-sm text-[#0e1a3d] outline-none placeholder:text-slate-600 transition-colors focus:border-[#f2c94c] focus:ring-2 focus:ring-[#f2c94c] dark:border-white/15 dark:bg-slate-900 dark:text-[#e8edf8] dark:placeholder:text-slate-300"
+          className="h-11 w-full rounded-xl border-[1.5px] border-[#c5cfe8] bg-white py-2 pl-10 pr-10 text-sm text-[#0e1a3d] outline-none placeholder:text-slate-600 transition-colors focus:border-[#FABB00] focus:ring-2 focus:ring-[#FABB00] dark:border-white/15 dark:bg-slate-900 dark:text-[#e8edf8] dark:placeholder:text-slate-300"
         />
 
         {loading && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <div className="w-4 h-4 border-2 border-[#1a2a6c]/20 dark:border-[#d4aa40]/20 border-t-[#1a2a6c] dark:border-t-[#d4aa40] rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-[#1a2a6c]/20 dark:border-[#FABB00]/20 border-t-[#1a2a6c] dark:border-t-[#FABB00] rounded-full animate-spin" />
           </div>
         )}
 
@@ -204,7 +204,7 @@ export default function SearchAutocomplete() {
                     key={cat}
                     type="button"
                     onClick={() => handleSelectCategory(cat)}
-                    className="text-[11px] font-medium px-3 py-1.5 rounded-full border border-[#c5cfe8] dark:border-white/10 text-[#1a2a6c] dark:text-[#d4aa40] hover:bg-[#e8edf8] dark:hover:bg-white/10 transition-colors"
+                    className="text-[11px] font-medium px-3 py-1.5 rounded-full border border-[#c5cfe8] dark:border-white/10 text-[#1a2a6c] dark:text-[#FABB00] hover:bg-[#e8edf8] dark:hover:bg-white/10 transition-colors"
                   >
                     {cat}
                   </button>
@@ -248,7 +248,7 @@ export default function SearchAutocomplete() {
                       {highlightMatch(product.name, query)}
                     </p>
                     <div className="flex items-center gap-2 text-xs text-[#0e1a3d]/50 dark:text-[#e8edf8]/50 mt-0.5">
-                      <span className="font-bold text-[#1a2a6c] dark:text-[#d4aa40]">
+                      <span className="font-bold text-[#1a2a6c] dark:text-[#FABB00]">
                         ₱{Number(product.price || 0).toLocaleString()}
                       </span>
                       {product.sold_count > 0 && (
@@ -263,7 +263,7 @@ export default function SearchAutocomplete() {
                     </div>
                   </div>
                   {i === activeIndex && (
-                    <span className="text-[#1a2a6c] dark:text-[#d4aa40] text-xs shrink-0">→</span>
+                    <span className="text-[#1a2a6c] dark:text-[#FABB00] text-xs shrink-0">→</span>
                   )}
                 </button>
               ))}

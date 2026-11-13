@@ -144,15 +144,15 @@ export default function HeroSection({ productCount = 0 }) {
 
         .cursor {
           display:inline-block; width:2px; height:.9em;
-          background:#c9a028; margin-left:2px; vertical-align:text-bottom;
+          background:#FABB00; margin-left:2px; vertical-align:text-bottom;
           animation:blink 0.75s step-end infinite;
         }
         .arrow-btn { transition:all 0.18s ease; }
-        .arrow-btn:hover  { background:rgba(201,160,40,0.9) !important; border-color:#c9a028 !important; }
+        .arrow-btn:hover  { background:rgba(250,187,0,0.9) !important; border-color:#FABB00 !important; }
         .arrow-btn:active { transform:scale(0.93); }
         .chip { transition:all 0.15s ease; }
-        .chip:hover { background:rgba(201,160,40,0.15); border-color:rgba(201,160,40,0.45); color:#f5d87a; transform:translateY(-1px); }
-        .search-wrap:focus-within { border-color:#f2c94c !important; box-shadow:0 0 0 2px #f2c94c; }
+        .chip:hover { background:rgba(250,187,0,0.15); border-color:rgba(250,187,0,0.45); color:#FABB00; transform:translateY(-1px); }
+        .search-wrap:focus-within { border-color:#FABB00 !important; box-shadow:0 0 0 2px #FABB00; }
         @media (prefers-reduced-motion: reduce) {
           .hs-badge,.hs-h1,.hs-sub,.hs-search,.hs-chips,.orb-a,.orb-b,.progress-bar,.cursor { animation:none !important; }
           .orb-a,.orb-b { transform:none !important; }
@@ -160,7 +160,7 @@ export default function HeroSection({ productCount = 0 }) {
       `}</style>
 
       {/* OUTER CARD */}
-      <div className="w-full rounded-2xl overflow-visible flex flex-col lg:flex-row" style={{ minHeight:500, boxShadow:"0 0 0 1.5px rgba(201,160,40,0.25), 0 28px 70px rgba(0,0,0,0.6)" }}>
+      <div className="w-full rounded-2xl overflow-visible flex flex-col lg:flex-row" style={{ minHeight:500, boxShadow:"0 0 0 1.5px rgba(250,187,0,0.25), 0 28px 70px rgba(0,0,0,0.6)" }}>
 
         {/* ── LEFT: hero panel ─────────────────────────────────────── */}
         <div className="relative lg:w-1/2 flex-shrink-0 flex flex-col justify-center px-8 sm:px-12 py-12 lg:py-10" style={{ minHeight:500, background:"linear-gradient(140deg,#112060 0%,#0c1840 45%,#080f25 100%)" }}>
@@ -171,16 +171,16 @@ export default function HeroSection({ productCount = 0 }) {
 
           {/* orbs */}
           <div className="orb-a absolute top-[8%] left-[10%] w-44 h-44 rounded-full pointer-events-none"
-            style={{ background:"radial-gradient(circle,rgba(201,160,40,0.28) 0%,transparent 70%)" }} />
+            style={{ background:"radial-gradient(circle,rgba(250,187,0,0.28) 0%,transparent 70%)" }} />
           <div className="orb-b absolute bottom-[10%] right-[6%] w-36 h-36 rounded-full pointer-events-none"
             style={{ background:"radial-gradient(circle,rgba(26,42,108,0.75) 0%,transparent 70%)" }} />
 
           {/* left gold rule */}
           <div className="absolute left-0 top-10 bottom-10 w-[3px] rounded-r-full"
-            style={{ background:"linear-gradient(to bottom,transparent,#c9a028,transparent)" }} />
+            style={{ background:"linear-gradient(to bottom,transparent,#FABB00,transparent)" }} />
           {/* right gold divider */}
           <div className="absolute right-0 top-0 bottom-0 w-px"
-            style={{ background:"linear-gradient(to bottom,transparent,rgba(201,160,40,0.35) 30%,rgba(201,160,40,0.35) 70%,transparent)" }} />
+            style={{ background:"linear-gradient(to bottom,transparent,rgba(250,187,0,0.35) 30%,rgba(250,187,0,0.35) 70%,transparent)" }} />
 
           {/* content */}
           <div className="relative z-10 flex flex-1 flex-col gap-0">
@@ -193,8 +193,8 @@ export default function HeroSection({ productCount = 0 }) {
             {/* badge */}
             <div className="hs-badge mb-6">
               {session ? (
-                <span className="inline-flex items-center gap-2 text-[11px] font-bold tracking-widest uppercase bg-[#c9a028]/15 border border-[#c9a028]/30 text-[#f5d87a] px-3.5 py-1.5 rounded-full">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#c9a028] animate-pulse shrink-0" />
+                <span className="inline-flex items-center gap-2 text-[11px] font-bold tracking-widest uppercase bg-[#FABB00]/15 border border-[#FABB00]/30 text-[#FABB00] px-3.5 py-1.5 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#FABB00] animate-pulse shrink-0" />
                   {greeting},&nbsp;{typedName}{!nameDone && <span className="cursor" />}
                 </span>
               ) : (
@@ -225,7 +225,7 @@ export default function HeroSection({ productCount = 0 }) {
             {/* chips */}
             <div className="hs-chips mt-5 flex flex-wrap items-center gap-x-2 text-xs text-white/85">
               <span>Popular:</span>
-              {POPULAR_SEARCHES.map((term) => <button type="button" key={term} onClick={() => { if (typeof window !== "undefined" && window.location.pathname === "/") window.dispatchEvent(new CustomEvent("piyumart:search", { detail: term })); else router.push(`/?q=${encodeURIComponent(term)}`); }} className="font-semibold text-[#f2c94c] underline underline-offset-2 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2c94c]">{term}</button>)}
+              {POPULAR_SEARCHES.map((term) => <button type="button" key={term} onClick={() => { if (typeof window !== "undefined" && window.location.pathname === "/") window.dispatchEvent(new CustomEvent("piyumart:search", { detail: term })); else router.push(`/?q=${encodeURIComponent(term)}`); }} className="font-semibold text-[#FABB00] underline underline-offset-2 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FABB00]">{term}</button>)}
             </div>
             <div className="mt-auto pt-10"><div className="mb-4 h-px w-full bg-white/25" /><div className="grid grid-cols-3 gap-3">{HERO_STATS.map(({ key, value, label }) => <div key={label}><div className="text-sm font-bold text-white sm:text-base">{key === "products" ? productCount : key === "users" ? userCount ?? "…" : value}</div><div className="mt-1 text-[10px] leading-tight text-white/75 sm:text-xs">{label}</div></div>)}</div></div>
           </div>
@@ -251,7 +251,7 @@ export default function HeroSection({ productCount = 0 }) {
           {/* loading state */}
           {!products.length && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-              <div className="w-8 h-8 border-2 border-[#c9a028] border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-[#FABB00] border-t-transparent rounded-full animate-spin" />
               <span className="text-white/30 text-xs tracking-widest uppercase">Loading deals</span>
             </div>
           )}
@@ -264,8 +264,8 @@ export default function HeroSection({ productCount = 0 }) {
           {visible && product && (
             <div className="absolute inset-0 z-20 flex flex-col justify-center px-7 sm:px-10 max-w-[70%]">
               <div className="hs-tag mb-3">
-                <span className="inline-flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase bg-[#c9a028]/20 border border-[#c9a028]/35 text-[#f5d87a] px-3 py-1 rounded-full">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#c9a028] animate-pulse" />
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase bg-[#FABB00]/20 border border-[#FABB00]/35 text-[#FABB00] px-3 py-1 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#FABB00] animate-pulse" />
                   Featured Deal
                 </span>
               </div>
@@ -282,7 +282,7 @@ export default function HeroSection({ productCount = 0 }) {
               </div>
               <div className="hs-cta mt-4">
                 <Link href={`/products/${product.id}`}
-                  className="group inline-flex items-center gap-2 bg-[#c9a028] hover:bg-[#dbb53a] text-[#0e1a3d] text-xs sm:text-sm font-extrabold py-2.5 px-5 rounded-full shadow-lg shadow-[#c9a028]/25 transition-all duration-200 hover:scale-[1.03] active:scale-95">
+                  className="group inline-flex items-center gap-2 bg-[#FABB00] hover:bg-[#e2a800] text-[#0e1a3d] text-xs sm:text-sm font-extrabold py-2.5 px-5 rounded-full shadow-lg shadow-[#FABB00]/25 transition-all duration-200 hover:scale-[1.03] active:scale-95">
                   View Product
                   <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
@@ -318,14 +318,14 @@ export default function HeroSection({ productCount = 0 }) {
               {products.map((_,i) => (
                 <button key={i} onClick={() => goTo(i, i>index?"next":"prev")}
                   aria-label={`Slide ${i+1}`}
-                  className={`rounded-full transition-all duration-300 ${i===index?"w-6 h-1.5 bg-[#c9a028]":"w-1.5 h-1.5 bg-white/30 hover:bg-white/60"}`} />
+                  className={`rounded-full transition-all duration-300 ${i===index?"w-6 h-1.5 bg-[#FABB00]":"w-1.5 h-1.5 bg-white/30 hover:bg-white/60"}`} />
               ))}
             </div>
           )}
 
           {/* progress line */}
           <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-white/5 z-30">
-            <div key={`p-${index}`} className="progress-bar h-full bg-[#c9a028]/50" />
+            <div key={`p-${index}`} className="progress-bar h-full bg-[#FABB00]/50" />
           </div>
 
         </div>

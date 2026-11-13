@@ -27,11 +27,7 @@ export default function GoogleSignInCallbackPage() {
         }
 
         if (session.user?.role === "admin") {
-          const response = await fetch("/api/admin/session", { method: "POST" });
-          if (!response.ok) {
-            throw new Error("Admin access could not be verified.");
-          }
-          if (active) router.replace("/dashboard");
+          if (active) router.replace("/admin/login");
           return;
         }
 

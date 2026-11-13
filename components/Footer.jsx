@@ -118,7 +118,7 @@ export default function Footer() {
       >
         <div className="flex items-center gap-2 select-none">
           <span className="text-lg font-extrabold tracking-tight text-white">PIYU</span>
-          <span className="text-lg font-extrabold tracking-tight" style={{ color: "#d4aa40" }}>
+          <span className="text-lg font-extrabold tracking-tight" style={{ color: "#FABB00" }}>
             MART
           </span>
         </div>
