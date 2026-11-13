@@ -8,6 +8,7 @@ import { useState, useRef, useEffect } from "react";
 import NotificationBell from "@/components/NotificationBell";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import LoadingModal from "@/components/ui/LoadingModal";
+import LoginRequiredModal from "@/components/ui/LoginRequiredModal";
 import SearchAutocomplete from "@/components/SearchAutocomplete";
 
 import { getSocket } from "@/lib/socket";
@@ -133,6 +134,7 @@ export default function Navbar() {
 
   const [open, setOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [cartLoginModalOpen, setCartLoginModalOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(false);
@@ -249,6 +251,13 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
     await signOut({ callbackUrl: "/" });
   };
 
+  const handleCartClick = (event) => {
+    if (!session) {
+      event.preventDefault();
+      setCartLoginModalOpen(true);
+    }
+  };
+
   const desktopNavItems = [
     { href: "/", label: "Home", icon: HomeIcon },
     { href: "/cart", label: "Cart", icon: CartIcon },
@@ -325,7 +334,12 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
         <div className="hidden md:flex items-center gap-8 ml-auto">
 
           {desktopNavItems.map(({ href, label, icon: Icon }) => (
-            <Link key={href} href={href} className={linkClass(href)}>
+            <Link
+              key={href}
+              href={href}
+              onClick={href === "/cart" ? handleCartClick : undefined}
+              className={linkClass(href)}
+            >
               <Icon className="w-4 h-4" />
               {label}
             </Link>
@@ -525,7 +539,10 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
           <Link
             key={href}
             href={href}
-            onClick={() => setMobileOpen(false)}
+            onClick={(event) => {
+              setMobileOpen(false);
+              if (href === "/cart") handleCartClick(event);
+            }}
             className={`flex items-center gap-3 border-b border-white/10 py-4 text-sm transition-colors
               ${isActive(href) ? "text-[#FABB00]" : "text-white/80 hover:text-white"}`}
           >
@@ -560,6 +577,12 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
       </div>
 
       {/* ── MODALS ── */}
+      <LoginRequiredModal
+        open={cartLoginModalOpen}
+        onClose={() => setCartLoginModalOpen(false)}
+        description="You need to be logged in to view your cart."
+      />
+
       <ConfirmModal
         open={logoutOpen}
         title="Log out?"

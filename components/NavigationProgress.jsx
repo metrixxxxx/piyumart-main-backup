@@ -16,6 +16,8 @@ export default function NavigationProgress() {
 
   useEffect(() => {
     const handleClick = (e) => {
+      if (e.defaultPrevented) return;
+
       const anchor = e.target.closest("a");
       if (
         anchor &&

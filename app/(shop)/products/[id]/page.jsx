@@ -6,6 +6,7 @@ import Image from "next/image";
 import ProductCard from "@/components/products/ProductCard";
 import { getSocket } from "@/lib/socket";
 import ReviewsSection from "@/components/products/ReviewsSection";
+import LoginRequiredModal from "@/components/ui/LoginRequiredModal";
 
 function StarRating({ value }) {
   return (
@@ -609,38 +610,7 @@ const soldCount = product.sold_count || 0;
         })()}
       </div>
 
-      {/* ── LOGIN MODAL ── */}
-      {showModal && (
-        <div
-          onClick={() => setShowModal(false)}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white dark:bg-[#0e1520] rounded-2xl p-6 sm:p-9 w-full max-w-[320px] text-center border border-[#c5cfe8] dark:border-white/[0.07] shadow-[0_24px_60px_rgba(0,0,0,0.2)]"
-          >
-            <div className="text-4xl mb-3.5">🔒</div>
-            <h2 className="text-lg font-bold mb-2 text-[#0e1a3d] dark:text-[#e8edf8]">Sign in to continue</h2>
-            <p className="text-xs text-[#0e1a3d]/50 dark:text-[#e8edf8]/45 mb-6 leading-relaxed">
-              You need to be logged in to add items or buy.
-            </p>
-            <div className="flex flex-col gap-2.5">
-              <button
-                onClick={() => router.push("/login")}
-                className="w-full py-3 rounded-xl bg-[#1a2a6c] dark:bg-[#c9a028] text-white dark:text-[#0a0e1f] font-bold text-sm cursor-pointer hover:bg-[#142060] dark:hover:bg-[#b78f20] transition border-none"
-              >
-                Sign in
-              </button>
-              <button
-                onClick={() => setShowModal(false)}
-                className="w-full py-3 rounded-xl border border-[#c5cfe8] dark:border-white/10 text-sm text-[#0e1a3d]/60 dark:text-[#e8edf8]/50 cursor-pointer hover:bg-[#f0f4ff] dark:hover:bg-white/[0.04] transition bg-transparent"
-              >
-                Continue browsing
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <LoginRequiredModal open={showModal} onClose={() => setShowModal(false)} />
 
       {/* ── FLY TO CART ANIMATION ── */}
       {flyItem && (
