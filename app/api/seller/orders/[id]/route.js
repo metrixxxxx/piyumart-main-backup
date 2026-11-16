@@ -5,6 +5,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { notify } from "@/lib/notify";
 import { supabaseAdmin } from "@/lib/supabase";
 import { isActiveSellerAccount } from "@/lib/seller-access";
+import { transitionOnlineOrder } from "@/lib/payments/events";
 
 export async function PATCH(req, { params }) {
   try {
@@ -22,6 +23,7 @@ export async function PATCH(req, { params }) {
     const [orderRows] = await db.query(`SELECT * FROM orders WHERE id = $1`, [orderId]);
     const order = orderRows[0];
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    if (order.payment_method === "paymongo") return NextResponse.json(await transitionOnlineOrder(session.user.id, orderId, { status, tracking_number, courier, cancel_reason, cancel_note }));
 
     const [sellerCheck] = await db.query(
       `SELECT 1 FROM order_items oi
@@ -105,6 +107,6 @@ export async function PATCH(req, { params }) {
     return NextResponse.json({ success: true, status });
   } catch (err) {
     console.error("Seller order PATCH error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: err.status ? err.message : "Unable to update order." }, { status: err.status || 500 });
   }
 }

@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { notify } from "@/lib/notify";
 import { recordOrderCommission } from "@/lib/bao-commission";
+import { transitionOnlineOrder } from "@/lib/payments/events";
 
 export async function PATCH(req, { params }) {
   try {
@@ -18,6 +19,7 @@ export async function PATCH(req, { params }) {
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
     if (String(order.user_id) !== String(session.user.id))
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (order.payment_method === "paymongo") return NextResponse.json(await transitionOnlineOrder(session.user.id, id, { action }));
 
     if (action === "confirm_delivery") {
       if (order.status !== "shipped")
@@ -150,6 +152,6 @@ export async function PATCH(req, { params }) {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (err) {
     console.error("PATCH /api/orders/[id] error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: err.status ? err.message : "Unable to update order." }, { status: err.status || 500 });
   }
 }

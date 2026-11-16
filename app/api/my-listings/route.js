@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { isActiveSellerAccount } from "@/lib/seller-access";
 
 export async function GET() {
   try {
@@ -12,6 +13,7 @@ export async function GET() {
     }
 
     const userId = session.user.id;
+    if (!(await isActiveSellerAccount(userId))) return NextResponse.json({ error: "An active verified seller account is required." }, { status: 403 });
 
     // ======================
     // PRODUCTS

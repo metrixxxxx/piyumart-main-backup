@@ -159,7 +159,7 @@ export default function BaoAuditPage() {
           </div>
 
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left text-sm">
+            <table className="w-full min-w-[800px] text-left text-sm">
               <thead className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:text-slate-400">
                 <tr>
                   <th className="px-3 py-3">Timestamp</th>
@@ -167,12 +167,11 @@ export default function BaoAuditPage() {
                   <th className="px-3 py-3">Action</th>
                   <th className="px-3 py-3">Affected entity</th>
                   <th className="px-3 py-3">Reason</th>
-                  <th className="px-3 py-3">Details</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {loading ? (
-                  <tr><td colSpan={6} className="px-3 py-10 text-center text-slate-500">Loading audit entries…</td></tr>
+                  <tr><td colSpan={5} className="px-3 py-10 text-center text-slate-500">Loading audit entries…</td></tr>
                 ) : logs.length ? logs.map((log) => (
                   <tr key={log.id} className="align-top">
                     <td className="whitespace-nowrap px-3 py-3 text-xs">{formatDate(log.created_at)}</td>
@@ -186,17 +185,9 @@ export default function BaoAuditPage() {
                       <p className="mt-1 break-all text-xs text-slate-500 dark:text-slate-400">{log.entity_id || "—"}</p>
                     </td>
                     <td className="max-w-xs whitespace-pre-wrap px-3 py-3 text-slate-600 dark:text-slate-300">{log.reason || "—"}</td>
-                    <td className="px-3 py-3">
-                      {log.metadata && Object.keys(log.metadata).length ? (
-                        <details>
-                          <summary className="cursor-pointer text-xs font-semibold text-[#1a2a6c] dark:text-[#e9d48f]">View metadata</summary>
-                          <pre className="mt-2 max-w-sm overflow-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-3 text-[11px] dark:bg-[#0b1220]">{JSON.stringify(log.metadata, null, 2)}</pre>
-                        </details>
-                      ) : <span className="text-xs text-slate-400">—</span>}
-                    </td>
                   </tr>
                 )) : (
-                  <tr><td colSpan={6} className="px-3 py-10 text-center text-slate-500 dark:text-slate-400">No audit entries match these filters.</td></tr>
+                  <tr><td colSpan={5} className="px-3 py-10 text-center text-slate-500 dark:text-slate-400">No audit entries match these filters.</td></tr>
                 )}
               </tbody>
             </table>

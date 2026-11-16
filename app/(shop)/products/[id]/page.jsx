@@ -1,4 +1,5 @@
 "use client";
+import ListingLocation from "@/components/products/ListingLocation";
 import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
@@ -282,6 +283,7 @@ const soldCount = product.sold_count || 0;
                 <h1 className="text-[18px] sm:text-[20px] font-bold text-[#1a1060] dark:text-[#f0ede8] leading-snug m-0">
                   {product.name}
                 </h1>
+                <ListingLocation product={product} className="mt-3" />
 {/* Rating + Sold row — always show */}
 <div className="flex items-center gap-3 flex-wrap">
   {ratingCount > 0 ? (

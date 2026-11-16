@@ -5,7 +5,9 @@ const links = [
   { href: "/bao/dashboard", label: "Overview", key: "overview" },
   { href: "/bao/products", label: "Product moderation", key: "products" },
   { href: "/bao/sellers", label: "Sellers", key: "sellers" },
+  { href: "/bao/seller-applications", label: "Seller Applications", key: "applications" },
   { href: "/bao/commissions", label: "Commissions", key: "commissions" },
+  { href: "/bao/finance", label: "Payments & cashouts", key: "finance" },
   { href: "/bao/reports", label: "Complaints & reports", key: "reports" },
   { href: "/bao/audit", label: "Audit log", key: "audit" },
 ];

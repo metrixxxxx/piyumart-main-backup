@@ -3,11 +3,15 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { saveFile } from "@/lib/savefile";
 import { isActiveSellerAccount } from "@/lib/seller-access";
+import { normalizeMeetupPoint } from "@/lib/campus";
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return Response.json({ error: "Not logged in" }, { status: 401 });
+    if (!(await isActiveSellerAccount(session.user.id))) {
+      return Response.json({ error: "An active verified seller account is required." }, { status: 403 });
+    }
 
     const [rows] = await db.query(
       `SELECT p.*, c.name as category_name 
@@ -59,6 +63,10 @@ export async function POST(req) {
     }
 
     const formData = await req.formData();
+    const meetupPoint = normalizeMeetupPoint(formData.get("meetup_point"));
+    if (!meetupPoint) return Response.json({ error: "A meetup point is required (up to 200 characters)." }, { status: 400 });
+    const [sellers] = await db.query("SELECT name, department FROM users WHERE id = $1 AND role = 'seller' AND status = 'active'", [session.user.id]);
+    if (!sellers[0]) return Response.json({ error: "Forbidden" }, { status: 403 });
 
     const name         = formData.get("name");
     const description  = formData.get("description");
@@ -82,10 +90,10 @@ export async function POST(req) {
     // ✅ THE FIX — [rows] not [result], then rows[0].id
     const [rows] = await db.query(
       `INSERT INTO products 
-        (name, description, price, image_url, seller_id, seller_name, category_id, stock, is_visible, is_featured, status) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        (name, description, price, image_url, seller_id, seller_name, category_id, stock, is_visible, is_featured, status, department, meetup_point)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        RETURNING id`,
-      [name, description, price, image_url, session.user.id, session.user.name, category_id, stock, true, false, "pending"]
+      [name, description, price, image_url, session.user.id, sellers[0].name, category_id, stock, true, false, "pending", sellers[0].department, meetupPoint]
     );
     const product_id = rows[0].id;
 
@@ -143,6 +151,8 @@ export async function PUT(req) {
     }
 
     const formData = await req.formData();
+    const meetupPoint = normalizeMeetupPoint(formData.get("meetup_point"));
+    if (!meetupPoint) return Response.json({ error: "A meetup point is required (up to 200 characters)." }, { status: 400 });
 
     const id           = formData.get("id");
     const name         = formData.get("name");
@@ -178,11 +188,11 @@ export async function PUT(req) {
     const [updatedProducts] = await db.query(
       `UPDATE products 
        SET name=$1, description=$2, price=$3, image_url=$4, category_id=$5, stock=$6, is_visible=$7,
-           status = CASE WHEN status = 'suspended' THEN status ELSE 'pending' END
+           status = CASE WHEN status = 'suspended' THEN status ELSE 'pending' END, meetup_point=$10
        WHERE id=$8 AND seller_id=$9
        RETURNING id, name, description, price, image_url, category_id, stock,
-                 is_visible, is_featured, status, seller_id, seller_name`,
-      [name, description, price, image_url, category_id, stock, is_visible, id, session.user.id]
+                 is_visible, is_featured, status, seller_id, seller_name, department, meetup_point`,
+      [name, description, price, image_url, category_id, stock, is_visible, id, session.user.id, meetupPoint]
     );
     if (!updatedProducts.length) {
       return Response.json({ error: "Product not found." }, { status: 404 });

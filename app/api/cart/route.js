@@ -19,6 +19,8 @@ const [items] = await db.query(
     cart_items.variant,
     products.name,
     products.price,
+    products.department,
+    products.meetup_point,
     products.seller_id,        -- ← dagdag ito
     products.seller_name,      -- ← at ito (nandoon na sa products table mo)
     COALESCE(pv.image_url, products.image_url) AS image_url

@@ -16,7 +16,7 @@ export async function DELETE(req, { params }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!(await isActiveSellerAccount(session.user.id))) {
-    return NextResponse.json({ error: "An active account is required to manage listings." }, { status: 403 });
+    return NextResponse.json({ error: "An active verified seller account is required to manage listings." }, { status: 403 });
   }
 
   const { id } = await params;
@@ -31,7 +31,7 @@ export async function PATCH(req, { params }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!(await isActiveSellerAccount(session.user.id))) {
-    return NextResponse.json({ error: "An active account is required to manage listings." }, { status: 403 });
+    return NextResponse.json({ error: "An active verified seller account is required to manage listings." }, { status: 403 });
   }
 
   const { id } = await params;

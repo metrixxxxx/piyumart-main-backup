@@ -1,4 +1,5 @@
 "use client";
+import ListingLocation from "@/components/products/ListingLocation";
 import { useState, useEffect, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -23,6 +24,11 @@ function CheckoutContent() {
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cod");
+  const [onlinePayments, setOnlinePayments] = useState({enabled:false,methods:[]});
+
+  useEffect(() => {
+    fetch("/api/payments/config").then(response => response.json()).then(setOnlinePayments).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -79,6 +85,8 @@ function CheckoutContent() {
         quantity,
         variant: variantParam,
         seller_name: product.seller_name || null,
+        department: product.department,
+        meetup_point: product.meetup_point,
       }]
     : cartItems.map((item) => ({
         product_id: item.product_id ?? item.id,
@@ -89,6 +97,8 @@ function CheckoutContent() {
         quantity: item.quantity,
         variant: item.variant || null,
         seller_name: item.seller_name || null,
+        department: item.department,
+        meetup_point: item.meetup_point,
       }));
 
   // BUG FIX: validate each item has a valid product_id
@@ -116,9 +126,14 @@ function CheckoutContent() {
 
     setSubmitting(true);
     try {
+      const checkoutFingerprint = JSON.stringify({ method: paymentMethod, items: items.map(item => [item.product_id, item.quantity, item.variant]) });
+      if (sessionStorage.getItem("piyumart-checkout-fingerprint") !== checkoutFingerprint || !sessionStorage.getItem("piyumart-checkout-key")) {
+        sessionStorage.setItem("piyumart-checkout-fingerprint", checkoutFingerprint);
+        sessionStorage.setItem("piyumart-checkout-key", crypto.randomUUID());
+      }
       const res = await fetch("/api/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Idempotency-Key": sessionStorage.getItem("piyumart-checkout-key") },
         body: JSON.stringify({
           name,
           email,
@@ -145,6 +160,14 @@ function CheckoutContent() {
   return;
 }
 
+const result = await res.json();
+if (result.paymentId) {
+  if (result.checkoutUrl) window.location.assign(result.checkoutUrl);
+  else router.push(`/payments/${result.paymentId}`);
+  return;
+}
+sessionStorage.removeItem("piyumart-checkout-key");
+sessionStorage.removeItem("piyumart-checkout-fingerprint");
 setOrderDone(true);
 setTimeout(() => router.push("/my-orders"), 2500);
     } catch (err) {
@@ -252,16 +275,16 @@ setTimeout(() => router.push("/my-orders"), 2500);
                 <div className="w-7 h-7 rounded-lg bg-[#1a2a6c] dark:bg-[#c9a028] flex items-center justify-center text-xs font-bold text-white dark:text-[#0a0e1f]">
                   2
                 </div>
-                <h2 className="text-sm font-bold text-[#0e1a3d] dark:text-[#e8edf8]">Delivery Address</h2>
+                <h2 className="text-sm font-bold text-[#0e1a3d] dark:text-[#e8edf8]">Pick-up point</h2>
               </div>
               <div>
                 <label className="text-[11px] font-semibold text-[#0e1a3d]/50 dark:text-[#e8edf8]/40 uppercase tracking-wider block mb-1.5">
-                  Full Address
+                  fill up pick-up point
                 </label>
                 <textarea
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Building, Street, Barangay, City, Province"
+                  placeholder="Deprtment, Room, Canteen, etc."
                   rows={3}
                   className={`${inputClass} resize-y font-[inherit]`}
                 />
@@ -276,18 +299,23 @@ setTimeout(() => router.push("/my-orders"), 2500);
                 </div>
                 <h2 className="text-sm font-bold text-[#0e1a3d] dark:text-[#e8edf8]">Payment Method</h2>
               </div>
-              <div className="flex items-center gap-3 p-4 rounded-xl border-[1.5px] border-[#1a2a6c] dark:border-[#c9a028] bg-[#f0f4ff] dark:bg-[#c9a028]/5 cursor-pointer">
+              <label className="flex items-center gap-3 p-4 rounded-xl border-[1.5px] border-[#1a2a6c] dark:border-[#c9a028] bg-[#f0f4ff] dark:bg-[#c9a028]/5 cursor-pointer">
+                <input type="radio" name="paymentMethod" value="cod" checked={paymentMethod === "cod"} onChange={() => setPaymentMethod("cod")} className="accent-[#1a2a6c]" />
                 <div className="w-9 h-9 rounded-lg bg-[#1a2a6c] dark:bg-[#c9a028] flex items-center justify-center text-lg shrink-0">
                   💵
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-[#0e1a3d] dark:text-[#e8edf8]">Cash on Delivery</p>
+                  <p className="text-sm font-semibold text-[#0e1a3d] dark:text-[#e8edf8]">Cash on Pick-up</p>
                   <p className="text-xs text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">Pay when your order arrives</p>
                 </div>
                 <div className="ml-auto w-4 h-4 rounded-full bg-[#1a2a6c] dark:bg-[#c9a028] flex items-center justify-center">
                   <div className="w-1.5 h-1.5 rounded-full bg-white dark:bg-[#0a0e1f]" />
                 </div>
-              </div>
+              </label>
+              <label className={`mt-3 flex items-start gap-3 rounded-xl border border-[#c5cfe8] p-4 dark:border-white/10 ${onlinePayments.enabled ? "cursor-pointer" : "opacity-60"}`}>
+                <input type="radio" name="paymentMethod" value="paymongo" disabled={!onlinePayments.enabled} checked={paymentMethod === "paymongo"} onChange={() => setPaymentMethod("paymongo")} className="mt-1 accent-[#1a2a6c]" />
+                <span><span className="block text-sm font-semibold text-[#0e1a3d] dark:text-[#e8edf8]">Pay online with PayMongo · Test mode</span><span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">{onlinePayments.enabled ? "Choose an eligible GCash, Maya, card, or QR Ph method on the secure checkout page." : "Online demo payments will be available after the administrator configures PayMongo test keys."}</span></span>
+              </label>
             </div>
 
             {/* Shopee-style: Items grouped by seller */}
@@ -392,6 +420,7 @@ setTimeout(() => router.push("/my-orders"), 2500);
                         <p className="text-[11px] font-semibold text-[#0e1a3d] dark:text-[#e8edf8] truncate">
                           {item.name}
                         </p>
+                        <ListingLocation product={item} className="mt-1" />
                         {item.variant && (
                           <p className="text-[10px] text-[#0e1a3d]/40 dark:text-[#e8edf8]/30">{item.variant}</p>
                         )}
@@ -431,7 +460,7 @@ setTimeout(() => router.push("/my-orders"), 2500);
               </button>
 
               <p className="text-[11px] text-[#0e1a3d]/40 dark:text-[#e8edf8]/30 text-center mt-3 leading-relaxed">
-                🔒 Secured checkout · Cash on Delivery only
+                🔒 Secured checkout · Cash on Pick-up only
               </p>
             </div>
 

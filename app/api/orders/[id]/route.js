@@ -6,6 +6,7 @@ import { notify } from "@/lib/notify";
 import { supabaseAdmin } from "@/lib/supabase";
 import { isActiveSellerAccount } from "@/lib/seller-access";
 import { recordOrderCommission } from "@/lib/bao-commission";
+import { transitionOnlineOrder } from "@/lib/payments/events";
 
 const ACTION_TO_STATUS = {
   confirm_delivery: "completed",
@@ -25,6 +26,8 @@ export async function PATCH(req, { params }) {
     if (isNaN(orderId)) return NextResponse.json({ error: "Invalid order ID" }, { status: 400 });
 
     const body = await req.json();
+    const [paymentOrders] = await db.query("SELECT payment_method FROM orders WHERE id=$1", [orderId]);
+    if (paymentOrders[0]?.payment_method === "paymongo") return NextResponse.json(await transitionOnlineOrder(session.user.id, orderId, body));
     const status = body.status ?? ACTION_TO_STATUS[body.action];
     if (!status) return NextResponse.json({ error: "Invalid action or status" }, { status: 400 });
 
@@ -74,10 +77,12 @@ export async function PATCH(req, { params }) {
             `UPDATE products SET sold_count = sold_count + $1 WHERE id = $2`,
             [item.quantity, item.product_id]
           );
-          await client.query(
-            `UPDATE products SET stock = stock - $1 WHERE id = $2 AND stock >= $3`,
-            [item.quantity, item.product_id, item.quantity]
-          );
+          if (!order.stock_reserved) {
+            await client.query(
+              `UPDATE products SET stock = stock - $1 WHERE id = $2 AND stock >= $3`,
+              [item.quantity, item.product_id, item.quantity]
+            );
+          }
         }
       }
 
@@ -172,7 +177,7 @@ export async function PATCH(req, { params }) {
     return NextResponse.json({ success: true, status, order: updatedOrder });
   } catch (err) {
     console.error("PATCH /orders/[id] error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: err.status ? err.message : "Unable to update order." }, { status: err.status || 500 });
   }
 }
 
@@ -185,13 +190,14 @@ export async function DELETE(req, { params }) {
     const orderId = Number(id);
     if (isNaN(orderId)) return NextResponse.json({ error: "Invalid order ID" }, { status: 400 });
 
-    const [rows] = await db.query(`SELECT id, status, user_id FROM orders WHERE id = $1`, [orderId]);
+    const [rows] = await db.query(`SELECT id, status, user_id, payment_method FROM orders WHERE id = $1`, [orderId]);
     const order = rows[0];
 
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
 
     if (Number(order.user_id) !== Number(session.user.id))
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (order.payment_method === "paymongo") return NextResponse.json({ error: "Online orders are retained for financial history." }, { status: 409 });
 
     if (!["cancelled", "completed"].includes(order.status))
       return NextResponse.json(

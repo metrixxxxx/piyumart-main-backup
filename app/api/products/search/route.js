@@ -18,6 +18,8 @@ export async function GET(req) {
         p.id,
         p.name,
         p.description,
+        p.department,
+        p.meetup_point,
         p.price,
         p.image_url,
         p.sold_count,

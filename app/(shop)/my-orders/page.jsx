@@ -1,4 +1,6 @@
 "use client";
+import ListingLocation from "@/components/products/ListingLocation";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -142,12 +144,13 @@ function OrderCard({ order, onUpdate, onDelete }) {
 }
 
   const cfg = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
-  const canDelete = DELETABLE_STATUSES.includes(order.status);
+  const canDelete = order.payment_method !== "paymongo" && DELETABLE_STATUSES.includes(order.status);
 
   return (
     <div className="bg-white dark:bg-[#0e1520] border border-[#c5cfe8] dark:border-white/[0.07] overflow-hidden rounded-sm">
 
       {/* Seller bar */}
+      {order.payment_id && <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#c5cfe8] bg-[#eef2f7] px-4 py-3 text-xs dark:border-white/10 dark:bg-[#111a2b]"><span className="capitalize">Online payment: {String(order.payment_status).replaceAll("_", " ")}</span><Link href={`/payments/${order.payment_id}`} className="font-bold text-[#1a2a6c] underline dark:text-[#c9a028]">View payment / continue checkout</Link></div>}
       <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#e8edf8] dark:border-white/[0.05] bg-[#f8f9ff] dark:bg-white/[0.02]">
         <div className="w-5 h-5 rounded-sm bg-[#1a2a6c] dark:bg-[#c9a028] flex items-center justify-center shrink-0">
           <svg className="w-3 h-3 text-white dark:text-[#070b14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -201,6 +204,7 @@ function OrderCard({ order, onUpdate, onDelete }) {
               <p className="text-xs font-semibold text-[#0e1a3d] dark:text-[#e8edf8] line-clamp-2 leading-snug">
                 {item.name || `Product #${item.product_id}`}
               </p>
+              <ListingLocation product={item} className="mt-1" />
               {item.variant && (
                 <span className="inline-block mt-1 text-[10px] bg-[#f0f4ff] dark:bg-white/[0.06] text-[#1a2a6c] dark:text-[#c9a028] px-2 py-0.5 rounded-sm">
                   Variation: {item.variant}
@@ -242,7 +246,7 @@ function OrderCard({ order, onUpdate, onDelete }) {
             {expanded ? "Hide details ▲" : "View details ▼"}
           </button>
           <div className="flex gap-2">
-            {order.status === "pending" && (
+            {order.status === "pending" && order.payment_method !== "paymongo" && (
               <button
                 disabled={actionLoading}
                 onClick={() => setConfirmCancelOpen(true)}

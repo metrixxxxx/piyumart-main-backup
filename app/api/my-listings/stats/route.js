@@ -2,10 +2,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { isActiveSellerAccount } from "@/lib/seller-access";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await isActiveSellerAccount(session.user.id))) return NextResponse.json({ error: "An active verified seller account is required." }, { status: 403 });
 
   const userId = session.user.id;
 
@@ -14,16 +16,18 @@ export async function GET() {
        SELECT
          o.id,
          o.status,
-         o.total,
-         oc.id AS commission_record_id,
-         rate.percentage AS applicable_rate,
+         COALESCE(a.gross_amount-a.refunded_amount,o.total) AS total,
+         COALESCE(oc.id::text,a.order_id::text) AS commission_record_id,
+         CASE WHEN a.order_id IS NOT NULL THEN 3 ELSE rate.percentage END AS applicable_rate,
          CASE
            WHEN o.status = 'cancelled' THEN 0::numeric
+           WHEN a.order_id IS NOT NULL THEN a.commission_amount-a.commission_refunded
            WHEN oc.id IS NOT NULL THEN oc.commission_amount
            WHEN rate.percentage IS NOT NULL THEN ROUND(o.total * rate.percentage / 100, 2)
            ELSE 0::numeric
          END AS commission_amount,
          CASE
+           WHEN a.order_id IS NOT NULL THEN a.seller_amount-a.seller_refunded
            WHEN oc.id IS NOT NULL THEN oc.seller_earnings
            ELSE o.total - CASE
              WHEN o.status = 'cancelled' THEN 0::numeric
@@ -33,6 +37,7 @@ export async function GET() {
          END AS seller_earnings
        FROM orders AS o
        LEFT JOIN order_commissions AS oc ON oc.order_id = o.id
+       LEFT JOIN payment_allocations AS a ON a.order_id = o.id
        LEFT JOIN LATERAL (
          SELECT percentage
          FROM bao_commission_rates

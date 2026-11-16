@@ -265,8 +265,9 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
 
   const dropdownItems = [
     { href: "/profile", label: "My Profile", icon: ProfileIcon },
-    { href: "/sell", label: "Sell a Product", icon: SellIcon },
-    { href: "/my-listings", label: "My Listings", icon: ListingsIcon },
+    { href: "/sell", label: session?.user?.role === "seller" ? "Sell a Product" : "Become a seller", icon: SellIcon },
+    ...(session?.user?.role === "seller" ? [{ href: "/my-listings", label: "My Listings", icon: ListingsIcon }] : []),
+    ...(session?.user?.role === "seller" ? [{ href: "/wallet", label: "My Wallet", icon: ListingsIcon }] : []),
     { href: "/my-orders", label: "My Orders", icon: OrdersIcon },
     { href: "/messages", label: "Messages", icon: MessagesIcon },
   ];
@@ -278,8 +279,9 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
       ? [
           { href: "/messages", label: "Messages", icon: MessagesIcon },
           { href: "/profile", label: "Profile", icon: ProfileIcon },
-          { href: "/sell", label: "Sell", icon: SellIcon },
-          { href: "/my-listings", label: "Listings", icon: ListingsIcon },
+          { href: "/sell", label: session?.user?.role === "seller" ? "Sell" : "Become a seller", icon: SellIcon },
+          ...(session?.user?.role === "seller" ? [{ href: "/my-listings", label: "Listings", icon: ListingsIcon }] : []),
+          ...(session?.user?.role === "seller" ? [{ href: "/wallet", label: "Wallet", icon: ListingsIcon }] : []),
           { href: "/my-orders", label: "Orders", icon: OrdersIcon },
         ]
       : []),

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useSentiment } from "@/app/hooks/useSentiment";
+import ListingLocation from "@/components/products/ListingLocation";
 
 export function StockBadge({ stock }) {
   if (Number(stock) === 0) return <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-200">Sold out</span>;
@@ -38,6 +39,7 @@ export default function ProductCard({ product, onClick, priority = false }) {
       <div className="flex flex-1 flex-col p-2.5 sm:p-3">
         <h2 className={`line-clamp-2 min-h-8 text-[15px] font-extrabold leading-4 tracking-tight transition-colors duration-200 group-hover:text-[#0f1f5c] dark:group-hover:text-[#FABB00] ${isOutOfStock ? "text-slate-500 dark:text-slate-400" : "text-[#0f1f5c] dark:text-slate-100"}`}>{product.name}</h2>
         <p className="mt-0.5 line-clamp-2 min-h-8 text-xs leading-4 text-slate-600 dark:text-slate-300">{product.description || " "}</p>
+        {!product.is_demo && <ListingLocation product={product} className="mt-2" />}
         <div className="mt-1.5 flex min-h-5 items-center justify-between gap-2">
           {product.is_demo ? <span className="truncate rounded-full border border-[#0f1f5c]/10 bg-[#0f1f5c]/5 px-2.5 py-1 text-xs font-bold text-[#0f1f5c] dark:border-white/10 dark:bg-white/5 dark:text-slate-100">{product.seller_name}</span> : <button type="button" onClick={(e) => { e.stopPropagation(); if (product.seller_id) router.push(`/shop/${product.seller_id}`); }} className="truncate rounded-full border border-[#0f1f5c]/10 bg-[#0f1f5c]/5 px-2.5 py-1 text-left text-xs font-bold text-[#0f1f5c] underline-offset-2 transition-colors hover:border-[#FABB00]/70 hover:bg-[#FABB00]/15 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FABB00] dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:border-[#FABB00]/50 dark:hover:bg-[#FABB00]/10">{product.seller_name || "Campus seller"}</button>}
           {Number(product.average_rating) > 0 ? <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-400/10 dark:text-amber-200"><span className="text-amber-500">★</span>{Number(product.average_rating).toFixed(1)}</span> : <span className="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">New listing</span>}

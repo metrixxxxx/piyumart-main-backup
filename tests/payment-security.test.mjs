@@ -1,0 +1,46 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
+import { loadFinanceModule } from "./helpers/load-finance-module.mjs";
+
+test("PHP arithmetic preserves centavos and exact 97/3 allocation",async()=>{
+  const m=await loadFinanceModule("lib/payments/money.js");
+  assert.equal(m.cents("1000.00"),100000);assert.equal(m.splitAmount(100000).seller,97000);assert.equal(m.splitAmount(100000).commission,3000);
+  for(let value=1;value<10000;value++){const split=m.splitAmount(value);assert.equal(split.seller+split.commission,value);}
+  for(const invalid of ["-1","NaN","1e3","1.001","Infinity"])assert.throws(()=>m.cents(invalid));
+  assert.equal(m.proportional(7,[1,2,3]).reduce((sum,value)=>sum+value,0),7);
+});
+test("webhooks require the raw body, test signature, matching HMAC and a recent timestamp",async()=>{
+  const secret="fixture-webhook-secret",now=Date.now(),timestamp=String(Math.floor(now/1000)),raw=JSON.stringify({data:{id:"evt_fixture",attributes:{livemode:false}}});
+  const api=await loadFinanceModule("lib/payments/paymongo.js",{env:{PAYMONGO_WEBHOOK_SECRET:secret}});
+  const signature=createHmac("sha256",secret).update(`${timestamp}.${raw}`).digest("hex");
+  api.verifySignature(raw,`t=${timestamp},te=${signature},li=`,now);
+  for(const header of [null,`t=${timestamp},li=${signature}`,`t=${timestamp},te=${"0".repeat(64)}`,`t=1,te=${signature}`])assert.throws(()=>api.verifySignature(raw,header,now));
+  assert.throws(()=>api.verifySignature(`${raw} `,`t=${timestamp},te=${signature}`,now));
+});
+test("a live secret key is rejected before a provider request",async()=>{
+  let calls=0;const api=await loadFinanceModule("lib/payments/paymongo.js",{env:{PAYMONGO_SECRET_KEY:"sk_live_fixture"},fetch:async()=>{calls++;}});
+  await assert.rejects(api.paymongo("/v2/checkout_sessions",{method:"POST"}),error=>error.status===503);assert.equal(calls,0);
+});
+test("payout details are encrypted and authenticated",async()=>{
+  const api=await loadFinanceModule("lib/payments/security.js",{env:{WALLET_ENCRYPTION_KEY:"ab".repeat(32)}});
+  const encrypted=api.encryptAccount("09171234567");assert.ok(!encrypted.includes("09171234567"));assert.equal(api.decryptAccount(encrypted),"09171234567");
+  const parts=encrypted.split(".");parts[1]=Buffer.from("tampered").toString("base64url");assert.throws(()=>api.decryptAccount(parts.join(".")));
+});
+for(const role of [null,"user","bao","admin"]){test(`${role||"anonymous"} cannot access a seller wallet`,async()=>{
+  const api=await loadFinanceModule("app/api/wallet/route.js",{account:role?{id:1,role,status:"active"}:null});
+  assert.equal((await api.GET()).status,role?403:401);
+});}
+test("buyer and seller marketplace sessions do not authorize BAO finances",async()=>{
+  for(const role of ["user","seller"]){const api=await loadFinanceModule("app/api/bao/finance/route.js",{account:{id:1,role,status:"active"}});assert.equal((await api.GET()).status,401);}
+});
+test("BAO cannot change admin financial settings",async()=>{
+  const api=await loadFinanceModule("app/api/bao/finance/route.js",{staff:{id:3,role:"bao"}});
+  assert.equal((await api.PATCH(new Request("http://localhost/api/bao/finance",{method:"PATCH",body:"{}"}))).status,403);
+});
+test("a frontend return URL cannot confirm a payment without authenticated provider lookup",async()=>{
+  const calls=[];
+  const api=await loadFinanceModule("app/api/payments/[id]/route.js",{account:{id:1,role:"user",status:"active"},db:{query:async(sql)=>{calls.push(sql);return [[]];}}});
+  const response=await api.GET(new Request("http://localhost/api/payments/11111111-1111-4111-8111-111111111111?result=success"),{params:Promise.resolve({id:"11111111-1111-4111-8111-111111111111"})});
+  assert.equal(response.status,404);assert.ok(calls.every(sql=>sql.startsWith("SELECT")));
+});

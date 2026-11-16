@@ -34,7 +34,7 @@ const FOOTER_LINKS = [
   {
     heading: "Sell with Us",
     links: [
-      { label: "Sell your products", href: "/sell" },
+      { label: "Become a seller", href: "/sell" },
     ],
   },
   {
