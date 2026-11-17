@@ -1,4 +1,5 @@
 "use client";
+import ActionFeedback from "@/components/ui/ActionFeedback";
 import Pagination from "@/components/ui/Pagination";
 import { usePagedResource } from "@/lib/usePagedResource";
 import { useSession } from "next-auth/react";
@@ -50,6 +51,9 @@ export default function MyListingsPage() {
   const [filter, setFilter] = useState("all");
   const [activeTab, setActiveTab] = useState("listings");
   const [refresh, setRefresh] = useState(0);
+  const [actionPending, setActionPending] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [actionNotice, setActionNotice] = useState("");
   const [productPage,setProductPage]=useState(1),[orderPage,setOrderPage]=useState(1),[reviewPage,setReviewPage]=useState(1);
   const inventory=usePagedResource(`/api/sell?page=${productPage}&visibility=${filter}`,{enabled:!!session?.user?.id,identity:session?.user?.id,onPageChange:setProductPage});
   const orderList=usePagedResource(`/api/seller/orders?page=${orderPage}`,{enabled:!!session?.user?.id,identity:session?.user?.id,refresh,onPageChange:setOrderPage});
@@ -78,6 +82,8 @@ export default function MyListingsPage() {
   },[session?.user?.id,refresh]);
 
   async function handleOrderStatus(id, status) {
+    if (actionPending) return;
+    setActionPending(true); setActionError(""); setActionNotice("");
     setOrders((prev) =>
       prev.map((o) => (Number(o.id) === Number(id) ? { ...o, _loading: true } : o))
     );
@@ -96,9 +102,11 @@ export default function MyListingsPage() {
         prev.map((o) => (Number(o.id) === Number(id) ? { ...o, status: data.status } : o))
       );
       orderList.reload();
+      setActionNotice(`Order #${id} is now ${data.status}.`);
     } catch (error) {
-      alert(error.message || "Unable to update order.");
+      setActionError(error.message || "Unable to update order.");
     } finally {
+      setActionPending(false);
       setOrders((prev) =>
         prev.map((o) => (Number(o.id) === Number(id) ? { ...o, _loading: false } : o))
       );
@@ -112,15 +120,19 @@ export default function MyListingsPage() {
   async function confirmDeleteListing() {
     if (!confirmDeleteId) return;
     const id = confirmDeleteId;
+    setActionPending(true); setActionError(""); setActionNotice("");
     setConfirmDeleteId(null);
     try {
       const response=await fetch(`/api/my-listings/${id}`, { method: "DELETE" });
       if(!response.ok){const data=await response.json();throw new Error(data.error||"Unable to delete listing.");}
       inventory.reload();
-    }catch(error){alert(error.message);}
+      setActionNotice("The listing was deleted successfully.");
+    }catch(error){setActionError(error.message);}finally{setActionPending(false);}
   }
 
   async function toggleVisibility(id, current) {
+    if (actionPending) return;
+    setActionPending(true); setActionError(""); setActionNotice("");
     const newVisibility = !Boolean(current);
     try { const response=await fetch(`/api/my-listings/${id}`, {
       method: "PATCH",
@@ -129,7 +141,8 @@ export default function MyListingsPage() {
     });
     if(!response.ok){const data=await response.json();throw new Error(data.error||"Unable to update visibility.");}
     inventory.reload();
-    }catch(error){alert(error.message);}
+    setActionNotice(newVisibility ? "Your listing is now visible." : "Your listing is now hidden.");
+    }catch(error){setActionError(error.message);}finally{setActionPending(false);}
   }
 
   const stats = {
@@ -510,6 +523,7 @@ export default function MyListingsPage() {
         onCancel={() => setConfirmDeleteId(null)}
         onConfirm={confirmDeleteListing}
       />
-    </main>
+    <ActionFeedback pending={actionPending} error={actionError} success={actionNotice} pendingTitle="Updating your listing or order" successTitle="Changes saved" />
+      </main>
   );
 }

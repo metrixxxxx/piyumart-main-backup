@@ -1,5 +1,6 @@
 "use client";
 
+import ActionFeedback from "@/components/ui/ActionFeedback";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -11,6 +12,7 @@ export default function BecomeSeller({ initialApplication }) {
   const [note, setNote] = useState("");
   const [file, setFile] = useState(null);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [working, setWorking] = useState(false);
   const { update } = useSession();
   const router = useRouter();
@@ -32,6 +34,8 @@ export default function BecomeSeller({ initialApplication }) {
 
   async function submit(event) {
     event.preventDefault();
+    if (working) return;
+    setNotice("");
     const fileError = validateProofFile(file);
     if (fileError) { setError(fileError); return; }
     setWorking(true);
@@ -46,6 +50,7 @@ export default function BecomeSeller({ initialApplication }) {
       if (!response.ok) throw new Error(data.error || "Unable to submit application.");
       setApplication(data.application);
       setFile(null);
+      setNotice("Your seller application has been submitted. You will be notified after it is reviewed.");
     } catch (err) { setError(err.message); }
     finally { setWorking(false); }
   }
@@ -95,6 +100,7 @@ export default function BecomeSeller({ initialApplication }) {
           </>
         )}
       </section>
-    </main>
+    <ActionFeedback pending={working} error={error} success={notice} pendingTitle="Submitting your application" pendingDescription="Uploading your verification document and saving your application." successTitle="Application submitted" />
+      </main>
   );
 }

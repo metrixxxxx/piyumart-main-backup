@@ -1,4 +1,6 @@
 "use client";
+import ActionFeedback from "@/components/ui/ActionFeedback";
+import LoginRequiredModal from "@/components/ui/LoginRequiredModal";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
@@ -13,6 +15,7 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [actionError, setActionError] = useState("");
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const { data: session } = useSession();
@@ -84,8 +87,10 @@ export default function ProductDetailPage() {
   }, [id, router]);
 
   async function handleAddToCart() {
+    if (addingToCart) return;
     if (!session) { setShowModal(true); return; }
-    setAddingToCart(true);
+    setAddingToCart(true); setActionError("");
+    try {
     const res = await fetch("/api/cart", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -96,8 +101,10 @@ export default function ProductDetailPage() {
       }),
     });
     const data = await res.json();
-    setAddingToCart(false);
+    if (!res.ok) throw new Error(data.error || "Unable to add this item to your cart.");
     if (data.success) router.push("/cart");
+    } catch (failure) { setActionError(failure.message || "Unable to update your cart. Please try again."); }
+    finally { setAddingToCart(false); }
   }
 
   async function handleBuyNow() {
@@ -374,37 +381,8 @@ export default function ProductDetailPage() {
       </div>
 
       {/* LOGIN MODAL */}
-      {showModal && (
-        <div
-          onClick={() => setShowModal(false)}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white dark:bg-[#12121a] rounded-2xl p-6 sm:p-9 w-full max-w-[320px] text-center border border-[#e8e5f0] dark:border-white/[0.07] shadow-[0_24px_60px_rgba(0,0,0,0.2)]"
-          >
-            <div className="text-4xl mb-3.5">🔒</div>
-            <h2 className="text-lg font-bold mb-2 text-[#1a1060] dark:text-[#f0ede8]">Sign in to continue</h2>
-            <p className="text-xs text-[#1a1060]/50 dark:text-[#f0ede8]/45 mb-6 leading-relaxed">
-              You need to be logged in to add items or buy.
-            </p>
-            <div className="flex flex-col gap-2.5">
-              <button
-                onClick={() => router.push("/login")}
-                className="w-full py-3 rounded-xl bg-[#6d4aff] dark:bg-[#c9a96e] text-white dark:text-[#0a0a0f] font-bold text-sm cursor-pointer hover:opacity-90 transition border-none"
-              >
-                Sign in
-              </button>
-              <button
-                onClick={() => setShowModal(false)}
-                className="w-full py-3 rounded-xl border border-[#e5e7eb] dark:border-white/10 text-sm text-[#1a1060]/60 dark:text-[#f0ede8]/50 cursor-pointer hover:bg-[#f5f3ff] dark:hover:bg-white/[0.04] transition bg-transparent"
-              >
-                Continue browsing
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <LoginRequiredModal open={showModal} onClose={() => setShowModal(false)} />
+    <ActionFeedback pending={addingToCart} error={actionError} pendingTitle="Adding to your cart" />
     </div>
   );
 }

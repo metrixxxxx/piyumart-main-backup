@@ -1,4 +1,5 @@
 "use client";
+import ActionFeedback from "@/components/ui/ActionFeedback";
 import ListingLocation from "@/components/products/ListingLocation";
 import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
@@ -29,6 +30,8 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [openingChat, setOpeningChat] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [failedSellerImage, setFailedSellerImage] = useState("");
@@ -112,6 +115,7 @@ export default function ProductDetailPage() {
   }, [id, router]);
 
   async function handleAddToCart() {
+    if (addingToCart) return;
     if (!session) { setShowModal(true); return; }
 
     const img = document.querySelector(`img[alt='${product.name}']`);
@@ -123,16 +127,19 @@ export default function ProductDetailPage() {
       });
     }
 
-    setAddingToCart(true);
+    setActionError(""); setAddingToCart(true);
+    try {
     const res = await fetch("/api/cart", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ product_id: product.id, quantity, variant: selectedVariant?.label || null }),
     });
     const data = await res.json();
-    setAddingToCart(false);
+    if (!res.ok) throw new Error(data.error || "Unable to add this item to your cart.");
     setTimeout(() => setFlyItem(null), 900);
     if (data.success) router.push("/cart");
+    } catch (failure) { setActionError(failure.message || "Unable to update your cart. Please try again."); }
+    finally { setAddingToCart(false); }
   }
 
   async function handleBuyNow() {
@@ -144,13 +151,19 @@ export default function ProductDetailPage() {
 
   async function handleChat() {
     if (!session) { setShowModal(true); return; }
+    if (openingChat) return;
+    setOpeningChat(true); setActionError("");
+    try {
     const res = await fetch("/api/conversations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ seller_id: product.seller_id, product_id: product.id }),
     });
     const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Unable to open the conversation.");
     if (data.id) router.push(`/messages/${data.id}`);
+    } catch (failure) { setActionError(failure.message || "Unable to open the conversation. Please try again."); }
+    finally { setOpeningChat(false); }
   }
 
   if (loading) return (
@@ -638,6 +651,7 @@ const soldCount = product.sold_count || 0;
           }}
         />
       )}
+    <ActionFeedback pending={addingToCart || openingChat} error={actionError} pendingTitle={openingChat ? "Opening your conversation" : "Adding to your cart"} />
     </div>
   );
 }

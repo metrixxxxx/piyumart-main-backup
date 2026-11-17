@@ -1,4 +1,5 @@
 "use client";
+import ActionFeedback from "@/components/ui/ActionFeedback";
 import { useSession } from "next-auth/react";
 import { useState, useRef, useEffect } from "react";
 
@@ -226,6 +227,7 @@ export default function ProfilePage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return;
     setError(""); setSuccess("");
 
     if (tab === "password") {
@@ -238,6 +240,7 @@ export default function ProfilePage() {
     }
 
     setSaving(true);
+    try {
     const fd = new FormData();
     fd.append("firstName",       form.firstName);
     fd.append("lastName",        form.lastName);
@@ -261,6 +264,8 @@ export default function ProfilePage() {
       if (tab === "profile") setEditing(false);
       try { await update(); } catch (err) { console.warn("[profile] session refresh failed", err); }
     }
+    } catch { setError("Unable to save your changes. Check your connection and try again."); }
+    finally { setSaving(false); }
   };
 
   const initials = `${form.firstName?.charAt(0) || ""}${form.lastName?.charAt(0) || ""}`.toUpperCase() || "?";
@@ -594,6 +599,7 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
-    </div>
+    <ActionFeedback pending={saving} error={error} success={success} pendingTitle="Saving your profile" successTitle="Changes saved" />
+      </div>
   );
 }

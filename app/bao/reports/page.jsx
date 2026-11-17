@@ -1,5 +1,6 @@
 "use client";
 
+import ActionFeedback from "@/components/ui/ActionFeedback";
 import { useEffect, useState } from "react";
 import BaoHeader from "@/components/bao/BaoHeader";
 import ConfirmModal from "@/components/ui/ConfirmModal";
@@ -519,6 +520,7 @@ export default function BaoReportsPage() {
         onCancel={() => setConfirmOpen(false)}
         loading={saving}
       />
-    </main>
+    <ActionFeedback pending={saving} error={updateError} success={notice} showLoading={false} successTitle="Report updated" />
+      </main>
   );
 }

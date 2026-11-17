@@ -1,4 +1,5 @@
 "use client";
+import ActionFeedback from "@/components/ui/ActionFeedback";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
@@ -15,6 +16,10 @@ const NAV = [
 ];
 
 export default function AdminDashboard() {
+  const [actionPending, setActionPending] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [actionNotice, setActionNotice] = useState("");
+  function clearActionFeedback() { setActionError(""); setActionNotice(""); setUserError(""); setUserNotice(""); setBaoError(""); setBaoNotice(""); }
   const [admin, setAdmin] = useState(null);
   const [products, setProducts] = useState([]);
   const [users, setUsers] = useState([]);
@@ -132,35 +137,59 @@ export default function AdminDashboard() {
   }
 
   async function handleLogout() {
-    await fetch("/api/admin/logout", { method: "POST" });
-    router.push("/admin/login");
+    clearActionFeedback();
+    setConfirmModal({ title: "Log out of the admin dashboard?", description: "Your session will end. You can sign in again to return.", confirmText: "Log out", cancelText: "Stay signed in", onConfirm: async () => {
+      setActionPending("logout");
+      try { const response = await fetch("/api/admin/logout", { method: "POST" }); if (!response.ok) throw new Error("Unable to log out. Please try again."); router.push("/admin/login"); }
+      catch (error) { setActionError(error.message); setActionPending(false); }
+    } });
+  }
+
+  async function deleteProduct(id) {
+    const response = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
+    if (!response.ok) { const data = await response.json().catch(() => ({})); throw new Error(data.error || "Unable to delete this product."); }
+    return id;
+  }
+  async function featureProduct(id) {
+    if (actionPending) return;
+    clearActionFeedback(); setActionPending("feature");
+    try { const response = await fetch("/api/admin/products/feature", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) }); if (!response.ok) throw new Error("Unable to update the featured product."); await fetchData(); setActionNotice("Featured product updated."); }
+    catch (error) { setActionError(error.message); }
+    finally { setActionPending(false); }
   }
 
   function openDeleteProductModal(id) {
+    clearActionFeedback();
     setConfirmModal({
       title: "Delete this product?",
       description: "This will permanently remove the product from the platform.",
       confirmText: "Delete product",
       cancelText: "Keep product",
       onConfirm: async () => {
-        await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
+        await deleteProduct(id);
         setProducts((prev) => prev.filter((p) => String(p.id) !== String(id)));
         setSelectedProducts((prev) => prev.filter((sid) => String(sid) !== String(id)));
+        setActionNotice("Product deleted successfully.");
       },
     });
   }
 
   function openBulkDeleteProductsModal() {
     if (!selectedProducts.length) return;
+    clearActionFeedback();
     setConfirmModal({
       title: `Delete ${selectedProducts.length} product(s)?`,
       description: "This will permanently remove the selected product listings.",
       confirmText: "Delete selected",
       cancelText: "Keep selected",
       onConfirm: async () => {
-        await Promise.all(selectedProducts.map((id) => fetch(`/api/admin/products/${id}`, { method: "DELETE" })));
-        setProducts((prev) => prev.filter((p) => !selectedProducts.map(String).includes(String(p.id))));
-        setSelectedProducts([]);
+        const results = await Promise.allSettled(selectedProducts.map(deleteProduct));
+        const deleted = results.filter(result => result.status === "fulfilled").map(result => String(result.value));
+        setProducts((prev) => prev.filter(product => !deleted.includes(String(product.id))));
+        setSelectedProducts((prev) => prev.filter(id => !deleted.includes(String(id))));
+        const failure = results.find(result => result.status === "rejected");
+        if (failure) throw new Error(`${deleted.length} product(s) deleted. ${failure.reason.message}`);
+        setActionNotice(`${deleted.length} product(s) deleted successfully.`);
       },
     });
   }
@@ -174,6 +203,7 @@ export default function AdminDashboard() {
   }
 
   function openDeleteUserModal(id) {
+    clearActionFeedback();
     setUserError("");
     setUserNotice("");
     setConfirmModal({
@@ -202,6 +232,7 @@ export default function AdminDashboard() {
   }
 
   function openBaoRoleModal(user, action) {
+    clearActionFeedback();
     const assigning = action === "assign";
     setBaoError("");
     setBaoNotice("");
@@ -555,14 +586,7 @@ export default function AdminDashboard() {
                               Delete
                             </button>
                             <button
-                              onClick={async () => {
-                                await fetch("/api/admin/products/feature", {
-                                  method: "POST",
-                                  headers: { "Content-Type": "application/json" },
-                                  body: JSON.stringify({ id: product.id }),
-                                });
-                                fetchData();
-                              }}
+                              onClick={() => featureProduct(product.id)}
                               className={`text-xs px-3 py-1.5 rounded-lg transition ${
                                 product.is_featured
                                   ? "bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30"
@@ -851,6 +875,7 @@ export default function AdminDashboard() {
           }}
         />
       </div>
-    </div>
+    <ActionFeedback pending={Boolean(actionPending || userActionPending !== null || baoActionPending !== null)} error={actionError || (activeTab === "users" ? userError : activeTab === "bao-accounts" ? baoError : "")} success={actionNotice || (activeTab === "users" ? userNotice : activeTab === "bao-accounts" ? baoNotice : "")} showLoading={Boolean(actionPending)} pendingTitle={actionPending === "logout" ? "Signing you out" : "Updating the dashboard"} successTitle="Action completed" />
+      </div>
   );
 }

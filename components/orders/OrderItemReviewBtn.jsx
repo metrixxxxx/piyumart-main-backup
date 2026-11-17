@@ -1,4 +1,5 @@
 "use client";
+import ModalShell from "@/components/ui/ModalShell";
 import { useState, useEffect } from "react";  // ✅ dagdag useEffect
 import FeedbackModal from "@/components/ui/FeedbackModal";
 import LoadingModal from "@/components/ui/LoadingModal";
@@ -71,14 +72,17 @@ export default function OrderItemReviewBtn({ productId, productName, onSuccess }
   // ✅ Kung na-review na, show thank you message
   if (reviewed) {
     return (
+      <>
       <span className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 whitespace-nowrap">
         ✅ Thank you for your review!
       </span>
+      <FeedbackModal open={Boolean(feedback)} type={feedback?.type} title={feedback?.title} description={feedback?.description} onClose={() => setFeedback(null)} />
+      </>
     );
   }
 
- 
-  
+
+
 
   return (
     <>
@@ -90,17 +94,9 @@ export default function OrderItemReviewBtn({ productId, productName, onSuccess }
       </button>
 
       {showModal && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={() => setShowModal(false)}
-        >
-          <div
-            className="bg-white dark:bg-[#12121a] rounded-2xl border border-[#e8e5f0] dark:border-white/[0.07] p-6 max-w-md w-full shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-base font-bold text-[#1a1060] dark:text-[#f0ede8] mb-1">
-              Review &quot;{productName}&quot;
-            </h3>
+        <ModalShell open title={`Review "${productName}"`} centered={false} busy={submitting} dismissible={!submitting} onClose={()=>setShowModal(false)}>
+          <div>
+
             <p className="text-xs text-[#1a1060]/50 dark:text-[#f0ede8]/40 mb-4">
               Share your experience with this product
             </p>
@@ -166,7 +162,7 @@ export default function OrderItemReviewBtn({ productId, productName, onSuccess }
               </div>
             </form>
           </div>
-        </div>
+        </ModalShell>
       )}
       <LoadingModal
         open={submitting}

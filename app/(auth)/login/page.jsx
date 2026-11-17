@@ -68,6 +68,7 @@ export default function LoginPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setError("");
 
     if (!email.endsWith("@lspu.edu.ph")) {
@@ -86,6 +87,7 @@ export default function LoginPage() {
 
     sessionStorage.removeItem("pm_shuffle_seed"); // ← add
     setLoading(true);
+    try {
     const res = await signIn("credentials", { email, password, redirect: false });
 
     if (res?.error) {
@@ -101,12 +103,18 @@ export default function LoginPage() {
         router.push(session?.user?.role === "bao" ? "/bao/dashboard" : "/");
       }
     }
+    } catch {
+      const msg = "Unable to sign in. Check your connection and try again.";
+      setError(msg); setFeedback({ type: "error", title: "Sign-in unsuccessful", description: msg }); setLoading(false);
+    }
   };
 
-  const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = async () => {
+  if (loading) return;
   sessionStorage.removeItem("pm_shuffle_seed"); // ← add
   setLoading(true);
-    signIn("google", { callbackUrl: "/auth/google-callback" });
+    try { await signIn("google", { callbackUrl: "/auth/google-callback" }); }
+    catch { setLoading(false); setFeedback({ type: "error", title: "Unable to open Google sign-in", description: "Check your connection and try again." }); }
 };
   return (
     <main className="flex min-h-dvh w-full items-center justify-center bg-[radial-gradient(ellipse_at_18%_22%,#252d74_0%,#1a2057_46%,#101436_100%)] px-5 py-10 sm:px-8 lg:px-12">

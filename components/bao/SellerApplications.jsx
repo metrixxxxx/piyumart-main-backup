@@ -1,5 +1,7 @@
 "use client";
 
+import ModalShell from "@/components/ui/ModalShell";
+import ActionFeedback from "@/components/ui/ActionFeedback";
 import { useState, useEffect } from "react";
 import Pagination from "@/components/ui/Pagination";
 import { readPageHeaders } from "@/lib/pagination";
@@ -84,13 +86,14 @@ export default function SellerApplications() {
       </table>}
     </div>
     <Pagination pagination={pagination} loading={loading} onPageChange={setPage}/>
-    {decision && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <form onSubmit={review} role="dialog" aria-modal="true" aria-labelledby="review-title" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-[#111a2b]">
-        <h2 id="review-title" className="text-lg font-bold">{decision.action === "approve" ? "Approve seller application?" : "Reject seller application"}</h2>
+    {decision && <ModalShell open title={decision.action==="approve"?"Approve seller application?":"Reject seller application"} centered={false} busy={working} dismissible={!working} onClose={()=>setDecision(null)}>
+      <form onSubmit={review}>
+
         {decision.action === "reject" ? <label className="mt-4 block text-sm font-semibold">Reason (required)<textarea autoFocus required maxLength={1000} value={reason} onChange={(event) => setReason(event.target.value)} rows={4} className="mt-2 w-full rounded-xl border border-slate-300 bg-transparent p-3 dark:border-slate-600" /></label> : <p className="mt-3 text-sm">The applicant will be able to create listings after approval.</p>}
         {error && <p role="alert" className="mt-3 text-sm text-rose-600 dark:text-rose-300">{error}</p>}
         <div className="mt-5 flex justify-end gap-2"><button type="button" disabled={working} onClick={() => setDecision(null)} className="rounded-xl border px-4 py-2 text-sm font-bold">Cancel</button><button disabled={working || (decision.action === "reject" && !reason.trim())} className="rounded-xl bg-[#1a2a6c] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{working ? "Saving..." : decision.action === "approve" ? "Approve" : "Reject"}</button></div>
       </form>
-    </div>}
-  </section>;
+    </ModalShell>}
+  <ActionFeedback pending={working} error={error} success={notice} pendingTitle="Saving the application decision" successTitle="Application updated" />
+      </section>;
 }

@@ -1,5 +1,6 @@
 // app/(shop)/cart/page.jsx
 "use client";
+import ActionFeedback from "@/components/ui/ActionFeedback";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ConfirmModal from "@/components/ui/ConfirmModal";
@@ -10,6 +11,10 @@ export default function CartPage() {
   const [selectedItems, setSelectedItems] = useState([]);
   const [updatingId, setUpdatingId] = useState(null);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [removeIds, setRemoveIds] = useState([]);
+  const [removing, setRemoving] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [actionNotice, setActionNotice] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -32,40 +37,41 @@ export default function CartPage() {
     if (newQty < 1) return;
     setUpdatingId(cartItemId);
     try {
-      await fetch("/api/cart", {
+      const response = await fetch("/api/cart", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cart_item_id: cartItemId, quantity: newQty }),
       });
+      if (!response.ok) { const data = await response.json(); throw new Error(data.error || "Unable to update your cart."); }
       setCart((prev) => prev.map((item) => item.id === cartItemId ? { ...item, quantity: newQty } : item));
     } catch (err) {
       console.error("Failed to update quantity:", err);
+      setActionError(err.message || "Unable to update your cart.");
     } finally {
       setUpdatingId(null);
     }
   }
 
-  async function handleRemove(cartItemId) {
-    await fetch("/api/cart", {
+  function handleRemove(cartItemId) { setRemoveIds([cartItemId]); setShowRemoveModal(true); }
+  async function removeItem(cartItemId) {
+    const response = await fetch("/api/cart", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cart_item_id: cartItemId }),
     });
+    if (!response.ok) { const data = await response.json(); throw new Error(data.error || "Unable to remove this item."); }
     setCart((prev) => prev.filter((item) => item.id !== cartItemId));
     setSelectedItems((prev) => prev.filter((id) => id !== cartItemId));
   }
 
   async function confirmBulkRemove() {
+    if (removing) return;
+    const ids = removeIds.length ? removeIds : selectedItems;
+    setRemoving(true); setActionError(""); setActionNotice("");
     setShowRemoveModal(false);
-    await Promise.all(selectedItems.map((id) =>
-      fetch("/api/cart", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cart_item_id: id }),
-      })
-    ));
-    setCart((prev) => prev.filter((item) => !selectedItems.includes(item.id)));
-    setSelectedItems([]);
+    try { await Promise.all(ids.map(removeItem)); setActionNotice(`${ids.length} item${ids.length === 1 ? "" : "s"} removed from your cart.`); }
+    catch (failure) { setActionError(failure.message || "Unable to remove the selected items."); }
+    finally { setRemoving(false); setRemoveIds([]); }
   }
 
   function toggleSelectItem(id) {
@@ -173,7 +179,7 @@ export default function CartPage() {
                   <span className="text-xs font-semibold text-[#0e1a3d] dark:text-[#e8edf8]">Select All ({cart.length})</span>
                 </label>
                 {selectedItems.length > 0 && (
-                  <button onClick={() => setShowRemoveModal(true)}
+                  <button onClick={() => { setRemoveIds([]); setShowRemoveModal(true); }}
                     className="text-xs text-red-500 hover:text-red-600 font-semibold transition">
                     Remove ({selectedItems.length})
                   </button>
@@ -393,13 +399,14 @@ export default function CartPage() {
 
       <ConfirmModal
         open={showRemoveModal}
-        title="Remove selected items?"
-        description={`This will remove ${selectedItems.length} item${selectedItems.length !== 1 ? "s" : ""} from your cart.`}
+        title="Remove items from your cart?"
+        description={`This will remove ${removeIds.length || selectedItems.length} item${(removeIds.length || selectedItems.length) !== 1 ? "s" : ""} from your cart.`}
         confirmText="Remove items"
         cancelText="Keep items"
-        onCancel={() => setShowRemoveModal(false)}
+        onCancel={() => { setShowRemoveModal(false); setRemoveIds([]); }}
         onConfirm={confirmBulkRemove}
       />
-    </main>
+    <ActionFeedback pending={removing} error={actionError} success={actionNotice} showLoading={false} pendingTitle="Updating your cart" successTitle="Cart updated" />
+      </main>
   );
 }

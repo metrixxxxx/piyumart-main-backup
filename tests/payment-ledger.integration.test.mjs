@@ -23,6 +23,8 @@ test("Postgres marketplace payment lifecycle",{skip:process.env.PIYUMART_FINANCE
     await pool.query(migration);
     const commissionMigration=(await readFile("migrations/add_bao_commission_cashouts.sql","utf8")).replaceAll("public.",`${schema}.`).replaceAll("search_path=public",`search_path=${schema}`);
     await pool.query(commissionMigration);
+    const baoPolicy=(await readFile("migrations/auto_approve_bao_cashouts.sql","utf8")).replaceAll("public.",`${schema}.`).replaceAll("search_path=public",`search_path=${schema}`);
+    await pool.query(baoPolicy);
     const realtimeMigration=(await readFile("migrations/add_marketplace_realtime.sql","utf8")).replaceAll("public.",`${schema}.`).replaceAll("search_path=public",`search_path=${schema}`);
     await pool.query(realtimeMigration);
     for (const filename of ["migrations/add_reviews_and_sold_count.sql", "tests/fixtures/user-deletion.sql", "migrations/add_user_deletion_cleanup.sql"]) {

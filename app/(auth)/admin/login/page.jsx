@@ -1,5 +1,6 @@
 "use client";
 
+import ActionFeedback from "@/components/ui/ActionFeedback";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -11,9 +12,11 @@ export default function AdminLoginPage() {
 
   async function handleLogin(event) {
     event.preventDefault();
+    if (loading) return;
     setError("");
     setLoading(true);
 
+    let navigating = false;
     try {
       const response = await fetch("/api/admin/login", {
         method: "POST",
@@ -23,6 +26,7 @@ export default function AdminLoginPage() {
       const data = await response.json();
 
       if (response.ok) {
+        navigating = true;
         router.replace(data.role === "bao" ? "/bao/dashboard" : "/dashboard");
         return;
       }
@@ -31,7 +35,7 @@ export default function AdminLoginPage() {
     } catch (loginError) {
       setError(loginError.message || "Unable to sign in. Please try again.");
     } finally {
-      setLoading(false);
+      if (!navigating) setLoading(false);
     }
   }
 
@@ -100,6 +104,7 @@ export default function AdminLoginPage() {
           Admins continue to the Admin Panel. BAO accounts continue to the BAO dashboard.
         </p>
       </section>
-    </main>
+    <ActionFeedback pending={loading} error={error} pendingTitle="Signing you in" pendingDescription="Verifying your account and opening your dashboard." errorTitle="Sign-in unsuccessful" />
+      </main>
   );
 }

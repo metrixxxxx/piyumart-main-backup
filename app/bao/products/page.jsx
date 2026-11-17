@@ -1,5 +1,6 @@
 "use client";
 
+import ActionFeedback from "@/components/ui/ActionFeedback";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import BaoHeader from "@/components/bao/BaoHeader";
@@ -462,6 +463,7 @@ export default function BaoProductsPage() {
         onConfirm={moderateProduct}
         loading={working}
       />
-    </main>
+    <ActionFeedback pending={working} error={actionError} success={actionNotice} showLoading={false} successTitle="Listing updated" />
+      </main>
   );
 }

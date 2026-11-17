@@ -1,4 +1,5 @@
 "use client";
+import ActionFeedback from "@/components/ui/ActionFeedback";
 import Pagination from "@/components/ui/Pagination";
 import { usePagedResource } from "@/lib/usePagedResource";
 import ListingLocation from "@/components/products/ListingLocation";
@@ -82,6 +83,9 @@ function OrderCard({ order, onUpdate, onDelete }) {
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [actionNotice, setActionNotice] = useState("");
+  const [confirmReceiptOpen, setConfirmReceiptOpen] = useState(false);
   const router = useRouter();
   const { data: session } = useSession();
 
@@ -103,6 +107,8 @@ function OrderCard({ order, onUpdate, onDelete }) {
     : null;
 
   async function handleAction(action) {
+    if (actionLoading) return;
+    setActionError(""); setActionNotice("");
     setActionLoading(true);
     try {
       const res = await fetch(`/api/orders/${order.id}`, {
@@ -113,8 +119,9 @@ function OrderCard({ order, onUpdate, onDelete }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       onUpdate(order.id, data.status);
+      setActionNotice(action === "confirm_delivery" ? "Receipt confirmed. Thank you for your purchase." : "The order was cancelled.");
     } catch (err) {
-      alert(err.message);
+      setActionError(err.message || "Unable to update the order.");
     } finally {
       setActionLoading(false);
     }
@@ -127,6 +134,8 @@ function OrderCard({ order, onUpdate, onDelete }) {
   }
 
   async function handleDelete() {
+  if (deleteLoading) return;
+  setActionError(""); setActionNotice("");
   setDeleteLoading(true);
   try {
     const res = await fetch(`/api/orders/${order.id}`, { method: "DELETE" });
@@ -138,7 +147,7 @@ function OrderCard({ order, onUpdate, onDelete }) {
     if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
     onDelete(order.id);
   } catch (err) {
-    alert(err.message);
+    setActionError(err.message || "Unable to delete the order.");
   } finally {
     setDeleteLoading(false);
     setConfirmDeleteOpen(false);
@@ -260,7 +269,7 @@ function OrderCard({ order, onUpdate, onDelete }) {
             {order.status === "shipped" && (
               <button
                 disabled={actionLoading}
-                onClick={() => handleAction("confirm_delivery")}
+                onClick={() => setConfirmReceiptOpen(true)}
                 className="px-4 py-1.5 text-[11px] font-bold bg-[#1a2a6c] dark:bg-[#c9a028] text-white dark:text-[#070b14] hover:opacity-90 transition rounded-sm disabled:opacity-50"
               >
                 {actionLoading ? "..." : "Order Received"}
@@ -351,9 +360,9 @@ function OrderCard({ order, onUpdate, onDelete }) {
         cancelText="Keep order"
         loading={actionLoading}
         onCancel={() => setConfirmCancelOpen(false)}
-        onConfirm={() => {
+        onConfirm={async () => {
           setConfirmCancelOpen(false);
-          handleAction("cancel");
+          await handleAction("cancel");
         }}
       />
 
@@ -368,7 +377,9 @@ function OrderCard({ order, onUpdate, onDelete }) {
         onCancel={() => setConfirmDeleteOpen(false)}
         onConfirm={handleDelete}
       />
-    </div>
+      <ConfirmModal open={confirmReceiptOpen} title="Confirm you received your order?" description="Confirm this after receiving your items. This completes the order and releases any eligible seller earnings." confirmText="Yes, received" cancelText="Not yet" onCancel={() => setConfirmReceiptOpen(false)} onConfirm={async () => { setConfirmReceiptOpen(false); await handleAction("confirm_delivery"); }} />
+    <ActionFeedback pending={actionLoading || deleteLoading} error={actionError} success={actionNotice} showLoading={false} pendingTitle="Updating your order" successTitle="Order updated" />
+      </div>
   );
 }
 

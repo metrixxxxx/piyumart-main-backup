@@ -1,4 +1,6 @@
 "use client";
+import ActionFeedback from "@/components/ui/ActionFeedback";
+import LoginRequiredModal from "@/components/ui/LoginRequiredModal";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -6,6 +8,7 @@ import { useSentiment } from "@/app/hooks/useSentiment";
 
 export default function ProductCard({ product }) {
   const [loading, setLoading] = useState(false);
+  const [actionError, setActionError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const { data: session } = useSession();
   const router = useRouter();
@@ -15,17 +18,20 @@ export default function ProductCard({ product }) {
 
   async function handleAddToCart(e) {
     e.stopPropagation();
+    if (loading) return;
     if (!session) { setShowModal(true); return; }
-    setLoading(true);
+    setLoading(true); setActionError("");
     try {
-      await fetch("/api/cart", {
+      const response = await fetch("/api/cart", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ product_id: product.id, quantity: 1 }),
       });
+      if (!response.ok) { const data = await response.json(); throw new Error(data.error || "Unable to add this item to your cart."); }
       router.push("/cart");
     } catch (err) {
       console.error(err);
+      setActionError(err.message || "Unable to update your cart. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -140,36 +146,8 @@ export default function ProductCard({ product }) {
       </div>
 
       {/* ── MODAL ── */}
-      {showModal && (
-        <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-          onClick={() => setShowModal(false)}
-        >
-          <div
-            className="bg-white dark:bg-[#12121a] p-6 rounded-xl w-[300px] text-center border border-[#e8e5f0] dark:border-white/[0.07] shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-base font-semibold mb-2 text-[#1a1060] dark:text-[#f0ede8]">
-              Sign in required
-            </h2>
-            <p className="text-xs text-[#1a1060]/50 dark:text-[#f0ede8]/45 mb-4">
-              You need to login first.
-            </p>
-            <button
-              onClick={() => router.push("/login")}
-              className="w-full py-2.5 rounded-lg bg-[#1a1060] dark:bg-[#c9a96e] text-white dark:text-[#0a0a0f] text-sm font-medium mb-2 hover:opacity-90 transition"
-            >
-              Sign in
-            </button>
-            <button
-              onClick={() => setShowModal(false)}
-              className="w-full py-2.5 rounded-lg border border-[#e8e5f0] dark:border-white/10 text-sm text-[#1a1060]/60 dark:text-[#f0ede8]/50 hover:bg-[#f5f3ff] dark:hover:bg-white/[0.04] transition"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
+      <LoginRequiredModal open={showModal} onClose={() => setShowModal(false)} />
+    <ActionFeedback pending={loading} error={actionError} pendingTitle="Adding to your cart" />
     </>
   );
 }

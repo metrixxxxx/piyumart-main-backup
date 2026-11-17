@@ -4,6 +4,8 @@ import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useState, useRef, useEffect } from "react";
 import NotificationBell from "@/components/NotificationBell";
+import ConfirmModal from "@/components/ui/ConfirmModal";
+import ActionFeedback from "@/components/ui/ActionFeedback";
 
 // ── THEME TOGGLE ──────────────────────────────────────────────────────────────
 function ThemeToggle() {
@@ -46,6 +48,14 @@ function ThemeToggle() {
 
 // ── NAVBAR ────────────────────────────────────────────────────────────────────
 export default function Navbar() {
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [logoutPending, setLogoutPending] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
+  async function logout() {
+    setLogoutOpen(false); setLogoutPending(true); setLogoutError("");
+    try { await signOut({ callbackUrl: "/" }); }
+    catch { setLogoutPending(false); setLogoutError("Unable to log out. Check your connection and try again."); }
+  }
   const { data: session } = useSession();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -158,7 +168,7 @@ export default function Navbar() {
                 {/* Logout */}
                 <div className="border-t border-[#e8e5f0] dark:border-white/[0.07] py-1">
                   <button
-                    onClick={() => { setOpen(false); signOut({ callbackUrl: "/" }); }}
+                    onClick={() => { setOpen(false); setLogoutOpen(true); }}
                     className="flex items-center gap-3 w-full px-4 py-2.5 text-xs text-red-400 hover:bg-[#f5f3ff] dark:hover:bg-white/[0.04] hover:text-red-500 transition-colors"
                   >
                     <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -181,6 +191,8 @@ export default function Navbar() {
           </Link>
         )}
       </div>
+      <ConfirmModal open={logoutOpen} title="Log out?" description="Your session will end and you will return to the home page." confirmText="Log out" cancelText="Stay signed in" onCancel={() => setLogoutOpen(false)} onConfirm={logout} loadingText="Signing you out" />
+      <ActionFeedback pending={logoutPending} error={logoutError} showLoading={false} errorTitle="Unable to log out" />
     </nav>
   );
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import ModalShell from "@/components/ui/ModalShell";
+import ActionFeedback from "@/components/ui/ActionFeedback";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import BaoHeader from "@/components/bao/BaoHeader";
@@ -480,11 +482,9 @@ export default function BaoSellersPage() {
       </div>
 
       {suspensionSupported && seller && pendingAction ? (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-700 dark:bg-[#111a2b]">
-            <h3 className="text-base font-bold text-[#1a2a6c] dark:text-white">
-              {pendingAction === "suspend" ? "Suspend seller" : "Reactivate seller"}
-            </h3>
+        <ModalShell open title={pendingAction==="suspend"?"Suspend seller":"Reactivate seller"} centered={false} busy={working} dismissible={!working} onClose={()=>setPendingAction("")}>
+          <div>
+
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
               {pendingAction === "suspend"
                 ? `This will prevent ${sellerName || "this seller"} from publishing listings and updating seller orders.`
@@ -516,8 +516,9 @@ export default function BaoSellersPage() {
               </button>
             </div>
           </div>
-        </div>
+        </ModalShell>
       ) : null}
-    </main>
+    <ActionFeedback pending={working} error={actionError} success={actionNotice} pendingTitle="Updating seller access" successTitle="Seller updated" />
+      </main>
   );
 }

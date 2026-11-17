@@ -1,4 +1,6 @@
 "use client";
+import ActionFeedback from "@/components/ui/ActionFeedback";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 import { useEffect,useState } from "react";
 import { useSession } from "next-auth/react";
 import { useMarketplaceRealtime } from "@/lib/realtime/useMarketplaceRealtime";
@@ -8,11 +10,14 @@ export default function SellerWallet() {
   const [data,setData]=useState(null),[error,setError]=useState(""),[notice,setNotice]=useState(""),[busy,setBusy]=useState(false),[refresh,setRefresh]=useState(0);
   const [amount,setAmount]=useState(""),[destination,setDestination]=useState(""),[account,setAccount]=useState({institution:"",account_name:"",account_number:""});
   const [requestKey,setRequestKey]=useState(null);
+  const [confirmType,setConfirmType]=useState(null);
   const {data:session}=useSession();
   useMarketplaceRealtime({enabled:!!session?.user?.id,identity:session?.user?.id,scopes:["wallet","finance"],onChange:()=>setRefresh(value=>value+1)});
   useEffect(()=>{let active=true;fetch("/api/wallet",{cache:"no-store"}).then(async response=>{const result=await response.json();if(!response.ok)throw new Error(result.error);if(active){setData(result);setError("");}}).catch(err=>{if(active)setError(err.message);});return()=>{active=false;};},[refresh]);
-  async function submit(event,type) {
-    event.preventDefault();setBusy(true);setError("");setNotice("");
+  function requestSubmit(event,type) {event.preventDefault();if(!busy)setConfirmType(type);}
+  async function submit(type) {
+    if(busy)return;
+    setBusy(true);setError("");setNotice("");
     try {
       const key=requestKey||crypto.randomUUID();if(type==="cashout")setRequestKey(key);
       const response=await fetch(type==="cashout"?"/api/wallet/cashouts":"/api/wallet/destinations",{method:"POST",headers:{"Content-Type":"application/json","Idempotency-Key":key},body:JSON.stringify(type==="cashout"?{amount,destination_id:destination}:account)});
@@ -32,12 +37,12 @@ export default function SellerWallet() {
       <p className="text-sm text-slate-600 dark:text-slate-400">Your allocation is 97% of each online order. {data.settings.release_policy==="buyer_confirmation"?"Pending earnings become available when the buyer confirms receipt.":"Earnings become available after payment confirmation."} Cash-on-pickup proceeds are handled directly with the buyer.</p>
       {Number(data.balances.debt)>0&&<p role="alert" className="rounded-xl bg-rose-50 p-4 text-sm text-rose-800 dark:bg-rose-950/40 dark:text-rose-200">Refund recovery: {php(data.balances.debt)}. New earnings will settle this amount before another cashout is available.</p>}
       <div className="grid gap-5 lg:grid-cols-2">
-        <form onSubmit={event=>submit(event,"cashout")} className={`${financePanel} space-y-4`}><h2 className="text-lg font-bold">Request a cashout</h2><p className="text-xs text-slate-500">Minimum: {php(data.settings.minimum_cashout)}. Select a destination approved by BAO.</p>
+        <form onSubmit={event=>requestSubmit(event,"cashout")} className={`${financePanel} space-y-4`}><h2 className="text-lg font-bold">Request a cashout</h2><p className="text-xs text-slate-500">Minimum: {php(data.settings.minimum_cashout)}. Select a destination approved by BAO.</p>
           <label className="block text-sm font-semibold">Amount (PHP)<input required type="number" min={data.settings.minimum_cashout} step="0.01" value={amount} onChange={event=>{setAmount(event.target.value);setRequestKey(null);}} className={financeField}/></label>
           <label className="block text-sm font-semibold">Payout destination<select required value={destination} onChange={event=>{setDestination(event.target.value);setRequestKey(null);}} className={financeField}><option value="">Choose an approved destination</option>{data.destinations.filter(item=>item.status==="approved").map(item=><option key={item.id} value={item.id}>{item.institution} · ending {item.account_last_four}</option>)}</select></label>
           <button disabled={busy||Number(data.balances.debt)>0} className={financeButton}>{busy?"Saving...":"Request cashout"}</button>
         </form>
-        <form onSubmit={event=>submit(event,"destination")} className={`${financePanel} space-y-4`}><h2 className="text-lg font-bold">Add a payout destination</h2><p className="text-xs text-slate-500">BAO reviews bank or e-wallet details before you can request a cashout.</p>
+        <form onSubmit={event=>requestSubmit(event,"destination")} className={`${financePanel} space-y-4`}><h2 className="text-lg font-bold">Add a payout destination</h2><p className="text-xs text-slate-500">BAO reviews bank or e-wallet details before you can request a cashout.</p>
           {[["institution","Bank / e-wallet BIC","text"],["account_name","Account name","text"],["account_number","Account number","text"]].map(([key,label,type])=><label key={key} className="block text-sm font-semibold">{label}<input required type={type} autoComplete="off" maxLength={key==="account_name"?150:30} value={account[key]} onChange={event=>setAccount({...account,[key]:event.target.value})} className={financeField}/></label>)}
           <button disabled={busy} className={financeButton}>Submit destination</button>
           {data.destinations.map(item=><p key={item.id} className="text-xs">{item.institution} · ending {item.account_last_four} · <FinanceStatus value={item.status}/>{item.remarks&&<span className="mt-1 block">{item.remarks}</span>}</p>)}
@@ -46,5 +51,7 @@ export default function SellerWallet() {
       <section className={financePanel}><h2 className="mb-4 text-lg font-bold">Cashout requests</h2>{!data.cashouts.length?<p className="text-sm text-slate-500">No cashouts yet.</p>:<div className="overflow-x-auto"><table className="w-full min-w-[620px] text-left text-sm"><thead><tr>{["Date","Amount","Destination","Status","Transfer reference"].map(label=><th key={label} className="p-3 text-xs text-slate-500">{label}</th>)}</tr></thead><tbody>{data.cashouts.map(item=><tr key={item.id} className="border-t border-slate-100 dark:border-slate-800"><td className="p-3 text-xs">{financeDate(item.created_at)}</td><td className="p-3 font-bold">{php(item.amount)}</td><td className="p-3">{item.institution} · {item.account_last_four}</td><td className="p-3"><FinanceStatus value={item.status}/>{item.reason&&<p className="mt-1 text-xs">{item.reason}</p>}</td><td className="p-3 text-xs">{item.payout_reference||"Awaiting confirmed transfer"}</td></tr>)}</tbody></table></div>}</section>
       <section className={financePanel}><h2 className="mb-4 text-lg font-bold">Transaction history</h2>{!data.history.length?<p className="text-sm text-slate-500">Your online earnings and cashout movements will appear here.</p>:<div className="overflow-x-auto"><table className="w-full min-w-[580px] text-left text-sm"><thead><tr>{["Date","Transaction","Balance","Amount","Order"].map(label=><th key={label} className="p-3 text-xs text-slate-500">{label}</th>)}</tr></thead><tbody>{data.history.map(item=><tr key={item.id} className="border-t border-slate-100 dark:border-slate-800"><td className="p-3 text-xs">{financeDate(item.created_at)}</td><td className="p-3 capitalize">{readable(item.kind)}</td><td className="p-3 capitalize">{readable(item.bucket)}</td><td className="p-3 font-semibold">{php(item.amount)}</td><td className="p-3">{item.order_id?`#${item.order_id}`:"—"}</td></tr>)}</tbody></table></div>}</section>
     </>}
-  </div>;
+    <ConfirmModal open={Boolean(confirmType)} title={confirmType==="cashout"?"Request this cashout?":"Save this payout destination?"} description={confirmType==="cashout"?`${php(amount)} will be reserved from your available wallet balance while your request is processed.`:`Submit the ${account.institution} destination ending ${account.account_number.slice(-4)} for review?`} confirmText={confirmType==="cashout"?"Request cashout":"Save destination"} onCancel={()=>setConfirmType(null)} onConfirm={async()=>{const type=confirmType;setConfirmType(null);await submit(type);}} loadingText="Updating your wallet" />
+  <ActionFeedback pending={busy} error={error} success={notice} showLoading={false} pendingTitle="Saving your wallet request" successTitle="Wallet request saved" />
+      </div>;
 }

@@ -7,7 +7,7 @@ import { useState, useRef, useEffect } from "react";
 
 import NotificationBell from "@/components/NotificationBell";
 import ConfirmModal from "@/components/ui/ConfirmModal";
-import LoadingModal from "@/components/ui/LoadingModal";
+import ActionFeedback from "@/components/ui/ActionFeedback";
 import LoginRequiredModal from "@/components/ui/LoginRequiredModal";
 import SearchAutocomplete from "@/components/SearchAutocomplete";
 
@@ -137,6 +137,7 @@ export default function Navbar() {
   const [cartLoginModalOpen, setCartLoginModalOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
   const [unreadMessages, setUnreadMessages] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -248,7 +249,8 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
   const handleLogout = async () => {
     setLogoutOpen(false);
     setLoggingOut(true);
-    await signOut({ callbackUrl: "/" });
+    try { await signOut({ callbackUrl: "/" }); }
+    catch { setLoggingOut(false); setLogoutError("Unable to log out. Check your connection and try again."); }
   };
 
   const handleCartClick = (event) => {
@@ -596,7 +598,7 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
         onConfirm={handleLogout}
       />
 
-      <LoadingModal open={loggingOut} title="Logging out" description="Ending session..." />
+      <ActionFeedback pending={loggingOut} error={logoutError} showLoading={false} errorTitle="Unable to log out" />
     </>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import ActionFeedback from "@/components/ui/ActionFeedback";
 import { useEffect, useState } from "react";
 import BaoHeader from "@/components/bao/BaoHeader";
 import ConfirmModal from "@/components/ui/ConfirmModal";
@@ -457,6 +458,7 @@ export default function BaoCommissionsPage() {
         onCancel={() => setConfirmOpen(false)}
         loading={savingRate}
       />
-    </main>
+    <ActionFeedback pending={savingRate} error={rateError} success={notice} showLoading={false} successTitle="Commission rate saved" />
+      </main>
   );
 }

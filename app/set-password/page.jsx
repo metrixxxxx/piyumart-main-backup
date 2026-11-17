@@ -1,5 +1,6 @@
 "use client";
 
+import ActionFeedback from "@/components/ui/ActionFeedback";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -111,6 +112,7 @@ export default function SetPasswordPage() {
   const canSubmit = pwOk && matchOk && !loading;
 
   const handleSubmit = async () => {
+    if (loading) return;
     setError("");
     if (!pwOk) {
       setError("Password must be 8+ characters, include a number and a special character.");
@@ -122,6 +124,7 @@ export default function SetPasswordPage() {
     }
 
     setLoading(true);
+    try {
     const res  = await fetch("/api/set-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -137,6 +140,7 @@ export default function SetPasswordPage() {
 
     setSuccess("Password set! Redirecting…");
     setTimeout(() => router.push("/"), 1500);
+    } catch { setError("Unable to save your password. Check your connection and try again."); setLoading(false); }
   };
 
   return (
@@ -232,6 +236,7 @@ export default function SetPasswordPage() {
             Skip for now
           </button>
       </section>
-    </main>
+    <ActionFeedback pending={loading && !success} error={error} success={success} pendingTitle="Securing your account" successTitle="Password saved" />
+      </main>
   );
 }

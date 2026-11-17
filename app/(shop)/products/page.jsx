@@ -1,4 +1,5 @@
 "use client";
+import LoginRequiredModal from "@/components/ui/LoginRequiredModal";
 import Pagination from "@/components/ui/Pagination";
 import { usePagedResource } from "@/lib/usePagedResource";
 import { getCategories } from "@/lib/client-catalog";
@@ -187,39 +188,7 @@ export default function ProductsPage() {
 
       <div className="mx-auto max-w-[1200px] px-4 pb-8">{catalog.error&&<p role="alert" className="text-sm text-rose-600">{catalog.error}<button className="ml-3 underline" onClick={catalog.reload}>Retry</button></p>}<Pagination pagination={catalog.pagination} loading={catalog.loading} onPageChange={setPage}/></div>
       {/* LOGIN MODAL */}
-      {showModal && (
-        <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-          onClick={() => setShowModal(false)}
-        >
-          <div
-            className="bg-white dark:bg-[#0e1520] rounded-2xl border border-[#c5cfe8] dark:border-white/[0.07] p-6 sm:p-8 w-full max-w-[320px] text-center"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="text-4xl mb-4">🔒</div>
-            <h2 className="text-base font-bold text-[#0e1a3d] dark:text-[#e8edf8] mb-2">
-              Sign in to continue
-            </h2>
-            <p className="text-xs text-[#0e1a3d]/50 dark:text-[#e8edf8]/40 mb-6">
-              You need to be logged in to add items.
-            </p>
-
-            <button
-              onClick={() => router.push("/login")}
-              className="w-full py-2.5 bg-[#1a2a6c] dark:bg-[#c9a028] text-white dark:text-[#0a0e1f] rounded-xl text-sm font-bold hover:bg-[#142060] dark:hover:bg-[#b78f20] transition mb-2"
-            >
-              Sign in
-            </button>
-
-            <button
-              onClick={() => setShowModal(false)}
-              className="w-full py-2.5 border border-[#c5cfe8] dark:border-white/[0.07] text-[#0e1a3d]/60 dark:text-[#e8edf8]/50 rounded-xl text-sm font-medium hover:border-[#1a2a6c] dark:hover:border-[#c9a028] transition"
-            >
-              Continue browsing
-            </button>
-          </div>
-        </div>
-      )}
+      <LoginRequiredModal open={showModal} onClose={() => setShowModal(false)} />
     </main>
   );
 }

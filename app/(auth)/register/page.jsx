@@ -1,5 +1,6 @@
 "use client";
 
+import ActionFeedback from "@/components/ui/ActionFeedback";
 import { useState } from "react";
 
 export default function RegisterPage() {
@@ -15,11 +16,13 @@ export default function RegisterPage() {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const update = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
     setError("");
     setSuccess("");
 
@@ -33,6 +36,8 @@ export default function RegisterPage() {
       return;
     }
 
+    setSubmitting(true);
+    try {
     const res = await fetch("/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -49,10 +54,12 @@ export default function RegisterPage() {
     const data = await res.json();
 
     if (!res.ok) {
-      setError(data.message);
+      setError(data.message || "Unable to create your account. Please try again.");
     } else {
-      setSuccess("Account created! You can now login.");
+      setSuccess(data.message || "Account created successfully. Check your email for the next step.");
     }
+    } catch { setError("Unable to create your account. Check your connection and try again."); }
+    finally { setSubmitting(false); }
   };
 
   return (
@@ -182,9 +189,10 @@ export default function RegisterPage() {
             {/* Submit */}
             <button
               type="submit"
+              disabled={submitting}
               className="h-10 w-full rounded-full bg-[#4f8ef7] text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-[#3a7de8] active:scale-95"
             >
-              Create Account
+              {submitting ? "Creating account..." : "Create Account"}
             </button>
 
             <p className="text-center text-[11px] text-[#4a5080]">
@@ -194,6 +202,7 @@ export default function RegisterPage() {
           </form>
         </div>
       </div>
-    </div>
+    <ActionFeedback pending={submitting} error={error} success={success} pendingTitle="Creating your account" pendingDescription="Saving your account and preparing your verification email." successTitle="Account created" />
+      </div>
   );
 }

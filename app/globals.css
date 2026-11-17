@@ -1,5 +1,33 @@
 @import "tailwindcss";
 
+.pm-modal {
+  position: fixed;
+  inset: 0;
+  width: calc(100% - 2rem);
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  padding: 0;
+  overflow-y: auto;
+  outline: none;
+}
+.pm-modal::backdrop {
+  background: rgb(7 15 39 / 62%);
+  backdrop-filter: blur(6px);
+}
+.pm-modal[open] { animation: pm-modal-enter 220ms ease-out both; }
+.pm-modal-progress { animation: pm-modal-sweep 1.6s ease-in-out infinite; }
+@keyframes pm-modal-enter {
+  from { opacity: 0; transform: translateY(12px) scale(.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes pm-modal-sweep {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(360%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pm-modal[open], .pm-modal-progress { animation: none; }
+}
+
 /* ── DARK MODE (Tailwind v4) ── */
 @variant dark (&:where(.dark, .dark *));
 

@@ -140,7 +140,10 @@ checkout. Provider keys and full payout account numbers never reach frontend cod
 
 BAO/admin can also withdraw available commission through the shared BAO wallet on
 Finance. See [BAO commission withdrawals](bao-commission-withdrawals.md) for its
-migration, review process, accounting rules, tests and changed files.
+migrations, direct withdrawal flow, accounting rules, tests and changed files.
+BAO destinations and commission withdrawals do not require manual review; new
+withdrawals are immediately ready for transfer. A matching provider-confirmed
+transfer is still required to complete them. Seller reviews continue below.
 
 Sellers see available, pending, reserved, earnings after refunds, withdrawals,
 transaction history, cashout history and approved destinations. Bank/e-wallet

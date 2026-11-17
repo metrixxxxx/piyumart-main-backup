@@ -1,4 +1,7 @@
 "use client";
+import ActionFeedback from "@/components/ui/ActionFeedback";
+import ConfirmModal from "@/components/ui/ConfirmModal";
+import FeedbackModal from "@/components/ui/FeedbackModal";
 import ListingLocation from "@/components/products/ListingLocation";
 import PaymentMethodPicker from "@/components/payments/PaymentMethodPicker";
 import { useState, useEffect, Suspense } from "react";
@@ -19,6 +22,8 @@ function CheckoutContent() {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [confirmOrderOpen, setConfirmOrderOpen] = useState(false);
   const [orderDone, setOrderDone] = useState(false);
 
   const [name, setName] = useState("");
@@ -119,11 +124,13 @@ function CheckoutContent() {
   }, {});
 
   async function handleSubmit() {
-    if (!name || !email || !address) return alert("Please fill in all fields!");
-    if (!email.endsWith("@lspu.edu.ph")) return alert("Please use your LSPU email!");
-    if (items.length === 0) return alert("No items to checkout!");
+    if (submitting) return;
+    setActionError("");
+    if (!name || !email || !address) return setActionError("Please fill in all fields!");
+    if (!email.endsWith("@lspu.edu.ph")) return setActionError("Please use your LSPU email!");
+    if (items.length === 0) return setActionError("No items to checkout!");
     if (invalidItems.length > 0)
-      return alert("Some items in your cart are invalid. Please remove them and try again.");
+      return setActionError("Some items in your cart are invalid. Please remove them and try again.");
 
     setSubmitting(true);
     try {
@@ -156,7 +163,7 @@ function CheckoutContent() {
 
      if (!res.ok) {
   const err = await res.json();
-  alert(err.error || "Something went wrong.");
+  setActionError(err.error || "Unable to place your order. Please try again.");
   setSubmitting(false);
   return;
 }
@@ -170,10 +177,9 @@ if (result.paymentId) {
 sessionStorage.removeItem("piyumart-checkout-key");
 sessionStorage.removeItem("piyumart-checkout-fingerprint");
 setOrderDone(true);
-setTimeout(() => router.push("/my-orders"), 2500);
     } catch (err) {
       console.error(err);
-      alert("Something went wrong.");
+      setActionError("Unable to place your order. Check your connection and try again.");
     } finally {
       setSubmitting(false);
     }
@@ -194,15 +200,7 @@ setTimeout(() => router.push("/my-orders"), 2500);
 
   if (orderDone)
     return (
-      <div className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] flex items-center justify-center p-4">
-        <div className="text-center px-6 sm:px-12 py-10 sm:py-14 bg-white dark:bg-[#0e1520] rounded-2xl border border-[#c5cfe8] dark:border-white/[0.07]">
-          <div className="text-5xl mb-4">🎉</div>
-          <h2 className="text-xl font-bold text-[#0e1a3d] dark:text-[#e8edf8] mb-2">Order Placed! Thank you for your purchase Ka PIYU</h2>
-          <p className="text-sm text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">
-            Redirecting to your orders...
-          </p>
-        </div>
-      </div>
+      <main className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14]"><FeedbackModal open type="success" title="Order placed!" description="Thank you for your purchase, Ka PIYU. Your order has been saved and is ready to view." actionText="View my orders" onClose={() => router.push("/my-orders")} /></main>
     );
 
   return (
@@ -435,7 +433,7 @@ setTimeout(() => router.push("/my-orders"), 2500);
               </div>
 
               <button
-                onClick={handleSubmit}
+                onClick={() => setConfirmOrderOpen(true)}
                 disabled={submitting || items.length === 0 || invalidItems.length === items.length}
                 className={`w-full mt-4 rounded-xl py-3.5 text-sm font-bold transition
                   ${submitting || items.length === 0 || invalidItems.length === items.length
@@ -459,7 +457,9 @@ setTimeout(() => router.push("/my-orders"), 2500);
           </div>
         </div>
       </section>
-    </main>
+      <ConfirmModal open={confirmOrderOpen} title="Place this order?" description={`Confirm your order for ₱${total.toLocaleString("en-PH", { minimumFractionDigits: 2 })}. ${paymentMethod === "paymongo" ? "You will continue to the secure payment step." : "Payment will be collected on pickup."}`} confirmText="Place order" cancelText="Review order" onCancel={() => setConfirmOrderOpen(false)} onConfirm={async () => { setConfirmOrderOpen(false); await handleSubmit(); }} loadingText="Placing your order" />
+    <ActionFeedback pending={submitting} error={actionError} showLoading={false} pendingTitle="Placing your order" pendingDescription="Reserving your items and preparing the payment step. Please avoid submitting again." />
+      </main>
   );
 }
 
