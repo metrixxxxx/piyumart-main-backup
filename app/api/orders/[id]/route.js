@@ -3,7 +3,6 @@ import { db } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { notify } from "@/lib/notify";
-import { supabaseAdmin } from "@/lib/supabase";
 import { isActiveSellerAccount } from "@/lib/seller-access";
 import { recordOrderCommission } from "@/lib/bao-commission";
 import { transitionOnlineOrder } from "@/lib/payments/events";
@@ -132,41 +131,7 @@ export async function PATCH(req, { params }) {
 
     const updatedOrder = transition.order;
 
-    try {
-      await supabaseAdmin
-        .channel(`buyer:${updatedOrder.user_id}`)
-        .send({
-          type: "broadcast",
-          event: "orders:updated",
-          payload: {
-            id: orderId,
-            status,
-            tracking_number: updatedOrder.tracking_number ?? null,
-            courier: updatedOrder.courier ?? null,
-          },
-        });
-    } catch (e) {
-      console.error("Broadcast to buyer error:", e);
-    }
-
-    try {
-      const [sellerItems] = await db.query(
-        `SELECT DISTINCT p.seller_id FROM order_items oi JOIN products p ON p.id = oi.product_id WHERE oi.order_id = $1`,
-        [orderId]
-      );
-      for (const { seller_id } of sellerItems) {
-        await supabaseAdmin
-          .channel(`seller:${seller_id}`)
-          .send({
-            type: "broadcast",
-            event: "orders:updated",
-            payload: { id: orderId, status },
-          });
-      }
-    } catch (e) {
-      console.error("Broadcast to seller error:", e);
-    }
-
+    // The database broadcasts after commit, including buyer completion and refunds.
     if (status === "completed") {
       await notify({ userId: updatedOrder.user_id, type: "order_completed", message: `Your order #${orderId} has been marked as received. Thank you!` });
     }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { useMarketplaceRealtime } from "@/lib/realtime/useMarketplaceRealtime";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import OrderItemReviewBtn from "@/components/orders/OrderItemReviewBtn";
 
@@ -376,6 +376,12 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [refresh, setRefresh] = useState(0);
+  useMarketplaceRealtime({
+    enabled: status === "authenticated",
+    identity: session?.user?.id,
+    onChange: () => setRefresh((value) => value + 1),
+  });
 
   function handleOrderUpdate(id, newStatus) {
     setOrders((prev) =>
@@ -392,28 +398,14 @@ export default function OrdersPage() {
     if (status === "unauthenticated") { router.push("/login"); return; }
     if (status !== "authenticated") return;
 
-    fetch("/api/orders")
+    let active = true;
+    fetch("/api/orders", { cache: "no-store" })
       .then((r) => r.json())
-      .then((data) => setOrders(Array.isArray(data) ? data : []))
+      .then((data) => { if (active) setOrders(Array.isArray(data) ? data : []); })
       .catch(console.error)
-      .finally(() => setLoading(false));
-
-    const channel = supabase
-      .channel(`buyer:${session.user.id}`)
-      .on("broadcast", { event: "orders:updated" }, (payload) => {
-        const { id, status, tracking_number, courier } = payload.payload;
-        setOrders((prev) =>
-          prev.map((o) =>
-            Number(o.id) === Number(id)
-              ? { ...o, status, ...(tracking_number && { tracking_number }), ...(courier && { courier }) }
-              : o
-          )
-        );
-      })
-      .subscribe();
-
-    return () => supabase.removeChannel(channel);
-  }, [status, session?.user?.id]);
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [status, session?.user?.id, refresh]);
 
   if (status === "loading" || loading) return (
     <div className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] flex items-center justify-center">

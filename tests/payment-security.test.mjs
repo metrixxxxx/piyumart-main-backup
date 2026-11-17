@@ -44,3 +44,35 @@ test("a frontend return URL cannot confirm a payment without authenticated provi
   const response=await api.GET(new Request("http://localhost/api/payments/11111111-1111-4111-8111-111111111111?result=success"),{params:Promise.resolve({id:"11111111-1111-4111-8111-111111111111"})});
   assert.equal(response.status,404);assert.ok(calls.every(sql=>sql.startsWith("SELECT")));
 });
+
+test("anonymous and inactive accounts cannot obtain realtime topics",async()=>{
+  let queries=0;
+  for(const account of [null,{id:1,role:"user",status:"pending"}]){
+    const api=await loadFinanceModule("app/api/realtime/channel/route.js",{account,db:{query:async()=>{queries++;return [[]];}}});
+    const response=await api.GET(new Request("http://localhost/api/realtime/channel"));
+    assert.equal(response.status,account?403:401);
+  }
+  assert.equal(queries,0);
+});
+
+test("realtime topic identity comes from the session, ignoring client-sent user IDs",async()=>{
+  const topic="11111111-1111-4111-8111-111111111111",calls=[];
+  const api=await loadFinanceModule("app/api/realtime/channel/route.js",{account:{id:1,role:"user",status:"active"},db:{query:async(sql,values)=>{calls.push(values);return [[{topic}]];}}});
+  const response=await api.GET(new Request("http://localhost/api/realtime/channel?user_id=99&topic=other-user"));
+  assert.equal(response.status,200);assert.deepEqual(Array.from(calls[0]),[1]);
+  assert.equal((await response.json()).topic,`marketplace:${topic}`);assert.equal(response.headers.get("cache-control"),"private, no-store");
+});
+
+test("staff realtime checks the staff cookie and fresh database role independently of marketplace login",async()=>{
+  const topic="11111111-1111-4111-8111-111111111111",calls=[];
+  const api=await loadFinanceModule("app/api/realtime/channel/route.js",{account:{id:1,role:"user",status:"active"},staff:{id:3,role:"bao"},db:{query:async(sql,values)=>{calls.push(values);return sql.startsWith("SELECT")?[[{id:3,role:"bao",status:"active"}]]:[[{topic}]];}}});
+  assert.equal((await api.GET(new Request("http://localhost/api/realtime/channel?audience=staff"))).status,200);
+  assert.equal(calls.length,2);assert.ok(calls.every(values=>values[0]===3));
+});
+
+test("demoted staff and marketplace sessions alone cannot obtain staff realtime access",async()=>{
+  for(const staff of [null,{id:3,role:"bao"}]){
+    const api=await loadFinanceModule("app/api/realtime/channel/route.js",{account:{id:1,role:"user",status:"active"},staff,db:{query:async()=>[[{id:3,role:"user",status:"active"}]]}});
+    assert.equal((await api.GET(new Request("http://localhost/api/realtime/channel?audience=staff"))).status,staff?403:401);
+  }
+});

@@ -21,6 +21,8 @@ test("Postgres marketplace payment lifecycle",{skip:process.env.PIYUMART_FINANCE
     let migration=await readFile("migrations/add_marketplace_payments.sql","utf8");
     migration=migration.replaceAll("public.",`${schema}.`).replaceAll("search_path=public",`search_path=${schema}`);
     await pool.query(migration);
+    const realtimeMigration=(await readFile("migrations/add_marketplace_realtime.sql","utf8")).replaceAll("public.",`${schema}.`).replaceAll("search_path=public",`search_path=${schema}`);
+    await pool.query(realtimeMigration);
     const db={query:async(sql,values)=>[(await pool.query(sql,values)).rows],transaction:async callback=>{const client=await pool.connect();try{await client.query("BEGIN");const result=await callback(client);await client.query("COMMIT");return result;}catch(error){await client.query("ROLLBACK");throw error;}finally{client.release();}}};
     const env={PAYMONGO_SECRET_KEY:"sk_test_fixture_only",PAYMONGO_WEBHOOK_SECRET:"fixture-secret",WALLET_ENCRYPTION_KEY:"ab".repeat(32),PAYMONGO_PAYOUTS_ENABLED:"true",APP_URL:"http://localhost:3000"};
     const sessions=new Map(),transfers=new Map();let providerCalls=0,notificationFailure=false,events=0;
@@ -166,6 +168,29 @@ test("Postgres marketplace payment lifecycle",{skip:process.env.PIYUMART_FINANCE
       session.attributes.payments=[{id:"pay_multisellerfixture",attributes:{status:"paid",currency:"PHP",amount:170000,fee:100,livemode:false}}];const payload=event("checkout_session.payment.paid",session);await lifecycle.processPaymentEvent(payload,JSON.stringify(payload));
       for(const [index,amount]of [10001,159999].entries()){const refund=event("payment.refund.updated",{id:`ref_multiseller${index}`,attributes:{payment_id:"pay_multisellerfixture",livemode:false,currency:"PHP",amount,status:"succeeded"}});await lifecycle.processPaymentEvent(refund,JSON.stringify(refund));}
       const allocations=await query("SELECT * FROM payment_allocations WHERE payment_id=$1",[created.paymentId]);assert.equal(allocations.length,2);for(const item of allocations){assert.equal(item.gross_amount,item.refunded_amount);assert.equal(item.seller_amount,item.seller_refunded);assert.equal(item.commission_amount,item.commission_refunded);}assert.equal((await wallet.sellerWallet(6)).balances.pending,"0.00");
+    });
+    await t.test("varchar order status supports fulfillment, notification rollback and buyer-only completion",async()=>{
+      const [column]=await query("SELECT udt_name FROM information_schema.columns WHERE table_schema=$1 AND table_name='orders' AND column_name='status'",[schema]);
+      assert.equal(column.udt_name,"varchar");
+      const order=await makeCheckout();await pay(order);const id=order.orderIds[0];
+      notificationFailure=true;
+      try{await assert.rejects(lifecycle.transitionOnlineOrder(2,id,{status:"confirmed"}),error=>error.message==="Injected notification failure");}finally{notificationFailure=false;}
+      const [unchanged]=await query("SELECT status,confirmed_at FROM orders WHERE id=$1",[id]);
+      assert.equal(unchanged.status,"pending");assert.equal(unchanged.confirmed_at,null);
+      const before=(await query("SELECT count(*)::int AS count FROM wallet_transactions WHERE order_id=$1",[id]))[0].count;
+      for(const status of ["confirmed","processing","shipped"]){
+        const result=await lifecycle.transitionOnlineOrder(2,id,{status});
+        assert.equal(result.success,true);assert.equal(result.status,status);
+        assert.equal((await query("SELECT status FROM orders WHERE id=$1",[id]))[0].status,status);
+      }
+      assert.equal((await query("SELECT count(*)::int AS count FROM wallet_transactions WHERE order_id=$1",[id]))[0].count,before);
+      for(const actor of [2,5])await assert.rejects(lifecycle.transitionOnlineOrder(actor,id,{status:"completed"}),error=>error.status===403);
+      const result=await lifecycle.transitionOnlineOrder(1,id,{action:"confirm_delivery"});assert.equal(result.status,"completed");
+      const [completed]=await query("SELECT status,confirmed_at,shipped_at,completed_at FROM orders WHERE id=$1",[id]);
+      assert.equal(completed.status,"completed");assert.ok(completed.confirmed_at);assert.ok(completed.shipped_at);assert.ok(completed.completed_at);
+      const after=(await query("SELECT count(*)::int AS count FROM wallet_transactions WHERE order_id=$1",[id]))[0].count;
+      assert.ok(after>before);await assert.rejects(lifecycle.transitionOnlineOrder(1,id,{action:"confirm_delivery"}),error=>error.status===409);
+      assert.equal((await query("SELECT count(*)::int AS count FROM wallet_transactions WHERE order_id=$1",[id]))[0].count,after);
     });
   }finally{
     if(pool)await pool.end();if(created)await control.query(`DROP SCHEMA ${schema} CASCADE`);await control.end();

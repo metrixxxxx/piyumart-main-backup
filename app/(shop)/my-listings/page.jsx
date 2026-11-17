@@ -3,7 +3,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { supabase } from "@/lib/supabase";
+import { useMarketplaceRealtime } from "@/lib/realtime/useMarketplaceRealtime";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 
 function StatCard({ label, value, accent, description }) {
@@ -51,6 +51,12 @@ export default function MyListingsPage() {
   const [filter, setFilter] = useState("all");
   const [activeTab, setActiveTab] = useState("listings");
   const [loading, setLoading] = useState(true);
+  const [refresh, setRefresh] = useState(0);
+  useMarketplaceRealtime({
+    enabled: !!session?.user?.id,
+    identity: session?.user?.id,
+    onChange: () => setRefresh((value) => value + 1),
+  });
 
   useEffect(() => {
     if (!session) return;
@@ -58,10 +64,10 @@ export default function MyListingsPage() {
 
     const loadData = async () => {
       const [productsRes, statsRes, ordersRes, reviewsRes] = await Promise.all([
-        fetch("/api/sell"),
-        fetch("/api/my-listings/stats"),
-        fetch("/api/seller/orders"),
-        fetch("/api/seller/reviews"),
+        fetch("/api/sell", { cache: "no-store" }),
+        fetch("/api/my-listings/stats", { cache: "no-store" }),
+        fetch("/api/seller/orders", { cache: "no-store" }),
+        fetch("/api/seller/reviews", { cache: "no-store" }),
       ]);
       const productsData = await productsRes.json();
       const statsData = await statsRes.json();
@@ -76,49 +82,37 @@ export default function MyListingsPage() {
       }
     };
 
-    loadData();
-const channel = supabase
-  .channel(`seller:${session.user.id}`)
-  .on("broadcast", { event: "orders:new" }, (payload) => {
-    const order = payload.payload;
-    setOrders((prev) => [{ ...order, status: "pending" }, ...prev]);
-  })
-  .on("broadcast", { event: "orders:updated" }, (payload) => {
-    const { id, status, tracking_number, courier } = payload.payload;
-    setOrders((prev) =>
-      prev.map((o) =>
-        Number(o.id) === Number(id)
-          ? { ...o, status, _loading: false, ...(tracking_number && { tracking_number }), ...(courier && { courier }) }
-          : o
-      )
-    );
-    if (status === "completed") loadData();
-  })
-  .subscribe();
-
-return () => {
-  mounted = false;
-  supabase.removeChannel(channel);
-};
-
-   
-  }, [session?.user?.id]);
+    loadData().catch((error) => {
+      console.error("Unable to refresh seller orders:", error);
+      if (mounted) setLoading(false);
+    });
+    return () => { mounted = false; };
+  }, [session?.user?.id, refresh]);
 
   async function handleOrderStatus(id, status) {
     setOrders((prev) =>
       prev.map((o) => (Number(o.id) === Number(id) ? { ...o, _loading: true } : o))
     );
-    const res = await fetch(`/api/seller/orders/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
+    try {
+      const res = await fetch(`/api/seller/orders/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "Unable to update order.");
+      if (!data?.success || typeof data.status !== "string") {
+        throw new Error("Unable to read the order update. Refresh the page to check its status.");
+      }
+      setOrders((prev) =>
+        prev.map((o) => (Number(o.id) === Number(id) ? { ...o, status: data.status } : o))
+      );
+    } catch (error) {
+      alert(error.message || "Unable to update order.");
+    } finally {
       setOrders((prev) =>
         prev.map((o) => (Number(o.id) === Number(id) ? { ...o, _loading: false } : o))
       );
-      return alert(data.error || "Failed to update order");
     }
   }
 

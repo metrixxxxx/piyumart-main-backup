@@ -2,7 +2,7 @@
 CREATE TABLE users(id integer PRIMARY KEY,name text,last_name text,email text,role text,status text);
 CREATE TABLE products(id serial PRIMARY KEY,seller_id integer,name text,image_url text,price numeric(14,2),stock integer,status text,is_visible boolean,sold_count integer DEFAULT 0);
 CREATE TABLE product_variants(id serial PRIMARY KEY,product_id integer,label text,image_url text,price_override numeric(14,2));
-CREATE TABLE orders(id serial PRIMARY KEY,user_id integer,seller_id integer,name text,email text,address text,payment_method text,total numeric(14,2),status text,created_at timestamp DEFAULT now(),confirmed_at timestamptz,shipped_at timestamptz,completed_at timestamptz,cancelled_at timestamptz,tracking_number text,courier text);
+CREATE TABLE orders(id serial PRIMARY KEY,user_id integer,seller_id integer,name text,email text,address text,payment_method text,total numeric(14,2),status varchar,created_at timestamp DEFAULT now(),confirmed_at timestamptz,shipped_at timestamptz,completed_at timestamptz,cancelled_at timestamptz,tracking_number text,courier text);
 CREATE TABLE order_items(id serial PRIMARY KEY,order_id integer,product_id integer,quantity integer,price numeric(14,2),variant text,name text,image_url text,seller_name text);
 ALTER TABLE orders ADD COLUMN seller_note text;
 CREATE TABLE bao_audit_logs(id serial PRIMARY KEY,actor_id integer,action text,entity_type text,entity_id text,reason text,metadata jsonb,created_at timestamptz DEFAULT now());

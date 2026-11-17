@@ -4,7 +4,10 @@ import { SourceTextModule,SyntheticModule,createContext } from "node:vm";
 export async function loadFinanceModule(file,{db,env={},fetch,account=null,staff=null,notificationFailure=()=>false}={}) {
   const root=process.cwd(),context=createContext({Buffer,Request,Response,FormData,File,URL,AbortSignal,fetch,process:{env},console:{error(){}}}),cache=new Map();
   const mocks={"server-only":{},"@/lib/db":{db},"next/server":{NextResponse:Response},"next-auth":{getServerSession:async()=>account?{user:account}:null},"next-auth/next":{getServerSession:async()=>account?{user:account}:null},"@/lib/authOptions":{authOptions:{}},"@/app/api/auth/[...nextauth]/route":{authOptions:{}},"@/lib/seller-access":{getMarketplaceAccount:async()=>account,isActiveSellerAccount:async()=>account?.role==="seller"&&account.status==="active"},"@/lib/bao-access":{getBaoAccess:async()=>staff?{session:{user:staff},status:200}:{session:null,status:401}},
-    "@/lib/notify":{createNotificationRecord:async({userId,type,message},client)=>{
+    "@/lib/notify":{notify:async({userId,type,message})=>{
+      if(notificationFailure())throw new Error("Injected notification failure");
+      const [rows]=await db.query("INSERT INTO notifications(user_id,type,message) VALUES($1,$2,$3) RETURNING *",[userId,type,message]);return rows[0];
+    },createNotificationRecord:async({userId,type,message},client)=>{
       if(notificationFailure())throw new Error("Injected notification failure");
       const {rows}=await client.query("INSERT INTO notifications(user_id,type,message) VALUES($1,$2,$3) RETURNING *",[userId,type,message]);return rows[0];
     }}};

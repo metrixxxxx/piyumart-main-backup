@@ -3,7 +3,6 @@ import { db } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { notify } from "@/lib/notify";
-import { supabaseAdmin } from "@/lib/supabase";
 import { isActiveSellerAccount } from "@/lib/seller-access";
 import { transitionOnlineOrder } from "@/lib/payments/events";
 
@@ -79,31 +78,7 @@ export async function PATCH(req, { params }) {
       await notify({ userId: order.user_id, type: `order_${status}`, message: BUYER_MESSAGES[status] });
     }
 
-    const broadcastPayload = {
-      id: orderId,
-      status,
-      ...(tracking_number && { tracking_number }),
-      ...(courier && { courier }),
-    };
-
-    // ✅ Broadcast to buyer
-    try {
-      await supabaseAdmin
-        .channel(`buyer:${order.user_id}`)
-        .send({ type: "broadcast", event: "orders:updated", payload: broadcastPayload });
-    } catch (e) {
-      console.error("Broadcast to buyer error:", e);
-    }
-
-    // ✅ Broadcast to seller
-    try {
-      await supabaseAdmin
-        .channel(`seller:${sellerId}`)
-        .send({ type: "broadcast", event: "orders:updated", payload: { id: orderId, status } });
-    } catch (e) {
-      console.error("Broadcast to seller error:", e);
-    }
-
+    // Database triggers broadcast committed changes for both COD and online orders.
     return NextResponse.json({ success: true, status });
   } catch (err) {
     console.error("Seller order PATCH error:", err);

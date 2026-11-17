@@ -112,6 +112,10 @@ its reservation. The old auto-cancel job excludes online orders.
 
 ## Webhook setup
 
+Database changes from these webhooks now update open order, wallet and finance
+pages using Supabase Realtime. See [live update setup and tests](marketplace-realtime.md)
+for the additional migration, custom-auth design, file inventory and deployment checks.
+
 1. Expose the app through a public HTTPS development URL and set APP_URL.
 2. In PayMongo's **test** webhook settings, add
    `https://YOUR-APP/api/payments/webhook`.
