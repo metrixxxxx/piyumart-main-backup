@@ -34,6 +34,18 @@ for(const role of [null,"user","bao","admin"]){test(`${role||"anonymous"} cannot
 test("buyer and seller marketplace sessions do not authorize BAO finances",async()=>{
   for(const role of ["user","seller"]){const api=await loadFinanceModule("app/api/bao/finance/route.js",{account:{id:1,role,status:"active"}});assert.equal((await api.GET()).status,401);}
 });
+
+test("commission and dashboard reports require a staff session before reading financial data",async()=>{
+  let queries=0;
+  for(const account of [null,{id:1,role:"user",status:"active"},{id:2,role:"seller",status:"active"}]){
+    for(const file of ["app/api/bao/commissions/route.js","app/api/bao/dashboard/route.js"]){
+      const api=await loadFinanceModule(file,{account,db:{query:async()=>{queries++;return [[]];}}});
+      const response=await api.GET(new Request("http://localhost/api/bao/commissions"));
+      assert.equal(response.status,401);
+    }
+  }
+  assert.equal(queries,0);
+});
 test("BAO cannot change admin financial settings",async()=>{
   const api=await loadFinanceModule("app/api/bao/finance/route.js",{staff:{id:3,role:"bao"}});
   assert.equal((await api.PATCH(new Request("http://localhost/api/bao/finance",{method:"PATCH",body:"{}"}))).status,403);

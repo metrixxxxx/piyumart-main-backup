@@ -8,8 +8,8 @@ The application does not fabricate a successful gateway response when keys are a
 
 Local setup completed: the migration has been applied to the connected Supabase
 database, the payout destination encryption key has been generated in `.env.local`,
-and payout verification remains disabled. PayMongo API/webhook test credentials
-are still missing. The installation steps below also document setup for another
+and payout verification remains disabled. Configure API/webhook credentials in
+each environment; they are never included in the repository. These steps also document setup for another
 environment; do not re-run the creation migration on this installed database.
 
 1. Run [the SQL migration](../migrations/add_marketplace_payments.sql) once in
@@ -76,8 +76,12 @@ with the seller receiving the remainder so every centavo is accounted for.
 Gateway fees are recorded separately. The promised allocation is calculated on
 the gross item value, so the merchant must fund fees from its operating money;
 the ledger is not proof that enough settled gateway cash exists for disbursement.
-Existing scheduled cash-on-pickup commission records remain under Commissions.
-Online finance reports use their immutable allocation snapshots and refund offsets.
+Commissions and the BAO overview include cash-on-pickup snapshots and verified
+online allocations. The Commissions transaction history shows paid online orders
+immediately, with pending commission separate from completed-order earnings.
+Online reports use the original 3% allocation snapshots and confirmed refund
+offsets. Reading these reports does not create another commission or wallet credit.
+See [reporting verification steps](bao-online-reporting.md).
 
 ## Payment lifecycle and idempotency
 

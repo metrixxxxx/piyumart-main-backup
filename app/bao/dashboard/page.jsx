@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import BaoHeader from "@/components/bao/BaoHeader";
+import { useMarketplaceRealtime } from "@/lib/realtime/useMarketplaceRealtime";
 
 const metrics = [
   { key: "totalRegisteredUsers", label: "Registered users", kind: "count" },
@@ -32,19 +33,25 @@ export default function BaoDashboardPage() {
   const [stats, setStats] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useMarketplaceRealtime({ audience: "staff", scopes: ["orders", "payments", "finance"],
+    onChange: () => setRefreshKey((current) => current + 1) });
 
   useEffect(() => {
     let active = true;
+    const controller = new AbortController();
 
-    fetch("/api/bao/dashboard", { cache: "no-store" })
+    fetch("/api/bao/dashboard", { cache: "no-store", signal: controller.signal })
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) {
           throw new Error(data.error || "Unable to load dashboard metrics.");
         }
-        if (active) setStats(data);
+        if (active) { setStats(data); setError(""); }
       })
       .catch((requestError) => {
+        if (requestError.name === "AbortError") return;
         console.error("Unable to load BAO dashboard:", requestError);
         if (active) {
           setError(requestError.message || "Unable to load dashboard metrics.");
@@ -56,8 +63,9 @@ export default function BaoDashboardPage() {
 
     return () => {
       active = false;
+      controller.abort();
     };
-  }, []);
+  }, [refreshKey]);
 
   return (
     <main className="min-h-dvh bg-[#eef2f7] text-slate-900 dark:bg-[#090e1b] dark:text-slate-100">

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getBaoAccess } from "@/lib/bao-access";
 import { db } from "@/lib/db";
+import { commissionRecordsSql } from "@/lib/bao-commission-report";
 
 export async function GET() {
   try {
@@ -12,7 +13,7 @@ export async function GET() {
       );
     }
 
-    const [[stats]] = await db.query(`
+    const [[stats]] = await db.query(`${commissionRecordsSql}
       SELECT
         (
           SELECT COUNT(*)
@@ -39,15 +40,16 @@ export async function GET() {
           SELECT COUNT(*) FROM orders WHERE status = 'completed'
         ) AS completed_orders,
         COALESCE(
-          (SELECT SUM(total) FROM orders WHERE status = 'completed'),
+          (SELECT SUM(CASE WHEN o.payment_method = 'paymongo' THEN COALESCE(r.order_amount, 0) ELSE o.total END)
+           FROM orders o LEFT JOIN commission_records r ON r.order_id = o.id
+           WHERE o.status = 'completed'),
           0
         ) AS total_marketplace_sales,
         COALESCE(
           (
-            SELECT SUM(oc.commission_amount)
-            FROM order_commissions AS oc
-            INNER JOIN orders AS o ON o.id = oc.order_id
-            WHERE o.status = 'completed'
+            SELECT SUM(commission_amount)
+            FROM commission_records
+            WHERE is_earned
           ),
           0
         ) AS total_bao_commission,

@@ -1,5 +1,6 @@
 "use client";
 import ListingLocation from "@/components/products/ListingLocation";
+import PaymentMethodPicker from "@/components/payments/PaymentMethodPicker";
 import { useState, useEffect, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -299,23 +300,8 @@ setTimeout(() => router.push("/my-orders"), 2500);
                 </div>
                 <h2 className="text-sm font-bold text-[#0e1a3d] dark:text-[#e8edf8]">Payment Method</h2>
               </div>
-              <label className="flex items-center gap-3 p-4 rounded-xl border-[1.5px] border-[#1a2a6c] dark:border-[#c9a028] bg-[#f0f4ff] dark:bg-[#c9a028]/5 cursor-pointer">
-                <input type="radio" name="paymentMethod" value="cod" checked={paymentMethod === "cod"} onChange={() => setPaymentMethod("cod")} className="accent-[#1a2a6c]" />
-                <div className="w-9 h-9 rounded-lg bg-[#1a2a6c] dark:bg-[#c9a028] flex items-center justify-center text-lg shrink-0">
-                  💵
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-[#0e1a3d] dark:text-[#e8edf8]">Cash on Pick-up</p>
-                  <p className="text-xs text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">Pay when your order arrives</p>
-                </div>
-                <div className="ml-auto w-4 h-4 rounded-full bg-[#1a2a6c] dark:bg-[#c9a028] flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 rounded-full bg-white dark:bg-[#0a0e1f]" />
-                </div>
-              </label>
-              <label className={`mt-3 flex items-start gap-3 rounded-xl border border-[#c5cfe8] p-4 dark:border-white/10 ${onlinePayments.enabled ? "cursor-pointer" : "opacity-60"}`}>
-                <input type="radio" name="paymentMethod" value="paymongo" disabled={!onlinePayments.enabled} checked={paymentMethod === "paymongo"} onChange={() => setPaymentMethod("paymongo")} className="mt-1 accent-[#1a2a6c]" />
-                <span><span className="block text-sm font-semibold text-[#0e1a3d] dark:text-[#e8edf8]">Pay online with PayMongo · Test mode</span><span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">{onlinePayments.enabled ? "Choose an eligible GCash, Maya, card, or QR Ph method on the secure checkout page." : "Online demo payments will be available after the administrator configures PayMongo test keys."}</span></span>
-              </label>
+              <PaymentMethodPicker value={paymentMethod} onChange={setPaymentMethod}
+                onlineEnabled={onlinePayments.enabled} disabled={submitting} />
             </div>
 
             {/* Shopee-style: Items grouped by seller */}

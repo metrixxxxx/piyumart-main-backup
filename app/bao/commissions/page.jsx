@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import BaoHeader from "@/components/bao/BaoHeader";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import { FinanceStatus } from "@/components/payments/FinanceUI";
+import { useMarketplaceRealtime } from "@/lib/realtime/useMarketplaceRealtime";
 
 const currencyFormatter = new Intl.NumberFormat("en-PH", {
   style: "currency",
@@ -39,13 +41,17 @@ export default function BaoCommissionsPage() {
   const [savingRate, setSavingRate] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  useMarketplaceRealtime({ audience: "staff", scopes: ["orders", "payments", "finance"],
+    onChange: () => setRefreshKey((current) => current + 1) });
+
   useEffect(() => {
     let active = true;
+    const controller = new AbortController();
     const params = new URLSearchParams({ page: String(page) });
     if (appliedRange.from) params.set("from", appliedRange.from);
     if (appliedRange.to) params.set("to", appliedRange.to);
 
-    fetch(`/api/bao/commissions?${params.toString()}`, { cache: "no-store" })
+    fetch(`/api/bao/commissions?${params.toString()}`, { cache: "no-store", signal: controller.signal })
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Unable to load commission data.");
@@ -58,6 +64,7 @@ export default function BaoCommissionsPage() {
         }
       })
       .catch((requestError) => {
+        if (requestError.name === "AbortError") return;
         console.error("BAO commission report request failed:", requestError);
         if (active) setError(requestError.message || "Unable to load commission data.");
       })
@@ -67,6 +74,7 @@ export default function BaoCommissionsPage() {
 
     return () => {
       active = false;
+      controller.abort();
     };
   }, [appliedRange, page, refreshKey]);
 
@@ -138,17 +146,21 @@ export default function BaoCommissionsPage() {
       <BaoHeader active="commissions" />
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-7">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#927116] dark:text-[#e3c36c]">
-            Business Administration Office
-          </p>
-          <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-[#1a2a6c] dark:text-white sm:text-4xl">
-            Commission management
-          </h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-400">
-            Commissions are recorded once per seller order, only when it reaches completed status.
-            Each order keeps the rate that was effective when the order was placed.
-          </p>
+        <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#927116] dark:text-[#e3c36c]">
+              Business Administration Office
+            </p>
+            <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-[#1a2a6c] dark:text-white sm:text-4xl">
+              Commission management
+            </h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-400">
+              Confirmed online payments appear here immediately. Commission becomes earned when
+              the buyer confirms receipt. Cash-on-pickup commissions appear on order completion.
+            </p>
+          </div>
+          <button type="button" onClick={() => setRefreshKey((current) => current + 1)}
+            className="rounded-xl bg-[#1a2a6c] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#24377f]">Refresh</button>
         </div>
 
         {notice ? (
@@ -164,19 +176,26 @@ export default function BaoCommissionsPage() {
 
         {!currentRate && report ? (
           <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
-            No rate is active. The proposed initial rate of {report.proposedInitialRate}% is only a
+            No cash-on-pickup rate is active. The proposed initial rate of {report.proposedInitialRate}% is only a
             suggestion; an authorized BAO or admin must set it with a reason before it applies to
-            eligible future orders.
+            eligible future cash orders. Online orders keep their original 3% allocation.
           </div>
         ) : null}
 
-        <section aria-label="Commission totals" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section aria-label="Commission totals" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700/70 dark:bg-[#111a2b]">
             <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total commission earned</p>
             <p className="mt-4 text-2xl font-extrabold text-[#1a2a6c] dark:text-white">
               {loading ? "…" : formatCurrency(allTimeTotals?.commission_amount)}
             </p>
             <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">From recorded completed orders</p>
+          </article>
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700/70 dark:bg-[#111a2b]">
+            <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Pending online commission</p>
+            <p className="mt-4 text-2xl font-extrabold text-[#1a2a6c] dark:text-white">
+              {loading ? "…" : formatCurrency(allTimeTotals?.pending_commission_amount)}
+            </p>
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Paid orders awaiting completion, after refunds</p>
           </article>
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700/70 dark:bg-[#111a2b]">
             <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Selected-range commission</p>
@@ -188,7 +207,7 @@ export default function BaoCommissionsPage() {
             </p>
           </article>
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700/70 dark:bg-[#111a2b]">
-            <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Current commission rate</p>
+            <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Cash-on-pickup rate</p>
             <p className="mt-4 text-2xl font-extrabold text-[#1a2a6c] dark:text-white">
               {loading ? "…" : currentRate ? `${currentRate.percentage}%` : "Not set"}
             </p>
@@ -212,7 +231,7 @@ export default function BaoCommissionsPage() {
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
               <div>
                 <h2 className="text-lg font-extrabold text-[#1a2a6c] dark:text-white">Commission by date range</h2>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Philippine calendar dates, based on commission recording time at order completion.</p>
+                <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">Philippine calendar dates: online payment confirmation or cash order completion. Amounts reflect confirmed refunds.</p>
               </div>
               <form onSubmit={applyDateRange} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
@@ -252,6 +271,7 @@ export default function BaoCommissionsPage() {
             </h2>
             <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
               This appends an immutable rate record. It only applies to orders placed on or after its effective time.
+              Online payments keep their original 3% allocation.
             </p>
             <label htmlFor="bao-commission-rate" className="mt-4 block text-sm font-semibold">
               Rate percentage
@@ -293,6 +313,7 @@ export default function BaoCommissionsPage() {
 
         <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700/70 dark:bg-[#111a2b]">
           <h2 className="text-lg font-extrabold text-[#1a2a6c] dark:text-white">Commission per seller</h2>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Net allocations from paid online orders and completed cash orders in this range, including pending commission.</p>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[700px] text-left text-sm">
               <thead className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:text-slate-400">
@@ -326,9 +347,9 @@ export default function BaoCommissionsPage() {
         <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700/70 dark:bg-[#111a2b]">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 className="text-lg font-extrabold text-[#1a2a6c] dark:text-white">Commission history</h2>
+              <h2 className="text-lg font-extrabold text-[#1a2a6c] dark:text-white">Commission transactions</h2>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                {formatCount(history?.totalRows)} record(s) · one immutable snapshot per completed seller order
+                {formatCount(history?.totalRows)} record(s) · cash and verified online payments · one row per seller order
               </p>
             </div>
             {history?.totalPages > 1 ? (
@@ -354,33 +375,41 @@ export default function BaoCommissionsPage() {
             ) : null}
           </div>
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[850px] text-left text-sm">
+            <table className="w-full min-w-[1100px] text-left text-sm">
               <thead className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:text-slate-400">
                 <tr>
-                  <th className="px-3 py-3">Completed</th>
+                  <th className="px-3 py-3">Recorded</th>
                   <th className="px-3 py-3">Order</th>
                   <th className="px-3 py-3">Seller</th>
+                  <th className="px-3 py-3">Payment</th>
+                  <th className="px-3 py-3">Order status</th>
                   <th className="px-3 py-3 text-right">Rate</th>
-                  <th className="px-3 py-3 text-right">Order amount</th>
+                  <th className="px-3 py-3 text-right">Net order amount</th>
                   <th className="px-3 py-3 text-right">Commission</th>
                   <th className="px-3 py-3 text-right">Seller earnings</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {loading ? (
-                  <tr><td colSpan={7} className="px-3 py-8 text-center text-slate-500">Loading commission history…</td></tr>
+                  <tr><td colSpan={9} className="px-3 py-8 text-center text-slate-500">Loading commission history…</td></tr>
                 ) : history?.records?.length ? history.records.map((record) => (
                   <tr key={record.id}>
                     <td className="px-3 py-3 whitespace-nowrap">{formatDate(record.created_at)}</td>
                     <td className="px-3 py-3 font-semibold">#{record.order_id}</td>
                     <td className="px-3 py-3">{record.seller_name}</td>
+                    <td className="max-w-[200px] px-3 py-3 text-xs">
+                      <p className="font-semibold">{record.payment_method === "paymongo" ? "PayMongo · Paid online" : "Cash on Pick-up"}</p>
+                      {record.payment_reference && <p className="mt-1 break-all text-slate-500 dark:text-slate-400">{record.payment_reference}</p>}
+                      {Number(record.refunded_amount) > 0 && <p className="mt-1 text-rose-700 dark:text-rose-300">Refunded {formatCurrency(record.refunded_amount)}</p>}
+                    </td>
+                    <td className="px-3 py-3"><FinanceStatus value={record.order_status} /></td>
                     <td className="px-3 py-3 text-right">{record.commission_rate}%</td>
                     <td className="px-3 py-3 text-right">{formatCurrency(record.order_amount)}</td>
                     <td className="px-3 py-3 text-right font-bold text-[#1a2a6c] dark:text-[#e9d48f]">{formatCurrency(record.commission_amount)}</td>
                     <td className="px-3 py-3 text-right">{formatCurrency(record.seller_earnings)}</td>
                   </tr>
                 )) : (
-                  <tr><td colSpan={7} className="px-3 py-8 text-center text-slate-500 dark:text-slate-400">No commission records in this date range.</td></tr>
+                  <tr><td colSpan={9} className="px-3 py-8 text-center text-slate-500 dark:text-slate-400">No commission records in this date range.</td></tr>
                 )}
               </tbody>
             </table>
