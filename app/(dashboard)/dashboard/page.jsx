@@ -18,6 +18,9 @@ export default function AdminDashboard() {
   const [admin, setAdmin] = useState(null);
   const [products, setProducts] = useState([]);
   const [users, setUsers] = useState([]);
+  const [userActionPending, setUserActionPending] = useState(null);
+  const [userError, setUserError] = useState("");
+  const [userNotice, setUserNotice] = useState("");
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedProducts, setSelectedProducts] = useState([]);
@@ -171,14 +174,29 @@ export default function AdminDashboard() {
   }
 
   function openDeleteUserModal(id) {
+    setUserError("");
+    setUserNotice("");
     setConfirmModal({
       title: "Delete this user?",
-      description: "This will remove the user account and all associated access.",
+      description: "This permanently removes the user, their listings, and related orders, payments, wallet history, and messages.",
       confirmText: "Delete user",
       cancelText: "Keep user",
       onConfirm: async () => {
-        await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
-        fetchData();
+        setUserActionPending(id);
+        try {
+          const response = await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || data.success !== true) throw new Error(data.error || "Unable to delete the user.");
+          setUsers((current) => current.filter((user) => String(user.id) !== String(id)));
+          setBaoRefresh((current) => current + 1);
+          setUserNotice("User and linked records deleted successfully.");
+          try { await fetchData(); }
+          catch { setUserError("The user was deleted, but the lists could not be refreshed. Reload this page."); }
+        } catch (error) {
+          setUserError(error.message || "Unable to delete the user.");
+        } finally {
+          setUserActionPending(null);
+        }
       },
     });
   }
@@ -564,6 +582,9 @@ export default function AdminDashboard() {
 
           {/* Users */}
           {activeTab === "users" && (
+            <div className="space-y-3">
+            {userError && <p role="alert" className="rounded-xl border border-red-800 bg-red-950/40 px-4 py-3 text-sm text-red-300">{userError}</p>}
+            {userNotice && <p role="status" className="rounded-xl border border-green-800 bg-green-950/40 px-4 py-3 text-sm text-green-300">{userNotice}</p>}
             <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-x-auto">
               <table className="w-full min-w-[640px] text-sm">
                 <thead className="border-b border-gray-800">
@@ -587,8 +608,9 @@ export default function AdminDashboard() {
                       <td className="px-4 py-3">
                         {user.role !== "admin" && user.role !== "bao" && (
                           <button onClick={() => openDeleteUserModal(user.id)}
-                            className="text-xs px-3 py-1.5 rounded-lg bg-red-900/40 text-red-400 hover:bg-red-900/70 transition">
-                            Delete
+                            disabled={userActionPending !== null}
+                            className="text-xs px-3 py-1.5 rounded-lg bg-red-900/40 text-red-400 hover:bg-red-900/70 disabled:opacity-50 transition">
+                            {String(userActionPending) === String(user.id) ? "Deleting..." : "Delete"}
                           </button>
                         )}
                       </td>
@@ -596,6 +618,7 @@ export default function AdminDashboard() {
                   ))}
                 </tbody>
               </table>
+            </div>
             </div>
           )}
 

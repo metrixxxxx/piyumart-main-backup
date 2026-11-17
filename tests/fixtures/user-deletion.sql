@@ -1,0 +1,22 @@
+-- Synthetic dependency graph, after finance-base and the payment migrations.
+ALTER TABLE products ADD CONSTRAINT products_seller_id_fkey FOREIGN KEY(seller_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE bao_audit_logs ADD FOREIGN KEY(actor_id) REFERENCES users(id) ON DELETE RESTRICT;
+ALTER TABLE order_commissions ADD FOREIGN KEY(order_id) REFERENCES orders(id) ON DELETE RESTRICT;
+ALTER TABLE bao_commission_rates ADD FOREIGN KEY(changed_by) REFERENCES users(id) ON DELETE RESTRICT;
+CREATE TABLE carts(id serial PRIMARY KEY,user_id integer);
+CREATE TABLE cart_items(id serial PRIMARY KEY,cart_id integer,product_id integer,quantity integer);
+CREATE TABLE wishlist(id serial PRIMARY KEY,user_id integer,product_id integer);
+CREATE TABLE ratings(id serial PRIMARY KEY,user_id integer,product_id integer,rating integer);
+CREATE TABLE user_activity(id serial PRIMARY KEY,user_id integer,product_id integer);
+CREATE TABLE conversations(id serial PRIMARY KEY,buyer_id integer,seller_id integer,product_id integer REFERENCES products(id) ON DELETE SET NULL);
+CREATE TABLE messages(id serial PRIMARY KEY,conversation_id integer REFERENCES conversations(id) ON DELETE CASCADE,sender_id integer,content text);
+CREATE TABLE product_attributes(id serial PRIMARY KEY,product_id integer);
+CREATE TABLE product_images(id serial PRIMARY KEY,product_id integer);
+CREATE TABLE seller_applications(id serial PRIMARY KEY,user_id integer REFERENCES users(id),reviewed_by integer REFERENCES users(id));
+DROP TABLE marketplace_reports;
+CREATE TABLE marketplace_reports(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),reporter_id integer REFERENCES users(id),related_seller_id integer REFERENCES users(id) ON DELETE SET NULL,related_product_id integer REFERENCES products(id) ON DELETE SET NULL,related_order_id integer REFERENCES orders(id) ON DELETE SET NULL,assigned_to integer REFERENCES users(id) ON DELETE SET NULL,status text);
+CREATE TABLE marketplace_report_updates(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),report_id uuid REFERENCES marketplace_reports(id),updated_by integer REFERENCES users(id));
+CREATE FUNCTION prevent_bao_history_modification() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'This record cannot be modified or deleted.'; END; $$;
+CREATE TRIGGER trg_commission_immutable BEFORE UPDATE OR DELETE ON order_commissions FOR EACH ROW EXECUTE FUNCTION prevent_bao_history_modification();
+CREATE TRIGGER trg_bao_audit_immutable BEFORE UPDATE OR DELETE ON bao_audit_logs FOR EACH ROW EXECUTE FUNCTION prevent_bao_history_modification();
+CREATE TRIGGER trg_report_updates_immutable BEFORE UPDATE OR DELETE ON marketplace_report_updates FOR EACH ROW EXECUTE FUNCTION prevent_bao_history_modification();
