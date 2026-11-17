@@ -1,3 +1,4 @@
+import { withCatalogInvalidation } from "@/lib/catalog-cache";
 import { NextResponse } from "next/server";
 import { getBaoAccess } from "@/lib/bao-access";
 import { db } from "@/lib/db";
@@ -155,7 +156,7 @@ export async function GET(_req, { params }) {
   }
 }
 
-export async function PATCH(req, { params }) {
+async function handlePATCH(req, { params }) {
   try {
     const access = await getBaoAccess();
     if (!access.session) {
@@ -293,3 +294,5 @@ export async function PATCH(req, { params }) {
     );
   }
 }
+
+export const PATCH = withCatalogInvalidation(handlePATCH);

@@ -7,7 +7,7 @@ import { financePanel,financeButton,php,FinanceStatus,TestModeNotice } from "@/c
 export default function PaymentStatus({id}) {
   const [data,setData]=useState(null),[error,setError]=useState(""),[busy,setBusy]=useState(false),[refresh,setRefresh]=useState({version:0,provider:true});
   const {data:session}=useSession();
-  useMarketplaceRealtime({enabled:!!session?.user?.id,identity:session?.user?.id,onChange:()=>setRefresh(value=>({version:value.version+1,provider:false}))});
+  useMarketplaceRealtime({enabled:!!session?.user?.id,identity:session?.user?.id,scopes:["orders","payments"],onChange:()=>setRefresh(value=>({version:value.version+1,provider:false}))});
   // Reconcile on entry/manual refresh. Subsequent live events read committed data.
   useEffect(()=>{let active=true;async function load(){try{const response=await fetch(`/api/payments/${id}${refresh.provider?"?refresh=1":""}`,{cache:"no-store"});const result=await response.json();if(!response.ok)throw new Error(result.error);if(active){setData(result);setError(result.refreshError||"");}}catch(err){if(active)setError(err.message);}}load();return()=>{active=false;};},[id,refresh]);
   useEffect(()=>{if(["paid","partially_refunded","refunded","cancelled","expired","failed"].includes(data?.payment.status)){sessionStorage.removeItem("piyumart-checkout-key");sessionStorage.removeItem("piyumart-checkout-fingerprint");}},[data?.payment.status]);

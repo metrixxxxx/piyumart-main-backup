@@ -1,4 +1,6 @@
 "use client";
+import Pagination from "@/components/ui/Pagination";
+import { usePagedResource } from "@/lib/usePagedResource";
 import ListingLocation from "@/components/products/ListingLocation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -373,17 +375,21 @@ function OrderCard({ order, onUpdate, onDelete }) {
 export default function OrdersPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [refresh, setRefresh] = useState(0);
+  const [page,setPage]=useState(1);
+  const orderList=usePagedResource(`/api/orders?page=${page}&status=${filter}`,{enabled:status==="authenticated",identity:session?.user?.id,refresh,onPageChange:setPage});
+  const orders=orderList.items,setOrders=orderList.setItems,loading=!orderList.loaded;
+
   useMarketplaceRealtime({
     enabled: status === "authenticated",
     identity: session?.user?.id,
+    scopes: ["orders", "payments"],
     onChange: () => setRefresh((value) => value + 1),
   });
 
   function handleOrderUpdate(id, newStatus) {
+    orderList.reload();
     setOrders((prev) =>
       prev.map((o) => Number(o.id) === Number(id) ? { ...o, status: newStatus } : o)
     );
@@ -391,21 +397,11 @@ export default function OrdersPage() {
 
   // Removes the deleted order from local state — no refetch needed
   function handleOrderDelete(id) {
+    orderList.reload();
     setOrders((prev) => prev.filter((o) => Number(o.id) !== Number(id)));
   }
 
-  useEffect(() => {
-    if (status === "unauthenticated") { router.push("/login"); return; }
-    if (status !== "authenticated") return;
-
-    let active = true;
-    fetch("/api/orders", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((data) => { if (active) setOrders(Array.isArray(data) ? data : []); })
-      .catch(console.error)
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [status, session?.user?.id, refresh]);
+  useEffect(()=>{if(status==="unauthenticated")router.push("/login");},[status,router]);
 
   if (status === "loading" || loading) return (
     <div className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] flex items-center justify-center">
@@ -417,7 +413,8 @@ export default function OrdersPage() {
   );
 
   const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
-  const statusCounts = orders.reduce((acc, o) => { acc[o.status] = (acc[o.status] || 0) + 1; return acc; }, {});
+  const statusCounts = orderList.statusCounts;
+  const totalOrders=Object.values(statusCounts).reduce((sum,value)=>sum+value,0);
 
   const TABS = [
     { key: "all", label: "All" },
@@ -438,7 +435,7 @@ export default function OrdersPage() {
         </div>
         <h1 className="text-3xl font-extrabold tracking-tight text-white">My Orders</h1>
         <p className="mt-2 text-sm text-white/60">
-          {orders.length === 0 ? "No orders yet" : `${orders.length} order${orders.length > 1 ? "s" : ""} total`}
+          {totalOrders === 0 ? "No orders yet" : `${totalOrders} order${totalOrders > 1 ? "s" : ""} total`}
         </p>
       </section>
 
@@ -446,12 +443,12 @@ export default function OrdersPage() {
         <div className="max-w-[900px] mx-auto px-4 sm:px-5 overflow-x-auto">
           <div className="flex min-w-max">
             {TABS.map(({ key, label }) => {
-              const count = key === "all" ? orders.length : (statusCounts[key] || 0);
+              const count = key === "all" ? totalOrders : (statusCounts[key] || 0);
               const isActive = filter === key;
               return (
                 <button
                   key={key}
-                  onClick={() => setFilter(key)}
+                  onClick={() => {setFilter(key);setPage(1);}}
                   className={`px-4 py-3.5 text-xs font-semibold whitespace-nowrap border-b-2 transition-colors
                     ${isActive
                       ? "border-[#1a2a6c] dark:border-[#c9a028] text-[#1a2a6c] dark:text-[#c9a028]"
@@ -503,6 +500,7 @@ export default function OrdersPage() {
           </div>
         )}
       </section>
+      <div className="mx-auto max-w-[900px] px-4 pb-8">{orderList.error&&<p role="alert" className="text-sm text-rose-600">{orderList.error}</p>}<Pagination pagination={orderList.pagination} loading={orderList.loading} onPageChange={setPage}/></div>
     </main>
   );
 }

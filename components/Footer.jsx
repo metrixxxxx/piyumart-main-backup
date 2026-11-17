@@ -1,4 +1,5 @@
 "use client";
+import { getCategories } from "@/lib/client-catalog";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
@@ -64,8 +65,7 @@ export default function Footer() {
   useEffect(() => {
     async function fetchCategories() {
       try {
-        const res = await fetch("/api/categories");
-        const data = await res.json();
+        const data = await getCategories();
         setCategories(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Failed to fetch categories:", err);

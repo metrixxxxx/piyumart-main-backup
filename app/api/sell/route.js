@@ -1,60 +1,22 @@
+import { withCatalogInvalidation } from "@/lib/catalog-cache";
 import { db } from "@/lib/db";
+import { sellerProducts } from "@/lib/catalog";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { saveFile } from "@/lib/savefile";
 import { isActiveSellerAccount } from "@/lib/seller-access";
 import { normalizeMeetupPoint } from "@/lib/campus";
 
-export async function GET() {
+export async function GET(req) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) return Response.json({ error: "Not logged in" }, { status: 401 });
-    if (!(await isActiveSellerAccount(session.user.id))) {
-      return Response.json({ error: "An active verified seller account is required." }, { status: 403 });
-    }
-
-    const [rows] = await db.query(
-      `SELECT p.*, c.name as category_name 
-       FROM products p
-       LEFT JOIN categories c ON p.category_id = c.id
-       WHERE p.seller_id = $1`,
-      [session.user.id]
-    );
-
-    const productsWithDetails = await Promise.all(
-      rows.map(async (product) => {
-        const [attrs] = await db.query(
-          `SELECT pa.value, ad.name, ad.label, ad.type
-           FROM product_attributes pa
-           JOIN attribute_definitions ad ON pa.attribute_definition_id = ad.id
-           WHERE pa.product_id = $1`,
-          [product.id]
-        );
-        const [images] = await db.query(
-          `SELECT image_url FROM product_images WHERE product_id = $1 ORDER BY sort_order ASC`,
-          [product.id]
-        );
-        const [variants] = await db.query(
-          `SELECT id, name, label, image_url, price_override, stock, value FROM product_variants WHERE product_id = $1 ORDER BY id ASC`,
-          [product.id]
-        );
-        return {
-          ...product,
-          attributes: attrs,
-          images: images.map((r) => r.image_url),
-          variants,
-        };
-      })
-    );
-
-    return Response.json(productsWithDetails);
-  } catch (err) {
-    console.error("GET /api/sell error:", err.message, err.stack);
-    return Response.json({ error: err.message }, { status: 500 });
-  }
+    const session=await getServerSession(authOptions);
+    if(!session)return Response.json({error:"Not logged in"},{status:401});
+    if(!(await isActiveSellerAccount(session.user.id)))return Response.json({error:"An active verified seller account is required."},{status:403});
+    const result=await sellerProducts(req,session.user.id);return Response.json(result.rows,{headers:result.headers});
+  } catch(error){console.error("Seller inventory failed:",error);return Response.json({error:error.status?error.message:"Unable to load listings."},{status:error.status||503});}
 }
 
-export async function POST(req) {
+async function handlePOST(req) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return Response.json({ error: "Not logged in" }, { status: 401 });
@@ -142,7 +104,7 @@ export async function POST(req) {
   }
 }
 
-export async function PUT(req) {
+async function handlePUT(req) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return Response.json({ error: "Not logged in" }, { status: 401 });
@@ -250,7 +212,7 @@ export async function PUT(req) {
   }
 }
 
-export async function DELETE(req) {
+async function handleDELETE(req) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return Response.json({ error: "Not logged in" }, { status: 401 });
@@ -281,3 +243,7 @@ export async function DELETE(req) {
     return Response.json({ error: err.message }, { status: 500 });
   }
 }
+
+export const POST = withCatalogInvalidation(handlePOST);
+export const PUT = withCatalogInvalidation(handlePUT);
+export const DELETE = withCatalogInvalidation(handleDELETE);

@@ -1,7 +1,8 @@
+import { withCatalogInvalidation } from "@/lib/catalog-cache";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin";
 
-export async function DELETE(req, { params }) {
+async function handleDELETE(req, { params }) {
   const admin = await requireAdmin();
   if (!admin) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -16,3 +17,4 @@ export async function DELETE(req, { params }) {
 
   return Response.json({ success: true });
 }
+export const DELETE = withCatalogInvalidation(handleDELETE);

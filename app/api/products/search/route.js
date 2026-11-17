@@ -7,6 +7,7 @@ export async function GET(req) {
     const q = searchParams.get("q")?.trim();
 
     if (!q) return NextResponse.json([]);
+    if (q.length > 100) return NextResponse.json({ error: "Search must be at most 100 characters." }, { status: 400 });
 
     const exact   = q;           // for ILIKE exact (case-insensitive natively)
     const partial = `%${q}%`;

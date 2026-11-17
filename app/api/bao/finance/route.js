@@ -5,7 +5,7 @@ import { cents,pesos } from "@/lib/payments/money";
 import { paymentError } from "@/lib/payments/paymongo";
 import { financeLock,currentActor,auditFinance } from "@/lib/payments/ledger";
 export async function GET() {
-  try { const actor=await requireFinance();return Response.json({...await financeDashboard(),canEditSettings:actor.role==="admin"},{headers:{"Cache-Control":"private, no-store"}}); }
+  try { const actor=await requireFinance();return Response.json({...await financeDashboard(),actorId:actor.id,canEditSettings:actor.role==="admin"},{headers:{"Cache-Control":"private, no-store"}}); }
   catch(error) { return financeResponse(error); }
 }
 export async function PATCH(req) {

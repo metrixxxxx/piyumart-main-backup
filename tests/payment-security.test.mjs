@@ -76,3 +76,11 @@ test("demoted staff and marketplace sessions alone cannot obtain staff realtime 
     assert.equal((await api.GET(new Request("http://localhost/api/realtime/channel?audience=staff"))).status,staff?403:401);
   }
 });
+
+for(const role of [null,"user","seller"]){test(`${role||"anonymous"} cannot submit BAO commission destinations or withdrawals`,async()=>{
+  for(const path of ["destinations","cashouts"]){
+    let queries=0;
+    const api=await loadFinanceModule(`app/api/bao/finance/wallet/${path}/route.js`,{account:role?{id:1,role,status:"active"}:null,db:{query:async()=>{queries++;return [[]];}}});
+    assert.equal((await api.POST(new Request(`http://localhost/api/bao/finance/wallet/${path}`,{method:"POST",body:"{}"}))).status,401);assert.equal(queries,0);
+  }
+});}

@@ -1,5 +1,9 @@
 // app/(shop)/shop/[sellerId]/page.jsx
 "use client";
+import Pagination from "@/components/ui/Pagination";
+import { usePagedResource } from "@/lib/usePagedResource";
+import { getCategories } from "@/lib/client-catalog";
+import { useCatalogRealtime } from "@/lib/realtime/useCatalogRealtime";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -19,9 +23,7 @@ export default function ShopPage() {
   const router = useRouter();
   const { data: session } = useSession();
 
-  const [products, setProducts] = useState([]);
   const [sellerInfo, setSellerInfo] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState("newest");
 
   useEffect(() => {
@@ -37,37 +39,12 @@ export default function ShopPage() {
     fetchSellerInfo();
   }, [sellerId]);
 
-  useEffect(() => {
-    async function fetchProducts() {
-      setLoading(true);
-
-      try {
-        const url = new URL("/api/products", window.location.origin);
-
-        url.searchParams.append("sortBy", sortBy);
-        url.searchParams.append("seller_id", sellerId);
-
-        const res = await fetch(url.toString());
-        const data = await res.json();
-
-        setProducts(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchProducts();
-  }, [sortBy, sellerId]);
-
-  
-
-  const displayed = session?.user?.id
-    ? products.filter(
-        (p) => String(p.seller_id) !== String(session.user.id)
-      )
-    : products;
+  const [page,setPage]=useState(1);
+  const query=new URLSearchParams({page:String(page),sortBy,seller_id:String(sellerId)});
+  const catalog=usePagedResource("/api/products?"+query,{enabled:!!sellerId,identity:session?.user?.id,onPageChange:setPage});
+  const products=catalog.items,displayed=products,loading=!catalog.loaded;
+  useCatalogRealtime(catalog.reload);
+  useEffect(()=>{setPage(1);},[sellerId,sortBy]);
 
   const displayName = sellerInfo?.seller_name || "Shop";
   const sellerImage = typeof sellerInfo?.seller_image === "string"
@@ -232,8 +209,8 @@ export default function ShopPage() {
 
             <div className="ml-auto shrink-0 pl-4">
               <span className="text-[11px] font-semibold text-[#0e1a3d]/40 dark:text-[#e8edf8]/30">
-                {displayed.length} result
-                {displayed.length !== 1 ? "s" : ""}
+                {catalog.pagination.total} result
+                {catalog.pagination.total !== 1 ? "s" : ""}
               </span>
             </div>
           </div>
@@ -283,6 +260,8 @@ export default function ShopPage() {
             ))}
           </div>
         )}
+        {catalog.error&&<p role="alert" className="mt-4 text-sm text-rose-600">{catalog.error}</p>}
+        <Pagination pagination={catalog.pagination} loading={catalog.loading} onPageChange={setPage}/>
       </section>
     </main>
   );

@@ -13,6 +13,7 @@ async function load(file, overrides = {}) {
   const cache = new Map();
   const mocks = {
     "server-only": {},
+    "next/cache": { unstable_cache: fn => fn, revalidateTag() {} },
     "next-auth": { getServerSession: async () => ({ user: { id: "7", role: "seller" } }) },
     "next-auth/next": { getServerSession: async () => ({ user: { id: "7", role: "seller" } }) },
     "@/lib/authOptions": { authOptions: {} },
@@ -190,7 +191,7 @@ function reviewHarness({ failAt, actorRole = "bao", status = "pending" } = {}) {
     return { rows: [] };
   } };
   return { overrides: {
-    pg: { default: { Pool: class { connect() { return client; } }, types: { setTypeParser() {} } } },
+    pg: { default: { Pool: class { on() {} connect() { return client; } }, types: { setTypeParser() {} } } },
     "@/lib/supabase": { supabaseAdmin: { channel: () => ({ send: async (payload) => { assert.ok(sqlLog.includes("COMMIT")); broadcasts.push(payload); } }) } },
   }, state: () => state, sqlLog, broadcasts, released: () => released };
 }

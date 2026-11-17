@@ -78,12 +78,13 @@ export default function SearchAutocomplete() {
         setIsOpen(true);
         setActiveIndex(-1);
       } catch (err) {
-        if (err.name !== "AbortError") console.error("Search error:", err);
+        if (err.name === "AbortError") return;
+        console.error("Search error:", err);
         setSuggestions([]);
         setIsOpen(false);
         setNotFound(false);
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
@@ -92,7 +93,7 @@ export default function SearchAutocomplete() {
       controller.abort();
       clearTimeout(timer);
     };
-  }, [query, session]);
+  }, [query, session?.user?.id]);
 
   function handleSelectProduct(productId) {
     router.push(`/products/${productId}`);
@@ -145,6 +146,7 @@ export default function SearchAutocomplete() {
         </svg>
 
         <input
+                maxLength={100}
           ref={inputRef}
           type="text"
           placeholder="Search by keyword, category, or price..."

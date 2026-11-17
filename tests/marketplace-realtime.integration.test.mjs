@@ -19,7 +19,7 @@ test("Supabase database-triggered marketplace realtime",{skip:process.env.PIYUMA
     await control.query(`CREATE SCHEMA ${schema}`);created=true;
     pool=new pg.Pool({...config,options:`-c search_path=${schema},public`});
     await pool.query(await readFile("tests/fixtures/finance-base.sql","utf8"));
-    for(const path of ["migrations/add_marketplace_payments.sql","migrations/add_marketplace_realtime.sql"]){
+    for(const path of ["migrations/add_marketplace_payments.sql","migrations/add_bao_commission_cashouts.sql","migrations/add_marketplace_realtime.sql"]){
       const sql=(await readFile(path,"utf8")).replaceAll("public.",`${schema}.`).replaceAll("search_path=public",`search_path=${schema}`);
       await pool.query(sql);
     }
@@ -96,6 +96,14 @@ test("Supabase database-triggered marketplace realtime",{skip:process.env.PIYUMA
       messages.length=0;const buyer=await loadFinanceModule("app/api/orders/[id]/route.js",{db,account:{id:1,role:"user",status:"active"}});
       const response=await buyer.PATCH(new Request(`http://localhost/api/orders/${orderId}`,{method:"PATCH",body:JSON.stringify({action:"confirm_delivery"})}),{params:Promise.resolve({id:String(orderId)})});
       assert.equal(response.status,200);assert.equal((await response.json()).status,"completed");await received(["buyer","seller","staff"],"orders");
+    });
+    await t.test("BAO commission destination and cashout changes reach staff without notifying sellers",async()=>{
+      const wallet=await loadFinanceModule("lib/payments/wallet.js",{db,env:{WALLET_ENCRYPTION_KEY:"ab".repeat(32)}});
+      messages.length=0;await query("INSERT INTO wallet_transactions(wallet_id,bucket,amount,kind,idempotency_key) SELECT id,'available',150,'fixture',$1 FROM wallets WHERE kind='bao'",[randomUUID()]);await received(["staff"],"wallet");assert.ok(messages.every(message=>message.name==="staff"));
+      messages.length=0;const destination=await wallet.addCommissionDestination(3,{institution:"TESTPHMM",account_name:"Fixture BAO",account_number:"09179876543"});await received(["staff"],"wallet");
+      messages.length=0;await wallet.reviewDestination(4,destination.id,"approve");await received(["staff"],"wallet");
+      messages.length=0;const cashout=await wallet.requestCommissionCashout(3,{amount:"125.00",destination_id:destination.id},randomUUID());await received(["staff"],"wallet");assert.ok(messages.every(message=>message.name==="staff"));
+      messages.length=0;await wallet.reviewCashout(4,cashout.id,"reject","Fixture review");await received(["staff"],"wallet");assert.ok(messages.every(message=>message.name==="staff"));
     });
   }finally{
     if(realtime)await realtime.removeAllChannels();if(pool)await pool.end();

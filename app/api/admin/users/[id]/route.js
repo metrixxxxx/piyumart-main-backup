@@ -1,7 +1,8 @@
+import { withCatalogInvalidation } from "@/lib/catalog-cache";
 import { db } from "@/lib/db";
 import { getAdminAccess } from "@/lib/admin-session";
 
-export async function DELETE(req, { params }) {
+async function handleDELETE(req, { params }) {
   try {
     const access = await getAdminAccess();
     if (!access.admin) {
@@ -27,3 +28,4 @@ export async function DELETE(req, { params }) {
     return Response.json({ error: err.message }, { status: 500 });
   }
 }
+export const DELETE = withCatalogInvalidation(handleDELETE);

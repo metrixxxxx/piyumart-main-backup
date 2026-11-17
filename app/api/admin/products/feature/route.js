@@ -1,6 +1,7 @@
+import { withCatalogInvalidation } from "@/lib/catalog-cache";
 import { db } from "@/lib/db";
 
-export async function POST(req) {
+async function handlePOST(req) {
   try {
     const { id } = await req.json();
 
@@ -15,3 +16,4 @@ export async function POST(req) {
     return Response.json({ success: false }, { status: 500 });
   }
 }
+export const POST = withCatalogInvalidation(handlePOST);

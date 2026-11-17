@@ -21,6 +21,8 @@ test("Postgres marketplace payment lifecycle",{skip:process.env.PIYUMART_FINANCE
     let migration=await readFile("migrations/add_marketplace_payments.sql","utf8");
     migration=migration.replaceAll("public.",`${schema}.`).replaceAll("search_path=public",`search_path=${schema}`);
     await pool.query(migration);
+    const commissionMigration=(await readFile("migrations/add_bao_commission_cashouts.sql","utf8")).replaceAll("public.",`${schema}.`).replaceAll("search_path=public",`search_path=${schema}`);
+    await pool.query(commissionMigration);
     const realtimeMigration=(await readFile("migrations/add_marketplace_realtime.sql","utf8")).replaceAll("public.",`${schema}.`).replaceAll("search_path=public",`search_path=${schema}`);
     await pool.query(realtimeMigration);
     const db={query:async(sql,values)=>[(await pool.query(sql,values)).rows],transaction:async callback=>{const client=await pool.connect();try{await client.query("BEGIN");const result=await callback(client);await client.query("COMMIT");return result;}catch(error){await client.query("ROLLBACK");throw error;}finally{client.release();}}};

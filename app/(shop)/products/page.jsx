@@ -1,22 +1,23 @@
 "use client";
+import Pagination from "@/components/ui/Pagination";
+import { usePagedResource } from "@/lib/usePagedResource";
+import { getCategories } from "@/lib/client-catalog";
+import { useCatalogRealtime } from "@/lib/realtime/useCatalogRealtime";
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import ProductCard from "@/components/products/ProductCard";
 import SearchAutocomplete from "@/components/SearchAutocomplete";
-import { getSocket } from "@/lib/socket";
 
 const HIDDEN_CATEGORY_NAMES = new Set(["toys", "home & living", "food & drinks"]);
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [heroPassed, setHeroPassed] = useState(false);
 
-  const { data: session } = useSession();
+  const { data: session,status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -28,91 +29,14 @@ export default function ProductsPage() {
   );
 
   // ─── Fetch categories ─────────────────────────────
-  useEffect(() => {
-    fetch("/api/categories")
-      .then((r) => r.json())
-      .then((data) => setCategories(Array.isArray(data) ? data : []));
-  }, []);
+  const [page,setPage]=useState(1);
+  const query=new URLSearchParams({page:String(page)});if(selectedCategory)query.set("category",selectedCategory);
+  const catalog=usePagedResource("/api/products?"+query,{enabled:status!=="loading",identity:session?.user?.id,onPageChange:setPage});
+  const products=catalog.items,loading=!catalog.loaded;
+  useCatalogRealtime(catalog.reload);
+  useEffect(()=>{getCategories().then(setCategories).catch(console.error);},[]);
+  useEffect(()=>{setPage(1);},[selectedCategory]);
 
-  // ─── Fetch products ───────────────────────────────
-  useEffect(() => {
-    async function fetchProducts() {
-      setLoading(true);
-
-      try {
-        const url = new URL("/api/products", window.location.origin);
-        if (selectedCategory) {
-          url.searchParams.set("category", selectedCategory);
-        }
-
-        const res = await fetch(url.toString());
-        const data = await res.json();
-
-        const allProducts = Array.isArray(data) ? data : [];
-
-        const filtered = session?.user?.id
-          ? allProducts.filter(
-              (p) => String(p.seller_id) !== String(session.user.id)
-            )
-          : allProducts;
-
-        setProducts(filtered);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchProducts();
-
-    const socket = getSocket();
-
-    socket.on("products:new", (newProduct) => {
-      if (
-        newProduct.status !== "approved" ||
-        newProduct.is_visible !== true ||
-        (newProduct.seller_status && newProduct.seller_status !== "active")
-      ) return;
-      if (
-        session?.user?.id &&
-        String(newProduct.seller_id) === String(session.user.id)
-      )
-        return;
-
-      setProducts((prev) => [newProduct, ...prev]);
-    });
-
-    socket.on("products:updated", (updated) => {
-      if (
-        updated.status !== "approved" ||
-        updated.is_visible !== true ||
-        (updated.seller_status && updated.seller_status !== "active")
-      ) {
-        setProducts((prev) => prev.filter((p) => String(p.id) !== String(updated.id)));
-        return;
-      }
-      setProducts((prev) =>
-        prev.map((p) =>
-          String(p.id) === String(updated.id) ? { ...p, ...updated } : p
-        )
-      );
-    });
-
-    socket.on("products:deleted", ({ id }) => {
-      setProducts((prev) =>
-        prev.filter((p) => String(p.id) !== String(id))
-      );
-    });
-
-    return () => {
-      socket.off("products:new");
-      socket.off("products:updated");
-      socket.off("products:deleted");
-    };
-  }, [session, selectedCategory]);
-
-  // ─── HERO SCROLL OBSERVER (controls search visibility) ─────────
   useEffect(() => {
     const sentinel = document.getElementById("products-hero-sentinel");
     if (!sentinel) return;
@@ -220,7 +144,7 @@ export default function ProductsPage() {
           </h2>
 
           <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#ede9ff] dark:bg-[#c9a96e]/10 text-[#6d4aff] dark:text-[#c9a96e]">
-            {products.length} item{products.length !== 1 ? "s" : ""}
+            {catalog.pagination.total} item{catalog.pagination.total !== 1 ? "s" : ""}
           </span>
         </div>
 
@@ -261,6 +185,7 @@ export default function ProductsPage() {
         )}
       </section>
 
+      <div className="mx-auto max-w-[1200px] px-4 pb-8">{catalog.error&&<p role="alert" className="text-sm text-rose-600">{catalog.error}<button className="ml-3 underline" onClick={catalog.reload}>Retry</button></p>}<Pagination pagination={catalog.pagination} loading={catalog.loading} onPageChange={setPage}/></div>
       {/* LOGIN MODAL */}
       {showModal && (
         <div

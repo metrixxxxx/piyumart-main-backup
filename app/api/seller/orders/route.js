@@ -2,16 +2,22 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { db } from "@/lib/db";
+import { orderPage } from "@/lib/orders/read-model";
 import { isActiveSellerAccount } from "@/lib/seller-access";
 
-export async function GET() {
+export async function GET(req) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     if (!(await isActiveSellerAccount(session.user.id))) return NextResponse.json({ error: "An active verified seller account is required." }, { status: 403 });
 
+    const page=await orderPage(req,session.user.id,true);
+    if(page.paging.offset>=page.total)return NextResponse.json([],{headers:page.headers});
     const [rows] = await db.query(
-      `SELECT
+      `WITH paged_orders AS (
+         SELECT o.id FROM orders o WHERE ${page.ownership} AND ($2::text IS NULL OR o.status=$2::text)
+         ORDER BY o.created_at DESC,o.id DESC LIMIT $3 OFFSET $4
+       ) SELECT
          o.id,
          o.status,
          o.total,
@@ -46,6 +52,7 @@ export async function GET() {
          END AS seller_earnings,
          (oc.id IS NOT NULL OR a.order_id IS NOT NULL) AS commission_recorded
        FROM orders o
+       JOIN paged_orders selected ON selected.id=o.id
        JOIN order_items oi ON oi.order_id = o.id
        LEFT JOIN products p ON p.id = oi.product_id
        JOIN users u ON u.id = o.user_id
@@ -58,14 +65,14 @@ export async function GET() {
          ORDER BY effective_at DESC, created_at DESC, id DESC
          LIMIT 1
        ) AS rate ON true
-       WHERE p.seller_id = $1
-       ORDER BY o.created_at DESC, oi.id ASC`,
-      [session.user.id]
+       WHERE (o.seller_id=$1 OR p.seller_id=$1)
+       ORDER BY o.created_at DESC,o.id DESC,oi.id ASC`,
+      [session.user.id,page.status,page.paging.pageSize,page.paging.offset]
     );
 
-    return NextResponse.json(rows);
+    return NextResponse.json(rows,{headers:page.headers});
   } catch (err) {
     console.error("seller/orders error:", err.message);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: err.status?err.message:"Unable to load seller orders." }, { status: err.status||503 });
   }
 }

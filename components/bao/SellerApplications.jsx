@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Pagination from "@/components/ui/Pagination";
+import { readPageHeaders } from "@/lib/pagination";
 
 export default function SellerApplications() {
   const [tab, setTab] = useState("pending");
@@ -12,19 +14,22 @@ export default function SellerApplications() {
   const [working, setWorking] = useState(false);
   const [decision, setDecision] = useState(null);
   const [reason, setReason] = useState("");
+  const [page,setPage]=useState(1),[pagination,setPagination]=useState(null);
 
   useEffect(() => {
     let active = true;
-    fetch(`/api/bao/seller-applications?status=${tab}`, { cache: "no-store" })
+    setLoading(true);
+    const controller=new AbortController();
+    fetch(`/api/bao/seller-applications?status=${tab}&page=${page}`, { cache: "no-store",signal:controller.signal })
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Unable to load applications.");
-        if (active) { setApplications(data.applications); setError(""); }
+        if (active) {const meta=readPageHeaders(response);if(meta.page>meta.totalPages){setPage(meta.totalPages);return;}setPagination(meta);setApplications(data.applications); setError(""); }
       })
       .catch((err) => { if (active) { setApplications([]); setError(err.message); } })
       .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [tab, refresh]);
+    return () => { active = false;controller.abort(); };
+  }, [tab, refresh,page]);
 
   async function viewProof(id) {
     const preview = window.open("about:blank", "_blank");
@@ -62,7 +67,7 @@ export default function SellerApplications() {
     <h1 className="text-3xl font-extrabold text-[#1a2a6c] dark:text-white">Seller Applications</h1>
     <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">Review student verification before granting access to seller tools.</p>
     <div role="tablist" aria-label="Application status" className="my-6 flex flex-wrap gap-2">
-      {["pending", "approved", "rejected"].map((status) => <button type="button" key={status} role="tab" aria-selected={tab === status} aria-controls="application-list" id={`tab-${status}`} onClick={() => { if (tab !== status) { setLoading(true); setTab(status); setNotice(""); } }} className={`rounded-xl px-5 py-2 text-sm font-bold capitalize ${tab === status ? "bg-[#1a2a6c] text-white" : "bg-white text-[#1a2a6c] dark:bg-slate-800 dark:text-white"}`}>{status}</button>)}
+      {["pending", "approved", "rejected"].map((status) => <button type="button" key={status} role="tab" aria-selected={tab === status} aria-controls="application-list" id={`tab-${status}`} onClick={() => { if (tab !== status) { setLoading(true); setTab(status);setPage(1); setNotice(""); } }} className={`rounded-xl px-5 py-2 text-sm font-bold capitalize ${tab === status ? "bg-[#1a2a6c] text-white" : "bg-white text-[#1a2a6c] dark:bg-slate-800 dark:text-white"}`}>{status}</button>)}
     </div>
     {error && <p role="alert" className="mb-4 rounded-xl bg-rose-50 p-4 text-sm text-rose-800 dark:bg-rose-950 dark:text-rose-200">{error}</p>}
     {notice && <p role="status" className="mb-4 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">{notice}</p>}
@@ -78,6 +83,7 @@ export default function SellerApplications() {
         </tr>)}</tbody>
       </table>}
     </div>
+    <Pagination pagination={pagination} loading={loading} onPageChange={setPage}/>
     {decision && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <form onSubmit={review} role="dialog" aria-modal="true" aria-labelledby="review-title" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-[#111a2b]">
         <h2 id="review-title" className="text-lg font-bold">{decision.action === "approve" ? "Approve seller application?" : "Reject seller application"}</h2>

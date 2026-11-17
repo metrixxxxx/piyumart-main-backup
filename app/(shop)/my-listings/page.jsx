@@ -1,4 +1,6 @@
 "use client";
+import Pagination from "@/components/ui/Pagination";
+import { usePagedResource } from "@/lib/usePagedResource";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -35,9 +37,6 @@ function groupOrdersById(rows) {
 
 export default function MyListingsPage() {
   const { data: session } = useSession();
-  const [products, setProducts] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [reviews, setReviews] = useState([]);
   const [orderStats, setOrderStats] = useState({
     totalOrders: 0,
     completedOrders: 0,
@@ -50,44 +49,33 @@ export default function MyListingsPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [filter, setFilter] = useState("all");
   const [activeTab, setActiveTab] = useState("listings");
-  const [loading, setLoading] = useState(true);
   const [refresh, setRefresh] = useState(0);
+  const [productPage,setProductPage]=useState(1),[orderPage,setOrderPage]=useState(1),[reviewPage,setReviewPage]=useState(1);
+  const inventory=usePagedResource(`/api/sell?page=${productPage}&visibility=${filter}`,{enabled:!!session?.user?.id,identity:session?.user?.id,onPageChange:setProductPage});
+  const orderList=usePagedResource(`/api/seller/orders?page=${orderPage}`,{enabled:!!session?.user?.id,identity:session?.user?.id,refresh,onPageChange:setOrderPage});
+  const reviewList=usePagedResource(`/api/seller/reviews?page=${reviewPage}`,{enabled:!!session?.user?.id&&activeTab==="reviews",identity:session?.user?.id,onPageChange:setReviewPage});
+  const products=inventory.items,orders=orderList.items,setOrders=orderList.setItems,reviews=reviewList.items;
+  const loading=!inventory.loaded;
+
   useMarketplaceRealtime({
     enabled: !!session?.user?.id,
     identity: session?.user?.id,
-    onChange: () => setRefresh((value) => value + 1),
+    scopes: ["orders", "payments", "inventory", "reviews"],
+    onChange: (scopes) => {
+      if(scopes.includes("all")||scopes.includes("inventory"))inventory.reload();
+      if(scopes.includes("all")||scopes.includes("reviews"))reviewList.reload();
+      if(scopes.includes("all")||scopes.includes("orders")||scopes.includes("payments"))setRefresh(value=>value+1);
+    },
   });
 
-  useEffect(() => {
-    if (!session) return;
-    let mounted = true;
-
-    const loadData = async () => {
-      const [productsRes, statsRes, ordersRes, reviewsRes] = await Promise.all([
-        fetch("/api/sell", { cache: "no-store" }),
-        fetch("/api/my-listings/stats", { cache: "no-store" }),
-        fetch("/api/seller/orders", { cache: "no-store" }),
-        fetch("/api/seller/reviews", { cache: "no-store" }),
-      ]);
-      const productsData = await productsRes.json();
-      const statsData = await statsRes.json();
-      const ordersData = await ordersRes.json();
-      const reviewsData = await reviewsRes.json();
-      if (mounted) {
-        setProducts(Array.isArray(productsData) ? productsData : []);
-        setOrderStats(statsData);
-        setOrders(Array.isArray(ordersData) ? ordersData : []);
-        setReviews(Array.isArray(reviewsData) ? reviewsData : []);
-        setLoading(false);
-      }
-    };
-
-    loadData().catch((error) => {
-      console.error("Unable to refresh seller orders:", error);
-      if (mounted) setLoading(false);
-    });
-    return () => { mounted = false; };
-  }, [session?.user?.id, refresh]);
+  useEffect(()=>{
+    if(!session?.user?.id)return;
+    const controller=new AbortController();
+    fetch("/api/my-listings/stats",{cache:"no-store",signal:controller.signal}).then(async response=>{
+      const result=await response.json();if(!response.ok)throw new Error(result.error||"Unable to load statistics.");setOrderStats(result);
+    }).catch(error=>{if(error.name!=="AbortError")console.error(error);});
+    return()=>controller.abort();
+  },[session?.user?.id,refresh]);
 
   async function handleOrderStatus(id, status) {
     setOrders((prev) =>
@@ -107,6 +95,7 @@ export default function MyListingsPage() {
       setOrders((prev) =>
         prev.map((o) => (Number(o.id) === Number(id) ? { ...o, status: data.status } : o))
       );
+      orderList.reload();
     } catch (error) {
       alert(error.message || "Unable to update order.");
     } finally {
@@ -124,23 +113,28 @@ export default function MyListingsPage() {
     if (!confirmDeleteId) return;
     const id = confirmDeleteId;
     setConfirmDeleteId(null);
-    await fetch(`/api/my-listings/${id}`, { method: "DELETE" });
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+    try {
+      const response=await fetch(`/api/my-listings/${id}`, { method: "DELETE" });
+      if(!response.ok){const data=await response.json();throw new Error(data.error||"Unable to delete listing.");}
+      inventory.reload();
+    }catch(error){alert(error.message);}
   }
 
   async function toggleVisibility(id, current) {
     const newVisibility = !Boolean(current);
-    await fetch(`/api/my-listings/${id}`, {
+    try { const response=await fetch(`/api/my-listings/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ is_visible: newVisibility }),
     });
-    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, is_visible: newVisibility } : p)));
+    if(!response.ok){const data=await response.json();throw new Error(data.error||"Unable to update visibility.");}
+    inventory.reload();
+    }catch(error){alert(error.message);}
   }
 
   const stats = {
-    total: products.length,
-    active: products.filter((p) => Number(p.is_visible) === 1).length,
+    total: inventory.listingTotal,
+    active: inventory.activeTotal,
     totalOrders: orderStats.totalOrders,
     revenue: orderStats.revenue,
   };
@@ -148,7 +142,7 @@ export default function MyListingsPage() {
     filter === "all"
       ? products
       : products.filter((p) => (filter === "visible" ? Number(p.is_visible) === 1 : Number(p.is_visible) === 0));
-  const pendingOrders = orders.filter((o) => o.status === "pending").length;
+  const pendingOrders = orderList.statusCounts.pending || 0;
   const groupedOrders = groupOrdersById(orders);
 
   if (!session)
@@ -241,7 +235,7 @@ export default function MyListingsPage() {
           <>
             <div className="flex gap-2 mb-4">
               {["all", "visible", "hidden"].map((f) => (
-                <button key={f} onClick={() => setFilter(f)}
+                <button key={f} onClick={() => { setFilter(f); setProductPage(1); }}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium capitalize transition
                     ${filter === f ? "bg-[#1a2a6c] text-white font-bold" : "bg-white dark:bg-white/[0.04] border border-[#c5cfe8] dark:border-white/[0.07] text-[#0e1a3d]/60 dark:text-[#e8edf8]/50 hover:border-[#1a2a6c] dark:hover:border-[#c9a028]"}`}>
                   {f}
@@ -503,6 +497,10 @@ export default function MyListingsPage() {
         )}
       </div>
 
+      <div className="mx-auto max-w-[1200px] px-4 pb-6">
+        {(inventory.error||orderList.error||reviewList.error)&&<p role="alert" className="text-sm text-rose-600">{inventory.error||orderList.error||reviewList.error}</p>}
+        <Pagination pagination={activeTab==="orders"?orderList.pagination:activeTab==="reviews"?reviewList.pagination:inventory.pagination} loading={activeTab==="orders"?orderList.loading:activeTab==="reviews"?reviewList.loading:inventory.loading} onPageChange={activeTab==="orders"?setOrderPage:activeTab==="reviews"?setReviewPage:setProductPage}/>
+      </div>
       <ConfirmModal
         open={Boolean(confirmDeleteId)}
         title="Delete this listing?"

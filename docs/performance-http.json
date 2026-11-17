@@ -1,0 +1,108 @@
+{
+  "mode": "local production server; anonymous read-only checks",
+  "checks": [
+    {
+      "name": "/api/categories",
+      "pass": true,
+      "status": 200,
+      "cacheControl": "public, max-age=60, s-maxage=300"
+    },
+    {
+      "name": "/api/products/featured",
+      "pass": true,
+      "status": 200,
+      "cacheControl": "no-cache"
+    },
+    {
+      "name": "/api/products?pageSize=2",
+      "pass": true,
+      "status": 200,
+      "cacheControl": "private, no-store"
+    },
+    {
+      "name": "pagination bounds and non-overlapping pages",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "invalid page rejected",
+      "pass": true,
+      "status": 400
+    },
+    {
+      "name": "protected /api/orders",
+      "pass": true,
+      "status": 401
+    },
+    {
+      "name": "protected /api/sell",
+      "pass": true,
+      "status": 401
+    },
+    {
+      "name": "protected /api/wallet",
+      "pass": true,
+      "status": 401
+    },
+    {
+      "name": "protected /api/bao/finance",
+      "pass": true,
+      "status": 401
+    },
+    {
+      "name": "protected /api/bao/seller-applications?status=approved",
+      "pass": true,
+      "status": 401
+    },
+    {
+      "name": "protected /api/realtime/channel",
+      "pass": true,
+      "status": 401
+    },
+    {
+      "name": "protected BAO cashouts",
+      "pass": true,
+      "status": 401
+    },
+    {
+      "name": "protected BAO destinations",
+      "pass": true,
+      "status": 401
+    },
+    {
+      "name": "supported catalog image optimization",
+      "pass": true,
+      "status": 200,
+      "contentType": "image/webp",
+      "bytes": 9600
+    }
+  ],
+  "timings": {
+    "/api/categories": {
+      "coldMs": 483,
+      "warmP50Ms": 3,
+      "warmP95Ms": 6,
+      "sampleCount": 8
+    },
+    "/api/products/featured": {
+      "coldMs": 76,
+      "warmP50Ms": 3,
+      "warmP95Ms": 5,
+      "sampleCount": 8
+    },
+    "/api/products?pageSize=2": {
+      "coldMs": 125,
+      "warmP50Ms": 112,
+      "warmP95Ms": 142,
+      "sampleCount": 8
+    }
+  },
+  "passed": true,
+  "concurrentReadBurst": {
+    "simultaneousReadRequests": 10,
+    "allStatus200": true,
+    "allPagesBounded": true,
+    "p50Ms": 387,
+    "p95Ms": 428
+  }
+}

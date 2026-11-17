@@ -1,3 +1,4 @@
+import { withCatalogInvalidation } from "@/lib/catalog-cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { db } from "@/lib/db";
@@ -12,7 +13,7 @@ async function ownsProduct(userId, productId) {
   return rows.length > 0;
 }
 
-export async function DELETE(req, { params }) {
+async function handleDELETE(req, { params }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!(await isActiveSellerAccount(session.user.id))) {
@@ -27,7 +28,7 @@ export async function DELETE(req, { params }) {
   return NextResponse.json({ success: true });
 }
 
-export async function PATCH(req, { params }) {
+async function handlePATCH(req, { params }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!(await isActiveSellerAccount(session.user.id))) {
@@ -51,3 +52,6 @@ export async function PATCH(req, { params }) {
   );
   return NextResponse.json({ success: true });
 }
+
+export const DELETE = withCatalogInvalidation(handleDELETE);
+export const PATCH = withCatalogInvalidation(handlePATCH);

@@ -134,6 +134,10 @@ checkout. Provider keys and full payout account numbers never reach frontend cod
 
 ## Wallets and cashouts
 
+BAO/admin can also withdraw available commission through the shared BAO wallet on
+Finance. See [BAO commission withdrawals](bao-commission-withdrawals.md) for its
+migration, review process, accounting rules, tests and changed files.
+
 Sellers see available, pending, reserved, earnings after refunds, withdrawals,
 transaction history, cashout history and approved destinations. Bank/e-wallet
 numbers are encrypted at rest; the UI returns only the last four digits. BAO/admin

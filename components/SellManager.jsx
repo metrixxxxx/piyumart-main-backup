@@ -2,7 +2,10 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { getSocket } from "@/lib/socket";
+import Pagination from "@/components/ui/Pagination";
+import { usePagedResource } from "@/lib/usePagedResource";
+import { getCategories } from "@/lib/client-catalog";
+import { useMarketplaceRealtime } from "@/lib/realtime/useMarketplaceRealtime";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import FeedbackModal from "@/components/ui/FeedbackModal";
 import LoadingModal from "@/components/ui/LoadingModal";
@@ -13,8 +16,10 @@ export default function SellPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [page,setPage]=useState(1);
+  const inventory=usePagedResource(`/api/sell?page=${page}`,{enabled:status==="authenticated",identity:session?.user?.id,onPageChange:setPage});
+  const products=inventory.items,loading=!inventory.loaded;
+  useMarketplaceRealtime({enabled:status==="authenticated",identity:session?.user?.id,scopes:["inventory"],onChange:inventory.reload});
   const [showForm, setShowForm] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
   const [categories, setCategories] = useState([]);
@@ -42,30 +47,8 @@ export default function SellPage() {
   const updateVariantImage = (index, file) => setVariants((prev) => prev.map((v, i) => i === index ? { ...v, file, preview: URL.createObjectURL(file) } : v));
   const removeVariant = (index) => setVariants((prev) => prev.filter((_, i) => i !== index));
 
- async function fetchCategories() {
-  try {
-    const res = await fetch("/api/categories");
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    console.log("categories:", data); // temporary debug
-    setCategories(Array.isArray(data) ? data : []);
-  } catch (err) {
-    console.error("Failed to load categories:", err);
-  }
-}
-
-  async function fetchMyProducts() {
-    try {
-      const res = await fetch("/api/sell");
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Unable to load listings.");
-      setProducts(Array.isArray(data) ? data : []);
-    } catch (error) {
-      setFeedback({ type: "error", title: "Unable to load listings", description: error.message });
-    } finally {
-      setLoading(false);
-    }
-  }
+  async function fetchCategories(){try{setCategories(await getCategories());}catch(error){console.error(error);}}
+  function fetchMyProducts(){inventory.reload();}
 
   function resetForm() {
     setForm({ name: "", description: "", price: "", category_id: "", stock: "", is_visible: 1, meetup_point: "", other_meetup: "" });
@@ -164,7 +147,7 @@ export default function SellPage() {
         body: JSON.stringify({ id }),
       });
       if (!res.ok) throw new Error("Failed to delete product");
-      setProducts((prev) => prev.filter((p) => String(p.id) !== String(id)));
+      inventory.reload();
       setConfirmDeleteId(null);
       setFeedback({
         type: "success",
@@ -245,25 +228,6 @@ export default function SellPage() {
     async function init() { await fetchMyProducts(); await fetchCategories(); }
     init();
   }, [status, router]);
-
-  useEffect(() => {
-    const socket = getSocket();
-    socket.on("products:new", (product) => {
-      if (String(product.seller_id) === String(session?.user?.id))
-        setProducts((prev) => [product, ...prev]);
-    });
-    socket.on("products:updated", (updated) => {
-      setProducts((prev) => prev.map((p) => String(p.id) === String(updated.id) ? { ...p, ...updated } : p));
-    });
-    socket.on("products:deleted", ({ id }) => {
-      setProducts((prev) => prev.filter((p) => String(p.id) !== String(id)));
-    });
-    return () => {
-      socket.off("products:new");
-      socket.off("products:updated");
-      socket.off("products:deleted");
-    };
-  }, [session?.user?.id]);
 
   if (status === "loading" || loading)
     return (
@@ -582,6 +546,7 @@ export default function SellPage() {
         description={feedback?.description}
         onClose={() => setFeedback(null)}
       />
+      <div className="mx-auto max-w-6xl pb-8">{inventory.error&&<p role="alert" className="text-sm text-rose-600">{inventory.error}<button className="ml-3 underline" onClick={inventory.reload}>Retry</button></p>}<Pagination pagination={inventory.pagination} loading={inventory.loading} onPageChange={setPage}/></div>
     </main>
   );
 }

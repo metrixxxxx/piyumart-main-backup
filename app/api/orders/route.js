@@ -1,55 +1,17 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { buyerOrders } from "@/lib/orders/read-model";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { createMarketplaceOrders, startCheckout } from "@/lib/payments/checkout";
 import { requireBuyer, financeResponse } from "@/lib/payments/security";
 
-export async function GET() {
+export async function GET(req) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const [orders] = await db.query(
-      `SELECT o.*, a.payment_id FROM orders o LEFT JOIN payment_allocations a ON a.order_id=o.id WHERE o.user_id = $1 ORDER BY o.id DESC`,
-      [session.user.id]
-    );
-
-    const ordersWithItems = await Promise.all(
-      orders.map(async (order) => {
-        const [items] = await db.query(
-          `SELECT
-  oi.product_id,
-  oi.quantity,
-  oi.price,
-  oi.variant,
-  p.department,
-  p.meetup_point,
-  p.seller_id, -- ✅ SAFE HERE
-  COALESCE(oi.name, p.name) AS name,
-  COALESCE(oi.seller_name, p.seller_name) AS seller_name,
-  COALESCE(
-    oi.image_url,
-    (SELECT pv.image_url FROM product_variants pv
-     WHERE pv.product_id = p.id AND pv.label = oi.variant LIMIT 1),
-    (SELECT pi.image_url FROM product_images pi
-     WHERE pi.product_id = p.id ORDER BY pi.sort_order ASC LIMIT 1),
-    p.image_url
-  ) AS image_url
-FROM order_items oi
-LEFT JOIN products p ON p.id = oi.product_id
-WHERE oi.order_id = $1`,
-          [order.id]
-        );
-        return { ...order, items };
-      })
-    );
-
-    return NextResponse.json(ordersWithItems);
-  } catch (err) {
-    console.error("Orders GET error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
+    const session=await getServerSession(authOptions);
+    if(!session)return NextResponse.json({error:"Unauthorized"},{status:401});
+    const result=await buyerOrders(req,session.user.id);return NextResponse.json(result.rows,{headers:result.headers});
+  }catch(error){console.error("Orders GET failed:",error);return NextResponse.json({error:error.status?error.message:"Unable to load orders."},{status:error.status||503});}
 }
 
 export async function POST(req) {

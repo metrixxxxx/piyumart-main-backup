@@ -6,6 +6,9 @@ confirmation, refunds, reconciliation, and buyer receipt confirmation. Seller
 wallets, payout destination/cashout reviews, payment status and BAO/admin finance
 also refresh automatically after their database records change.
 
+The [BAO commission withdrawal extension](bao-commission-withdrawals.md) uses the
+same staff Realtime feed, including destination reviews, reservations and releases.
+
 ## Deployment
 
 The additive migration is `migrations/add_marketplace_realtime.sql`. Apply it after
@@ -68,7 +71,7 @@ node --experimental-vm-modules --test tests/payment-security.test.mjs tests/sell
 
 $env:PIYUMART_REALTIME_DB_TEST = '1'
 $env:PIYUMART_FINANCE_DB_TEST = '1'
-node --experimental-vm-modules --test tests/marketplace-realtime.integration.test.mjs tests/payment-ledger.integration.test.mjs
+node --experimental-vm-modules --test tests/marketplace-realtime.integration.test.mjs tests/payment-ledger.integration.test.mjs tests/bao-commission.integration.test.mjs
 
 npm run build
 ```
@@ -80,8 +83,8 @@ back changes, recipient isolation, payload contents, private registry grants,
 seller and buyer API actions, ledger credits, destination approvals and cashouts.
 No real order, payment, wallet balance or payout is changed by these tests.
 
-Verification passed: production build, 33 security/regression tests, 9 actual
-WebSocket/database scenarios and 23 financial database scenarios. The channel
+Verification passed: production build, 36 security/regression tests, 10 actual
+WebSocket/database scenarios, 23 financial database scenarios and 15 BAO withdrawal scenarios. The channel
 registry was verified to have RLS enabled with no anonymous/authenticated read
 grants. Browser checks after deploying remain the manual steps below.
 

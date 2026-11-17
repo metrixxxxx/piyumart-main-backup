@@ -9,7 +9,7 @@ export default function SellerWallet() {
   const [amount,setAmount]=useState(""),[destination,setDestination]=useState(""),[account,setAccount]=useState({institution:"",account_name:"",account_number:""});
   const [requestKey,setRequestKey]=useState(null);
   const {data:session}=useSession();
-  useMarketplaceRealtime({enabled:!!session?.user?.id,identity:session?.user?.id,onChange:()=>setRefresh(value=>value+1)});
+  useMarketplaceRealtime({enabled:!!session?.user?.id,identity:session?.user?.id,scopes:["wallet","finance"],onChange:()=>setRefresh(value=>value+1)});
   useEffect(()=>{let active=true;fetch("/api/wallet",{cache:"no-store"}).then(async response=>{const result=await response.json();if(!response.ok)throw new Error(result.error);if(active){setData(result);setError("");}}).catch(err=>{if(active)setError(err.message);});return()=>{active=false;};},[refresh]);
   async function submit(event,type) {
     event.preventDefault();setBusy(true);setError("");setNotice("");

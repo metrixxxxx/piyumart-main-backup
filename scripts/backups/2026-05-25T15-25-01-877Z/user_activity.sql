@@ -1,1 +1,0 @@
--- TABLE: user_activity

@@ -1,45 +1,20 @@
 import { db } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
-import { NextResponse } from "next/server";
 import { isActiveSellerAccount } from "@/lib/seller-access";
-
-export async function GET() {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (!(await isActiveSellerAccount(session.user.id))) return NextResponse.json({ error: "An active verified seller account is required." }, { status: 403 });
-
-    const [rows] = await db.query(
-  `SELECT 
-    pr.id,
-    pr.rating,
-    pr.comment,
-    pr.created_at,
-    p.name AS product_name,
-    u.name AS user_name,
-    oi.variant
-   FROM product_reviews pr
-   JOIN products p ON pr.product_id = p.id
-   JOIN users u ON pr.user_id = u.id
-   LEFT JOIN order_items oi 
-     ON oi.product_id = pr.product_id 
-     AND oi.order_id = (
-       SELECT o.id FROM orders o
-       JOIN order_items oi2 ON oi2.order_id = o.id
-       WHERE o.user_id = pr.user_id 
-       AND oi2.product_id = pr.product_id
-       ORDER BY o.created_at DESC
-       LIMIT 1
-     )
-   WHERE p.seller_id = $1
-   ORDER BY pr.created_at DESC`,
-  [session.user.id]
-);
-
-    return NextResponse.json(rows);
-  } catch (err) {
-    console.error("GET /api/seller/reviews error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
+import { readPagination,pageHeaders } from "@/lib/pagination";
+export async function GET(req) {
+ try {
+  const session=await getServerSession(authOptions);if(!session)return Response.json({error:"Unauthorized"},{status:401});
+  if(!(await isActiveSellerAccount(session.user.id)))return Response.json({error:"An active seller account is required."},{status:403});
+  const page=readPagination(req),id=session.user.id;
+  const [counts]=await db.query("SELECT COUNT(*)::integer AS total FROM product_reviews pr JOIN products p ON p.id=pr.product_id WHERE p.seller_id=$1",[id]);
+  const total=Number(counts[0].total);let rows=[];
+  if(page.offset<total)[rows]=await db.query(`SELECT pr.id,pr.rating,pr.comment,pr.created_at,p.name AS product_name,u.name AS user_name,variation.variant
+    FROM product_reviews pr JOIN products p ON p.id=pr.product_id JOIN users u ON u.id=pr.user_id
+    LEFT JOIN LATERAL(SELECT oi.variant FROM order_items oi JOIN orders o ON o.id=oi.order_id
+      WHERE oi.product_id=pr.product_id AND o.user_id=pr.user_id ORDER BY o.id DESC,oi.id DESC LIMIT 1)variation ON true
+    WHERE p.seller_id=$1 ORDER BY pr.created_at DESC,pr.id DESC LIMIT $2 OFFSET $3`,[id,page.pageSize,page.offset]);
+  return Response.json(rows,{headers:pageHeaders(page,total)});
+ }catch(error){console.error("Seller reviews failed:",error);return Response.json({error:error.status?error.message:"Unable to load reviews."},{status:error.status||503});}
 }

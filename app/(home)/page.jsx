@@ -1,5 +1,9 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
+import Pagination from "@/components/ui/Pagination";
+import { usePagedResource } from "@/lib/usePagedResource";
+import { getCategories } from "@/lib/client-catalog";
+import { useCatalogRealtime } from "@/lib/realtime/useCatalogRealtime";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import ProductCard from "@/components/products/ProductCard";
 
@@ -74,39 +78,23 @@ function SkeletonCard() {
   );
 }
 
-function seededRandom(seed) {
-  const x = Math.sin(seed) * 10000;
-  return x - Math.floor(x);
-}
-
-function shuffleArray(arr, seed) {
-  const shuffled = [...arr];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(seededRandom(seed + i) * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-}
-
 export default function HomePage() {
-  const [products, setProducts]         = useState([]);
   const [categories, setCategories]     = useState([]);
-  const [loading, setLoading]           = useState(true);
   const [search, setSearch]             = useState(() => typeof window === "undefined" ? "" : new URLSearchParams(window.location.search).get("q") || "");
   const [category, setCategory]         = useState("all");
   const [sortBy, setSortBy]             = useState("newest");
-  const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
+  const [page,setPage]=useState(1);
+  const [debouncedSearch,setDebouncedSearch]=useState(search);
 
-  const [shuffleSeed] = useState(() => {
-    if (typeof window === "undefined") return Math.random();
-    const existing = sessionStorage.getItem("pm_shuffle_seed");
-    if (existing) return parseFloat(existing);
-    const seed = Math.random();
-    sessionStorage.setItem("pm_shuffle_seed", seed);
-    return seed;
-  });
-
-  const { data: session } = useSession();
+  const {data:session,status}=useSession();
+  const query=new URLSearchParams({page:String(page),pageSize:String(PRODUCTS_PER_PAGE),sortBy});
+  if(category!=="all")query.set("category",category);
+  if(debouncedSearch.trim())query.set("q",debouncedSearch.trim());
+  const catalog=usePagedResource("/api/products?"+query,{enabled:status!=="loading",identity:session?.user?.id,onPageChange:setPage});
+  useCatalogRealtime(catalog.reload);
+  const loading=!catalog.loaded;
+  const products=catalog.items.length?catalog.items:(process.env.NODE_ENV==="development"&&page===1?DEMO_PRODUCTS:[]);
+  useEffect(()=>{const timer=setTimeout(()=>{setDebouncedSearch(search);setPage(1);},300);return()=>clearTimeout(timer);},[search]);
 
   useEffect(() => {
     const applyPopularSearch = (event) => setSearch(String(event.detail || ""));
@@ -114,61 +102,9 @@ export default function HomePage() {
     return () => window.removeEventListener("piyumart:search", applyPopularSearch);
   }, []);
 
-  useEffect(() => {
-    async function fetchProducts() {
-      try {
-        const url = new URL("/api/products", window.location.origin);
-        url.searchParams.append("sortBy", sortBy);
-        const res = await fetch(url.toString());
-        const data = await res.json();
-        const allProducts = Array.isArray(data) ? data : [];
-        const filtered = session?.user?.id
-          ? allProducts.filter((p) => String(p.seller_id) !== String(session.user.id))
-          : allProducts;
-        setProducts(process.env.NODE_ENV === "development" ? [...filtered, ...DEMO_PRODUCTS] : filtered);
-        setVisibleCount(PRODUCTS_PER_PAGE);
-      } catch (err) {
-        console.error(err);
-        if (process.env.NODE_ENV === "development") setProducts(DEMO_PRODUCTS);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchProducts();
-  }, [session, sortBy]);
-
-  useEffect(() => {
-    async function fetchCategories() {
-      try {
-        const res = await fetch("/api/categories");
-        const data = await res.json();
-        setCategories(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    fetchCategories();
-  }, []);
-
-  const randomizedProducts = useMemo(() => {
-    if (sortBy !== "newest") return products;
-    return shuffleArray(products, shuffleSeed);
-  }, [products, shuffleSeed]);
-
-  const displayed = randomizedProducts.filter((p) => {
-    const matchesSearch =
-      !search.trim() ||
-      p.name?.toLowerCase().includes(search.toLowerCase()) ||
-      p.description?.toLowerCase().includes(search.toLowerCase());
-    const selectedCategory = categories.find((c) => String(c.id) === category)?.name;
-    const matchesCategory =
-      category === "all" || String(p.category_id) === String(category) || (p.is_demo && p.category_name === selectedCategory);
-    return matchesSearch && matchesCategory;
-  });
-
-  const visibleProducts = displayed.slice(0, visibleCount);
-  const hasMore         = visibleCount < displayed.length;
-  const remainingCount  = displayed.length - visibleCount;
+  useEffect(()=>{let active=true;getCategories().then(data=>{if(active)setCategories(data);}).catch(console.error);return()=>{active=false;};},[]);
+  const displayed=products;
+  const visibleProducts=displayed;
 
   const categoryLabel =
     category === "all"
@@ -183,7 +119,7 @@ export default function HomePage() {
 
       {/* ── HERO ── */}
       <section className="mx-auto max-w-7xl border-b border-[#c5cfe8] px-3 pb-8 pt-4 sm:px-5 sm:pb-10 sm:pt-6 dark:border-white/10">
-        <HeroSection productCount={products.length} />
+        <HeroSection productCount={catalog.pagination.total} />
       </section>
 
       {/* ── CONTENT ── */}
@@ -193,7 +129,7 @@ export default function HomePage() {
         <div className="sticky top-[76px] z-40 -mx-3 mb-7 bg-[#f0eeff]/95 px-3 py-3 backdrop-blur-md dark:bg-[#070b14]/95 sm:-mx-5 sm:px-5 md:top-[84px]">
           <div className="flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-none sm:flex-wrap">
           <button
-            onClick={() => { setCategory("all"); setVisibleCount(PRODUCTS_PER_PAGE); }}
+            onClick={() => { setCategory("all");setPage(1); }}
             className={`flex-shrink-0 px-4 py-1.5 rounded-full border text-xs font-medium transition-all duration-150
               ${category === "all"
                 ? "bg-[#1a2a6c] dark:bg-[#FABB00] border-[#1a2a6c] dark:border-[#FABB00] text-white dark:text-[#0e1a3d] font-bold"
@@ -205,7 +141,7 @@ export default function HomePage() {
           {visibleCategories.map((cat) => (
             <button
               key={cat.id}
-              onClick={() => { setCategory(String(cat.id)); setVisibleCount(PRODUCTS_PER_PAGE); }}
+              onClick={() => { setCategory(String(cat.id));setPage(1); }}
               className={`flex-shrink-0 px-4 py-1.5 rounded-full border text-xs font-medium transition-all duration-150
                 ${category === String(cat.id)
                   ? "bg-[#1a2a6c] dark:bg-[#FABB00] border-[#1a2a6c] dark:border-[#FABB00] text-white dark:text-[#0e1a3d] font-bold"
@@ -226,7 +162,7 @@ export default function HomePage() {
           <div className="flex items-center gap-2 sm:gap-3">
             <select
               value={sortBy}
-              onChange={(e) => { setSortBy(e.target.value); setVisibleCount(PRODUCTS_PER_PAGE); }}
+              onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
               className="flex-1 rounded-full border border-[#c5cfe8] bg-white px-3 py-2 text-sm font-semibold text-[#0e1a3d] transition-colors hover:border-[#0f1f5c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FABB00] dark:border-white/10 dark:bg-[#0e1520] dark:text-white sm:flex-none"
             >
               <option value="newest">Newest First</option>
@@ -236,7 +172,7 @@ export default function HomePage() {
               <option value="price_high">Price: High to Low</option>
             </select>
             <span className="flex-shrink-0 rounded-full bg-[#e8edf8] px-3 py-2 text-sm font-semibold text-[#0f1f5c] dark:bg-[#FABB00]/10 dark:text-[#FABB00]">
-              {displayed.length} item{displayed.length !== 1 ? "s" : ""}
+              {catalog.pagination.total} item{catalog.pagination.total !== 1 ? "s" : ""}
             </span>
           </div>
         </div>
@@ -263,26 +199,8 @@ export default function HomePage() {
           }
         </div>
 
-        {/* Show More */}
-        {!loading && hasMore && (
-          <div className="mt-8 flex flex-col items-center gap-2">
-            <button
-              onClick={() => setVisibleCount((prev) => prev + PRODUCTS_PER_PAGE)}
-              className="px-8 py-2.5 rounded-full bg-[#1a2a6c] dark:bg-[#FABB00] text-white dark:text-[#0e1a3d] text-sm font-bold tracking-wide hover:bg-[#142060] dark:hover:bg-[#e2a800] active:scale-95 transition-all duration-150"
-            >
-              Show More
-            </button>
-            <p className="text-xs text-[#0e1a3d]/40 dark:text-[#e8edf8]/40">
-              Showing {visibleCount} of {displayed.length} products · {remainingCount} more to load
-            </p>
-          </div>
-        )}
-
-        {!loading && !hasMore && displayed.length > PRODUCTS_PER_PAGE && (
-          <div className="mt-8 text-center text-xs text-[#0e1a3d]/40 dark:text-[#e8edf8]/40">
-            You&lsquo;ve seen all {displayed.length} products 🎉
-          </div>
-        )}
+        {catalog.error&&<p role="alert" className="mt-4 text-sm text-rose-600">{catalog.error}<button className="ml-3 underline" onClick={catalog.reload}>Retry</button></p>}
+        <Pagination pagination={catalog.pagination} loading={catalog.loading} onPageChange={setPage}/>
 
       </section>
 
