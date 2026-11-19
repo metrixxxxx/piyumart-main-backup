@@ -24,7 +24,7 @@ export default function BaoLogoutButton() {
         throw new Error(data.error || "Unable to log out.");
       }
 
-      router.replace("/admin/login");
+      router.replace("/bao/login");
       router.refresh();
     } catch (logoutError) {
       console.error("BAO logout failed:", logoutError);
@@ -39,7 +39,7 @@ export default function BaoLogoutButton() {
         type="button"
         onClick={() => setConfirmOpen(true)}
         disabled={loading}
-        className="rounded-lg px-3 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+        className="rounded-lg px-3 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-[#FABB00] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading ? "Signing out..." : "Log out"}
       </button>

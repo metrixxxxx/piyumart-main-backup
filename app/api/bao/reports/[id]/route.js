@@ -230,12 +230,12 @@ export async function PATCH(req, { params }) {
         const { rows: assignees } = await client.query(
           `SELECT id, name, last_name
            FROM users
-           WHERE id = $1 AND role IN ('admin', 'bao') AND status = 'active'`,
+           WHERE id = $1 AND role = 'bao' AND status = 'active'`,
           [nextAssignee]
         );
         if (!assignees[0]) {
           return {
-            error: "Reports can only be assigned to active BAO or admin personnel.",
+            error: "Reports can only be assigned to active BAO personnel.",
             status: 400,
           };
         }

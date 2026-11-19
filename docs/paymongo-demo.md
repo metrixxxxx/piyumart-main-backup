@@ -68,9 +68,11 @@ child accounts. Native account splitting is intentionally not enabled. Enabling 
 later requires PayMongo to confirm the intended merchant-of-record, parent/child
 arrangement, API contract, and eligibility for all participants.
 
-Each seller's order snapshots a 3% BAO allocation and a 97% seller allocation in
+Each seller's order snapshots its BAO commission and remaining seller allocation in
 `payment_allocations`, using integer centavos in JavaScript and NUMERIC(14,2) PHP
-in Postgres. For PHP 1,000 this is PHP 30 and PHP 970. Rounding is per seller order,
+in Postgres. New orders use [item price tiers](bao-item-price-tiers.md): 0% through
+PHP 500, 3% above PHP 500 through PHP 5,000, and 5% above PHP 5,000.
+For a PHP 1,000 item this is PHP 30 and PHP 970. Rounding is per item line,
 with the seller receiving the remainder so every centavo is accounted for.
 
 Gateway fees are recorded separately. The promised allocation is calculated on
@@ -79,7 +81,7 @@ the ledger is not proof that enough settled gateway cash exists for disbursement
 Commissions and the BAO overview include cash-on-pickup snapshots and verified
 online allocations. The Commissions transaction history shows paid online orders
 immediately, with pending commission separate from completed-order earnings.
-Online reports use the original 3% allocation snapshots and confirmed refund
+Online reports use the original allocation snapshots and confirmed refund
 offsets. Reading these reports does not create another commission or wallet credit.
 See [reporting verification steps](bao-online-reporting.md).
 
@@ -93,7 +95,8 @@ order per seller in a transaction. One PayMongo payment can cover those orders.
 Only signed test webhooks or authenticated server-side provider retrieval can
 confirm payment. Visiting a success redirect does not mark anything paid. Payment
 confirmation leaves delivery status pending. Seller fulfillment uses the existing
-confirmed → processing → shipped flow; only the buyer can confirm receipt.
+confirmed → processing → shipped flow; only the buyer can confirm receipt, with
+a required photo of the received items. See [photo proof setup](cash-pickup-proof.md).
 
 Successful payments post each allocation into pending wallets. By default, buyer
 confirmation moves funds to available. Admin can select payment-confirmed release

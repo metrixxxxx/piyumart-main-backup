@@ -7,6 +7,7 @@ import { useChatbot } from '@/app/hooks/useChatbot';
 import ChatMessage from './ChatMessage';
 import TypingIndicator from './TypingIndicator';
 import { useSession } from 'next-auth/react';
+import { useFloatingPanel } from '@/components/layout/FloatingPanelProvider';
 
 // Contextual suggestions shown after specific assistant replies
 // Already-asked questions are filtered out so pills stay fresh
@@ -130,15 +131,39 @@ function getContextualSuggestions(messages) {
 const MAX_CHARS = 500;
 
 export default function ChatWidget() {
-  const [isOpen, setIsOpen] = useState(false);
+  const { id, isOpen, openPanel, closePanel } = useFloatingPanel();
   const [hasSeenChat, setHasSeenChat] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [isDark, setIsDark] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const widgetRef = useRef(null);
+  const toggleRef = useRef(null);
   const { data: session } = useSession();
 
   const { messages, isLoading, error, sendMessage, clearMessages } = useChatbot();
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    function updateViewport() {
+      const widget = widgetRef.current;
+      if (!widget) return;
+      const height = viewport?.height || window.innerHeight;
+      widget.style.setProperty('--chat-offset', window.innerWidth >= 640 ? '1.5rem' : '1rem');
+      widget.style.setProperty('--chat-viewport-height', `${height}px`);
+      widget.style.setProperty('--chat-viewport-width', `${viewport?.width || window.innerWidth}px`);
+      widget.style.setProperty('--chat-keyboard-inset', `${Math.max(0, window.innerHeight - height - (viewport?.offsetTop || 0))}px`);
+    }
+    updateViewport();
+    window.addEventListener('resize', updateViewport);
+    viewport?.addEventListener('resize', updateViewport);
+    viewport?.addEventListener('scroll', updateViewport);
+    return () => {
+      window.removeEventListener('resize', updateViewport);
+      viewport?.removeEventListener('resize', updateViewport);
+      viewport?.removeEventListener('scroll', updateViewport);
+    };
+  }, []);
 
   // Track dark mode from <html class="dark">
   useEffect(() => {
@@ -156,8 +181,17 @@ export default function ChatWidget() {
 
   // Focus input when opened
   useEffect(() => {
-    if (isOpen) setTimeout(() => inputRef.current?.focus(), 100);
-  }, [isOpen]);
+    if (!isOpen) return;
+    const timer = setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 100);
+    function handleEscape(event) {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      closePanel();
+      toggleRef.current?.focus({ preventScroll: true });
+    }
+    document.addEventListener('keydown', handleEscape);
+    return () => { clearTimeout(timer); document.removeEventListener('keydown', handleEscape); };
+  }, [isOpen, closePanel]);
 
   async function handleSend() {
     const text = inputValue.trim();
@@ -177,35 +211,47 @@ export default function ChatWidget() {
   const suggestions = getContextualSuggestions(messages);
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+    <div ref={widgetRef} className="pm-chat-widget fixed z-50 flex flex-col items-end gap-2" style={{
+      right: 'max(var(--chat-offset, 1rem), env(safe-area-inset-right))',
+      bottom: 'calc(max(var(--chat-offset, 1rem), env(safe-area-inset-bottom)) + var(--chat-keyboard-inset, 0px))',
+      maxWidth: 'calc(var(--chat-viewport-width, 100vw) - 2rem)',
+    }}>
 
       {/* ── Chat Window ─────────────────────────────────── */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            id={id}
+            role="dialog"
+            aria-label="PiyuBot assistant"
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            exit={{ opacity: 0, transition: { duration: 0 } }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="w-[370px] max-h-[560px] bg-white dark:bg-[#12121a] rounded-2xl shadow-2xl border border-gray-200 dark:border-white/[0.08] flex flex-col overflow-hidden transition-colors duration-300"
+            style={{
+              width: 370,
+              maxWidth: 'calc(var(--chat-viewport-width, 100vw) - 2rem)',
+              maxHeight: 'min(560px, calc(var(--chat-viewport-height, 100dvh) - max(var(--chat-offset, 1rem), env(safe-area-inset-bottom)) - 5rem))',
+            }}
+            className="pm-chat-panel min-h-0 bg-white dark:bg-[#12121a] rounded-2xl shadow-2xl border border-gray-200 dark:border-white/[0.08] flex flex-col overflow-hidden transition-colors duration-300"
           >
 
             {/* Header */}
-            <div className="bg-blue-900 dark:bg-[#181825] px-4 py-3 flex items-center justify-between border-b border-transparent dark:border-white/[0.06] transition-colors duration-300">
-              <div className="flex items-center gap-2">
+            <div className="shrink-0 bg-blue-900 dark:bg-[#181825] px-3 py-3 sm:px-4 flex items-center justify-between gap-2 border-b border-transparent dark:border-white/[0.06] transition-colors duration-300">
+              <div className="flex min-w-0 items-center gap-2">
                 <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-white/20">
                   <img src="/img/chatbotpfp.png" alt="PiyuBot" className="w-full h-full object-cover" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-white dark:text-[#f5f5f5] text-sm font-semibold">PiyuBot</p>
                   <div className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                    <p className="text-blue-200 dark:text-[#b4b4c7] text-xs">PiyuMart AI Assistant</p>
+                    <p className="truncate text-blue-200 dark:text-[#b4b4c7] text-xs">PiyuMart AI Assistant</p>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex shrink-0 items-center gap-3">
                 <button
                   onClick={clearMessages}
                   title="Clear chat"
@@ -214,7 +260,7 @@ export default function ChatWidget() {
                   Clear
                 </button>
                 <button
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => { closePanel(); toggleRef.current?.focus({ preventScroll: true }); }}
                   aria-label="Close chat"
                   className="text-blue-200 dark:text-[#b4b4c7] hover:text-white transition-colors text-lg leading-none"
                 >
@@ -224,7 +270,7 @@ export default function ChatWidget() {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-1 min-h-0 bg-[#fcfcfd] dark:bg-[#0f0f14] scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-white/[0.12] transition-colors duration-300">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-1 min-h-0 bg-[#fcfcfd] dark:bg-[#0f0f14] scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-white/[0.12] transition-colors duration-300">
               {messages.map((msg, i) => (
                 <ChatMessage key={i} role={msg.role} content={msg.content} />
               ))}
@@ -257,7 +303,7 @@ export default function ChatWidget() {
 
             {/* Contextual suggestions */}
             {suggestions.length > 0 && !isLoading && (
-              <div className="px-4 pb-2 pt-1 flex flex-wrap gap-1.5 border-t border-gray-100 dark:border-white/[0.05]">
+              <div className="min-h-0 overflow-y-auto overscroll-contain px-4 pb-2 pt-1 flex flex-wrap gap-1.5 border-t border-gray-100 dark:border-white/[0.05]">
                 {suggestions.map((s) => (
                   <button
                     key={s}
@@ -272,7 +318,7 @@ export default function ChatWidget() {
 
             {/* Input area */}
             {session ? (
-              <div className="border-t border-gray-100 dark:border-white/[0.06] bg-white dark:bg-[#12121a] px-3 py-2 flex flex-col gap-1 transition-colors duration-300">
+              <div className="shrink-0 border-t border-gray-100 dark:border-white/[0.06] bg-white dark:bg-[#12121a] px-3 py-2 flex flex-col gap-1 transition-colors duration-300">
                 <div className="flex gap-2 items-center">
                   <input
                     ref={inputRef}
@@ -288,7 +334,7 @@ export default function ChatWidget() {
                       WebkitTextFillColor: isDark ? '#f3f4f6' : '#111827',
                       caretColor: isDark ? '#f3f4f6' : '#111827',
                     }}
-                    className="flex-1 text-sm bg-transparent placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none disabled:opacity-50 py-1 transition-colors duration-300"
+                    className="min-w-0 flex-1 text-sm bg-transparent placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none disabled:opacity-50 py-1 transition-colors duration-300"
                   />
                   <button
                     onClick={handleSend}
@@ -306,7 +352,7 @@ export default function ChatWidget() {
                 )}
               </div>
             ) : (
-              <div className="border-t border-gray-100 dark:border-white/[0.06] px-4 py-3 text-center">
+              <div className="shrink-0 border-t border-gray-100 dark:border-white/[0.06] px-4 py-3 text-center">
                 <p className="text-xs text-gray-500 dark:text-[#9b9bb0]">
                   Please{' '}
                   <a href="/login" className="text-blue-700 dark:text-[#d4b27c] underline">
@@ -323,13 +369,17 @@ export default function ChatWidget() {
 
       {/* ── Toggle Button ──────────────────────────────── */}
       <motion.button
+        ref={toggleRef}
+        type="button"
         onClick={() => {
-          setIsOpen(o => !o);
+          if (isOpen) closePanel(); else openPanel();
           if (!hasSeenChat) setHasSeenChat(true);
         }}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         aria-label="Toggle PiyuBot chat"
+        aria-expanded={isOpen}
+        aria-controls={isOpen ? id : undefined}
         className="relative flex h-14 w-14 items-center justify-center rounded-full bg-[#0f1f5c] text-[#f2c94c] shadow-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2c94c] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950"
       >
         {isOpen ? (

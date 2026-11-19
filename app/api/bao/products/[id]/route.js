@@ -131,6 +131,42 @@ async function handlePATCH(req, { params }) {
     if (!body || typeof body !== "object") {
       return NextResponse.json({ error: "Invalid moderation request." }, { status: 400 });
     }
+
+    if (body.action === "toggle_feature") {
+      const product = await db.transaction(async (client) => {
+        const { rows } = await client.query(
+          "SELECT id, name, is_featured FROM products WHERE id = $1 FOR UPDATE",
+          [productId]
+        );
+        if (!rows.length) return null;
+
+        const featured = !rows[0].is_featured;
+        const { rows: updatedRows } = await client.query(
+          "UPDATE products SET is_featured = $1 WHERE id = $2 RETURNING id, name, is_featured",
+          [featured, productId]
+        );
+        await client.query(
+          `INSERT INTO bao_audit_logs
+            (actor_id, action, entity_type, entity_id, metadata)
+           VALUES ($1, $2, 'product', $3, $4::jsonb)`,
+          [
+            access.session.user.id,
+            featured ? "product_featured" : "product_unfeatured",
+            String(productId),
+            JSON.stringify({ product_name: rows[0].name }),
+          ]
+        );
+
+        return updatedRows[0];
+      });
+
+      if (!product) {
+        return NextResponse.json({ error: "Product not found." }, { status: 404 });
+      }
+      global.io?.emit("products:updated", product);
+      return NextResponse.json({ success: true, product });
+    }
+
     const action = ACTIONS[body.action];
     const reason = typeof body.reason === "string" ? body.reason.trim() : "";
 
@@ -218,4 +254,68 @@ async function handlePATCH(req, { params }) {
   }
 }
 
+async function handleDELETE(_req, { params }) {
+  try {
+    const access = await getBaoAccess();
+    if (!access.session) {
+      return NextResponse.json(
+        { error: access.status === 401 ? "Unauthorized" : "Forbidden" },
+        { status: access.status }
+      );
+    }
+
+    const productId = await getProductId(params);
+    if (!productId) {
+      return NextResponse.json({ error: "Invalid product ID." }, { status: 400 });
+    }
+
+    const product = await db.transaction(async (client) => {
+      const { rows } = await client.query(
+        "SELECT id, name FROM products WHERE id = $1 FOR UPDATE",
+        [productId]
+      );
+      if (!rows.length) return null;
+
+      await client.query(
+        `INSERT INTO bao_audit_logs
+          (actor_id, action, entity_type, entity_id, metadata)
+         VALUES ($1, 'product_deleted', 'product', $2, $3::jsonb)`,
+        [
+          access.session.user.id,
+          String(productId),
+          JSON.stringify({ product_name: rows[0].name }),
+        ]
+      );
+      await client.query("DELETE FROM product_attributes WHERE product_id = $1", [productId]);
+      await client.query("DELETE FROM product_images WHERE product_id = $1", [productId]);
+      await client.query("DELETE FROM product_variants WHERE product_id = $1", [productId]);
+      const { rows: deletedRows } = await client.query(
+        "DELETE FROM products WHERE id = $1 RETURNING id",
+        [productId]
+      );
+      return deletedRows[0];
+    });
+
+    if (!product) {
+      return NextResponse.json({ error: "Product not found." }, { status: 404 });
+    }
+
+    global.io?.emit("products:deleted", { id: product.id });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    if (error.code === "23503") {
+      return NextResponse.json(
+        { error: "This product has related order records and cannot be deleted." },
+        { status: 409 }
+      );
+    }
+    console.error("BAO product deletion failed:", error);
+    return NextResponse.json(
+      { error: "Unable to delete the product." },
+      { status: 500 }
+    );
+  }
+}
+
 export const PATCH = withCatalogInvalidation(handlePATCH);
+export const DELETE = withCatalogInvalidation(handleDELETE);

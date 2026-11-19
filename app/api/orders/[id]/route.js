@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { notify } from "@/lib/notify";
+import { notify, createNotificationRecord, broadcastNotification } from "@/lib/notify";
 import { isActiveSellerAccount } from "@/lib/seller-access";
 import { recordOrderCommission } from "@/lib/bao-commission";
 import { transitionOnlineOrder } from "@/lib/payments/events";
+import { uploadPickupProof, removePickupProof } from "@/lib/pickup-proof";
+import { PICKUP_PROOF_MAX_BYTES } from "@/lib/orders/pickup-proof-policy";
 
 const ACTION_TO_STATUS = {
   confirm_delivery: "completed",
@@ -16,17 +18,32 @@ const ACTION_TO_STATUS = {
 };
 
 export async function PATCH(req, { params }) {
+  let proofUpload;
+  let committed = false;
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await params;
     const orderId = Number(id);
-    if (isNaN(orderId)) return NextResponse.json({ error: "Invalid order ID" }, { status: 400 });
+    if (!Number.isSafeInteger(orderId) || orderId < 1) return NextResponse.json({ error: "Invalid order ID" }, { status: 400 });
 
-    const body = await req.json();
+    if (Number(req.headers.get("content-length")) > PICKUP_PROOF_MAX_BYTES + 1024 * 1024) {
+      return NextResponse.json({ error: "Proof photos must be 5 MB or smaller." }, { status: 413 });
+    }
+    let body, proofFile;
+    try {
+      if (req.headers.get("content-type")?.startsWith("multipart/form-data")) {
+        const form = await req.formData();
+        body = { action: form.get("action"), status: form.get("status") };
+        proofFile = form.get("pickup_proof");
+      } else body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid order update." }, { status: 400 });
+    }
+    if (!body || typeof body !== "object") return NextResponse.json({ error: "Invalid order update." }, { status: 400 });
     const [paymentOrders] = await db.query("SELECT payment_method FROM orders WHERE id=$1", [orderId]);
-    if (paymentOrders[0]?.payment_method === "paymongo") return NextResponse.json(await transitionOnlineOrder(session.user.id, orderId, body));
+    if (paymentOrders[0]?.payment_method === "paymongo") return NextResponse.json(await transitionOnlineOrder(session.user.id, orderId, body, proofFile));
     const status = body.status ?? ACTION_TO_STATUS[body.action];
     if (!status) return NextResponse.json({ error: "Invalid action or status" }, { status: 400 });
 
@@ -38,11 +55,10 @@ export async function PATCH(req, { params }) {
       const order = rows[0];
       if (!order) return { error: "Order not found", status: 404 };
 
-      const isAdmin = session.user.role === "admin";
       const isSeller = Number(order.seller_id) === Number(session.user.id);
       const isBuyer = Number(order.user_id) === Number(session.user.id);
 
-      if (isSeller && !isAdmin && !(await isActiveSellerAccount(session.user.id))) {
+      if (isSeller && !(await isActiveSellerAccount(session.user.id))) {
         return {
           error: "An active account is required to manage seller orders.",
           status: 403,
@@ -54,11 +70,11 @@ export async function PATCH(req, { params }) {
         completed: order.status === "shipped",
       };
 
-      if (isSeller && !isAdmin && status === "completed") {
+      if (isSeller && status === "completed") {
         return { error: "Only the buyer can confirm order completion.", status: 403 };
       }
 
-      if (!isAdmin && !isSeller && (!isBuyer || !buyerAllowedActions[status])) {
+      if (!isSeller && (!isBuyer || !buyerAllowedActions[status])) {
         return { error: "Forbidden", status: 403 };
       }
 
@@ -67,6 +83,7 @@ export async function PATCH(req, { params }) {
       }
 
       if (status === "completed") {
+        proofUpload = await uploadPickupProof(orderId, proofFile);
         const { rows: items } = await client.query(
           `SELECT product_id, quantity FROM order_items WHERE order_id = $1`,
           [orderId]
@@ -111,36 +128,41 @@ export async function PATCH(req, { params }) {
              completed_at = CASE
                WHEN $3 THEN COALESCE(completed_at, NOW())
                ELSE completed_at
-             END
+             END,
+             pickup_proof_path = CASE WHEN $3 THEN $4 ELSE pickup_proof_path END,
+             pickup_proof_uploaded_at = CASE WHEN $3 THEN NOW() ELSE pickup_proof_uploaded_at END
          WHERE id = $2
          RETURNING *`,
-        [status, orderId, status === "completed"]
+        [status, orderId, status === "completed", proofUpload?.path || null]
       );
       const updatedOrder = updatedRows[0];
 
+      let notification;
       if (status === "completed") {
         await recordOrderCommission(client, orderId);
+        notification = await createNotificationRecord({ userId: updatedOrder.user_id, type: "order_completed", message: `Your order #${orderId} is complete. Your proof photo has been saved. Thank you!` }, client);
       }
 
-      return { order: updatedOrder };
+      return { order: updatedOrder, notification };
     });
 
     if (transition.error) {
       return NextResponse.json({ error: transition.error }, { status: transition.status });
     }
+    committed = true;
 
     const updatedOrder = transition.order;
 
     // The database broadcasts after commit, including buyer completion and refunds.
-    if (status === "completed") {
-      await notify({ userId: updatedOrder.user_id, type: "order_completed", message: `Your order #${orderId} has been marked as received. Thank you!` });
-    }
+    if (transition.notification) await broadcastNotification(transition.notification);
     if (status === "cancelled") {
       await notify({ userId: updatedOrder.user_id, type: "order_cancelled", message: `Your order #${orderId} has been cancelled.` });
     }
 
-    return NextResponse.json({ success: true, status, order: updatedOrder });
+    const { pickup_proof_path, ...publicOrder } = updatedOrder;
+    return NextResponse.json({ success: true, status, order: { ...publicOrder, has_pickup_proof: Boolean(pickup_proof_path) } });
   } catch (err) {
+    if (!committed) await removePickupProof(proofUpload);
     console.error("PATCH /orders/[id] error:", err);
     return NextResponse.json({ error: err.status ? err.message : "Unable to update order." }, { status: err.status || 500 });
   }

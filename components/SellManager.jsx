@@ -11,6 +11,7 @@ import FeedbackModal from "@/components/ui/FeedbackModal";
 import LoadingModal from "@/components/ui/LoadingModal";
 import { MEETUP_POINTS } from "@/lib/campus";
 import ListingLocation from "@/components/products/ListingLocation";
+import PageShell from "@/components/layout/PageShell";
 
 export default function SellPage() {
   const { data: session, status } = useSession();
@@ -237,15 +238,9 @@ export default function SellPage() {
     );
 
   return (
-    <main className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] transition-colors duration-300">
-
-      {/* HERO */}
-      <section className="bg-[#1a2a6c] dark:bg-[#0a0e1f] text-white text-center px-4 sm:px-5 py-10 sm:py-12">
-        <h1 className="text-3xl font-bold">Sell Your Items</h1>
-        <p className="text-white/60 mt-1.5 text-sm">What are you selling today? Add and manage your products here.</p>
-      </section>
-
-      <div className="max-w-[960px] mx-auto px-4 sm:px-5 py-6">
+    <PageShell title="Sell a product" description="Create and manage your campus listings" actions={
+      <button onClick={() => { setEditProduct(null); resetForm(); setShowForm(true); }} className="rounded-lg bg-[#FABB00] px-4 py-2.5 text-sm font-semibold text-[#0e1a3d] hover:bg-[#e2a800]">Add product</button>
+    }>
 
         {/* SELLER CARD */}
         <div className="bg-white dark:bg-[#0e1520] border border-[#c5cfe8] dark:border-white/[0.07] rounded-2xl p-4 flex flex-wrap items-center gap-3 mb-6 shadow-sm">
@@ -254,14 +249,8 @@ export default function SellPage() {
           </div>
           <div className="min-w-0 flex-1">
             <h2 className="font-semibold text-sm text-[#0e1a3d] dark:text-[#e8edf8]">{session?.user?.name}</h2>
-            <p className="text-xs text-[#0e1a3d]/45 dark:text-[#e8edf8]/40">{session?.user?.email}</p>
+            <p className="truncate text-xs text-[#0e1a3d]/45 dark:text-[#e8edf8]/40">{session?.user?.email}</p>
           </div>
-          <button
-            onClick={() => { setEditProduct(null); resetForm(); setShowForm(true); }}
-            className="w-full text-xs font-semibold px-4 py-2 rounded-xl bg-[#1a2a6c] text-white hover:bg-[#142060] transition sm:w-auto"
-          >
-            + Add Product
-          </button>
         </div>
 
         {/* FORM */}
@@ -270,13 +259,15 @@ export default function SellPage() {
             <h3 className="font-semibold text-sm mb-4 text-[#0e1a3d] dark:text-[#e8edf8]">
               {editProduct ? "Edit Product" : "Add Product"}
             </h3>
-            <div className="grid gap-3">
+            <div className="grid gap-4 md:grid-cols-2">
 
+              <label className="block min-w-0 text-sm font-semibold text-[#0e1a3d] dark:text-[#e8edf8]">Product name
               <input
-                className="w-full px-3 py-2.5 rounded-xl border border-[#c5cfe8] dark:border-white/10 bg-[#f0f4ff] dark:bg-white/[0.04] text-[#0e1a3d] dark:text-[#e8edf8] placeholder:text-[#0e1a3d]/30 dark:placeholder:text-[#e8edf8]/30 text-sm outline-none focus:border-[#1a2a6c] dark:focus:border-[#c9a028] transition-colors"
+                className="mt-2 w-full px-3 py-2.5 rounded-xl border border-[#c5cfe8] dark:border-white/10 bg-[#f0f4ff] dark:bg-white/[0.04] text-[#0e1a3d] dark:text-[#e8edf8] placeholder:text-[#0e1a3d]/30 dark:placeholder:text-[#e8edf8]/30 text-sm font-normal outline-none focus:border-[#1a2a6c] dark:focus:border-[#c9a028] transition-colors"
                 placeholder="Name" value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
               />
+              </label>
 
               <label className="block text-sm font-semibold text-[#0e1a3d] dark:text-[#e8edf8]">
                 Meetup point (required)
@@ -286,24 +277,27 @@ export default function SellPage() {
                   <option value="Other">Other</option>
                 </select>
               </label>
-              {form.meetup_point === "Other" && <label className="block text-sm font-semibold text-[#0e1a3d] dark:text-[#e8edf8]">Other meetup location
+              {form.meetup_point === "Other" && <label className="block text-sm font-semibold text-[#0e1a3d] dark:text-[#e8edf8] md:col-span-2">Other meetup location
                 <input required maxLength={200} value={form.other_meetup} onChange={(event) => setForm({ ...form, other_meetup: event.target.value })} placeholder="Enter the campus location" className="mt-2 w-full rounded-xl border border-[#c5cfe8] bg-[#f0f4ff] px-3 py-2.5 text-sm dark:border-white/10 dark:bg-[#0e1520]" />
               </label>}
 
               <textarea
-                className="w-full px-3 py-2.5 rounded-xl border border-[#c5cfe8] dark:border-white/10 bg-[#f0f4ff] dark:bg-white/[0.04] text-[#0e1a3d] dark:text-[#e8edf8] placeholder:text-[#0e1a3d]/30 dark:placeholder:text-[#e8edf8]/30 text-sm outline-none focus:border-[#1a2a6c] dark:focus:border-[#c9a028] transition-colors resize-none"
+                className="w-full px-3 py-2.5 rounded-xl border border-[#c5cfe8] dark:border-white/10 bg-[#f0f4ff] dark:bg-white/[0.04] text-[#0e1a3d] dark:text-[#e8edf8] placeholder:text-[#0e1a3d]/30 dark:placeholder:text-[#e8edf8]/30 text-sm outline-none focus:border-[#1a2a6c] dark:focus:border-[#c9a028] transition-colors resize-none md:col-span-2"
                 placeholder="Description" value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
 
+              <label className="block min-w-0 text-sm font-semibold text-[#0e1a3d] dark:text-[#e8edf8]">Price (PHP)
               <input
-                className="w-full px-3 py-2.5 rounded-xl border border-[#c5cfe8] dark:border-white/10 bg-[#f0f4ff] dark:bg-white/[0.04] text-[#0e1a3d] dark:text-[#e8edf8] placeholder:text-[#0e1a3d]/30 dark:placeholder:text-[#e8edf8]/30 text-sm outline-none focus:border-[#1a2a6c] dark:focus:border-[#c9a028] transition-colors"
+                className="mt-2 w-full px-3 py-2.5 rounded-xl border border-[#c5cfe8] dark:border-white/10 bg-[#f0f4ff] dark:bg-white/[0.04] text-[#0e1a3d] dark:text-[#e8edf8] placeholder:text-[#0e1a3d]/30 dark:placeholder:text-[#e8edf8]/30 text-sm font-normal outline-none focus:border-[#1a2a6c] dark:focus:border-[#c9a028] transition-colors"
                 type="number" placeholder="Price" value={form.price}
                 onChange={(e) => setForm({ ...form, price: e.target.value })}
               />
+              </label>
 
+              <label className="block min-w-0 text-sm font-semibold text-[#0e1a3d] dark:text-[#e8edf8]">Category
               <select
-                className="w-full px-3 py-2.5 rounded-xl border border-[#c5cfe8] dark:border-white/10 bg-[#f0f4ff] dark:bg-white/[0.04] text-[#0e1a3d] dark:text-[#e8edf8] text-sm outline-none focus:border-[#1a2a6c] dark:focus:border-[#c9a028] focus:ring-2 focus:ring-[#1a2a6c] dark:focus:ring-[#c9a028] transition-colors appearance-none cursor-pointer"
+                className="mt-2 w-full px-3 py-2.5 rounded-xl border border-[#c5cfe8] dark:border-white/10 bg-[#f0f4ff] dark:bg-white/[0.04] text-[#0e1a3d] dark:text-[#e8edf8] text-sm font-normal outline-none focus:border-[#1a2a6c] dark:focus:border-[#c9a028] focus:ring-2 focus:ring-[#1a2a6c] dark:focus:ring-[#c9a028] transition-colors appearance-none cursor-pointer"
                 value={form.category_id}
                 onChange={(e) => setForm({ ...form, category_id: e.target.value })}
               >
@@ -324,9 +318,10 @@ export default function SellPage() {
   </option>
 ))}
               </select>
+              </label>
 
               {attributeDefs.length > 0 && (
-                <div className="grid gap-3">
+                <div className="grid gap-3 md:col-span-2 md:grid-cols-2">
                   {attributeDefs.map((def) => (
                     <div key={def.id}>
                       <label className="text-xs text-[#0e1a3d]/50 dark:text-[#e8edf8]/40 mb-1 block">{def.name}</label>
@@ -354,7 +349,7 @@ export default function SellPage() {
 </div>
 
               {/* PRODUCT PHOTOS */}
-              <div>
+              <div className="md:col-span-2">
                 <p className="text-xs font-semibold text-[#0e1a3d]/70 dark:text-[#e8edf8]/50 mb-2">Product Photos</p>
                 <div className="flex flex-wrap gap-2.5 items-center">
                   {mainImages.map((img, i) => (
@@ -375,7 +370,7 @@ export default function SellPage() {
               </div>
 
               {/* VARIANTS */}
-              <div>
+              <div className="md:col-span-2">
                 <p className="text-xs font-semibold text-[#0e1a3d]/70 dark:text-[#e8edf8]/50 mb-2">
                   Variants <span className="font-normal text-[#0e1a3d]/35 dark:text-[#e8edf8]/30">(color, size, etc.)</span>
                 </p>
@@ -410,7 +405,7 @@ export default function SellPage() {
               </div>
 
               {/* VISIBILITY TOGGLE */}
-              <label className="flex items-center gap-2.5 cursor-pointer text-sm text-[#0e1a3d]/70 dark:text-[#e8edf8]/55">
+              <label className="flex items-center gap-2.5 cursor-pointer text-sm text-[#0e1a3d]/70 dark:text-[#e8edf8]/55 md:col-span-2">
                 <div
                   onClick={() => setForm({ ...form, is_visible: form.is_visible ? 0 : 1 })}
                   className={`relative w-[42px] h-6 rounded-full transition-colors duration-200 cursor-pointer
@@ -423,7 +418,7 @@ export default function SellPage() {
                 {form.is_visible ? "Visible to buyers" : "Hidden from buyers"}
               </label>
 
-              <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="flex flex-col gap-2 sm:flex-row md:col-span-2">
                 <button onClick={handleSubmit}
                   disabled={submitting}
                   className="flex-1 py-2.5 rounded-xl bg-[#1a2a6c] text-white text-sm font-semibold hover:bg-[#142060] transition border-none cursor-pointer">
@@ -445,7 +440,7 @@ export default function SellPage() {
             No products yet
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
             {products.map((product) => (
               <div
                 key={product.id}
@@ -517,8 +512,6 @@ export default function SellPage() {
             ))}
           </div>
         )}
-      </div>
-
       <ConfirmModal
         open={Boolean(confirmDeleteId)}
         title="Delete product?"
@@ -546,7 +539,7 @@ export default function SellPage() {
         description={feedback?.description}
         onClose={() => setFeedback(null)}
       />
-      <div className="mx-auto max-w-6xl pb-8">{inventory.error&&<p role="alert" className="text-sm text-rose-600">{inventory.error}<button className="ml-3 underline" onClick={inventory.reload}>Retry</button></p>}<Pagination pagination={inventory.pagination} loading={inventory.loading} onPageChange={setPage}/></div>
-    </main>
+      <div className="mt-6">{inventory.error&&<p role="alert" className="text-sm text-rose-600">{inventory.error}<button className="ml-3 underline" onClick={inventory.reload}>Retry</button></p>}<Pagination pagination={inventory.pagination} loading={inventory.loading} onPageChange={setPage}/></div>
+    </PageShell>
   );
 }

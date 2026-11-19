@@ -29,14 +29,14 @@ export default function BaoCommissionWallet({data,onRefresh,onReview}) {
     }catch(err){setError(err.message);}finally{setBusy(false);}
   }
   return <section className="space-y-5" aria-labelledby="bao-wallet-heading">
-    <div><h2 id="bao-wallet-heading" className="text-xl font-bold">BAO commission wallet</h2><p className="mt-2 text-sm text-slate-600 dark:text-slate-400">BAO payout destinations and commission withdrawals do not need manual review. Only available commission can be withdrawn; a confirmed transfer completes the withdrawal.</p></div>
+    <div><h2 id="bao-wallet-heading" className="text-xl font-bold">BAO online commission wallet</h2><p className="mt-2 text-sm text-slate-600 dark:text-slate-400">BAO payout destinations and online commission withdrawals do not need manual review. COD commission is reported separately and is not withdrawable. Only available online commission can be withdrawn; a confirmed transfer completes the withdrawal.</p></div>
     <div className="grid gap-3 sm:grid-cols-2"><MoneyCard label="Commission reserved for withdrawal" value={data.balances.reserved}/><MoneyCard label="Completed commission withdrawals" value={wallet.withdrawals}/></div>
     {error&&<p role="alert" className="rounded-xl bg-rose-50 p-4 text-sm text-rose-800 dark:bg-rose-950/40 dark:text-rose-200">{error}</p>}
     {notice&&<p role="status" className="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">{notice}</p>}
     <div className="grid gap-5 lg:grid-cols-2">
       <form onSubmit={event=>requestSubmit(event,"cashouts")} className={`${financePanel} space-y-4`}>
         <h3 className="text-lg font-bold">Withdraw commission</h3>
-        <p className="text-xs text-slate-500">Available: {php(data.balances.available)}. Minimum: {php(data.settings.minimum_cashout)}. The amount is reserved immediately and stays reserved until a transfer is confirmed.</p>
+        <p className="text-xs text-slate-500">Available online commission: {php(data.balances.available)}. Minimum: {php(data.settings.minimum_cashout)}. The amount is reserved immediately and stays reserved until a transfer is confirmed.</p>
         <label className="block text-sm font-semibold">Amount (PHP)<input required type="number" min={data.settings.minimum_cashout} max={data.balances.available} step="0.01" value={amount} onChange={event=>{setAmount(event.target.value);setRequestKey(null);}} className={financeField}/></label>
         <label className="block text-sm font-semibold">Payout destination<select required value={destination} onChange={event=>{setDestination(event.target.value);setRequestKey(null);}} className={financeField}><option value="">Choose a BAO destination</option>{wallet.destinations.filter(item=>item.status==="approved").map(item=><option key={item.id} value={item.id}>{item.institution} · ending {item.account_last_four}</option>)}</select></label>
         <button disabled={busy||Number(data.balances.debt)>0||Number(data.balances.available)<Number(data.settings.minimum_cashout)} className={financeButton}>{busy?"Submitting...":"Withdraw commission"}</button>

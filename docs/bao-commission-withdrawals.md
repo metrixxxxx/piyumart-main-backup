@@ -4,8 +4,10 @@ BAO/admin accounts withdraw available commission from the shared BAO wallet on
 `/bao/finance` or `/dashboard/finance`. BAO payout destinations and withdrawals
 do not require manual review or another staff member's approval.
 
-The wallet holds the 3% allocation from confirmed online payments, separate from
-each seller's 97% wallet and estimated/uncollected COD commissions.
+The wallet holds BAO allocations from confirmed online payments, separate from
+seller earnings and estimated/uncollected COD commissions. New orders use
+[item price tiers](bao-item-price-tiers.md): 0% through PHP 500, 3% above PHP 500
+through PHP 5,000, and 5% above PHP 5,000.
 
 ## Withdrawal flow
 
@@ -37,7 +39,7 @@ financial lock, and idempotency rules apply. Concurrent requests cannot overspen
 Pending commission and refund recovery cannot be withdrawn. No seller funds move
 when a BAO request is created or cancelled.
 
-The shared wallet follows the configured release policy. By default, the 3%
+The shared wallet follows the configured release policy. By default, the BAO
 pending allocation becomes available on buyer confirmation of receipt. A refund
 after a completed payout can create recovery debt, blocking new withdrawals and
 offsetting future commission releases. COD estimates do not become wallet funds.

@@ -29,7 +29,17 @@
 }
 
 /* ── DARK MODE (Tailwind v4) ── */
-@variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:where(.dark, .dark *):not(:where(.bao-surface, .bao-surface *)));
+
+.bao-surface {
+  @apply bg-white text-[#0e1a3d];
+  color-scheme: light;
+}
+
+.bao-surface thead th {
+  background-color: #f0f4ff;
+  color: #1a2a6c;
+}
 
 /* ── LSPU COLOR PALETTE ──
    Navy Blue  : #0f1f5c

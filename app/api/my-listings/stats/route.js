@@ -3,6 +3,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { isActiveSellerAccount } from "@/lib/seller-access";
+import { orderCommissionQuoteSql } from "@/lib/bao-commission";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -18,12 +19,13 @@ export async function GET() {
          o.status,
          COALESCE(a.gross_amount-a.refunded_amount,o.total) AS total,
          COALESCE(oc.id::text,a.order_id::text) AS commission_record_id,
-         CASE WHEN a.order_id IS NOT NULL THEN 3 ELSE rate.percentage END AS applicable_rate,
+         COALESCE(oc.commission_rate, CASE WHEN a.order_id IS NOT NULL THEN
+           ROUND(a.commission_amount * 100 / a.gross_amount, 2) END, quote.commission_rate) AS applicable_rate,
          CASE
            WHEN o.status = 'cancelled' THEN 0::numeric
            WHEN a.order_id IS NOT NULL THEN a.commission_amount-a.commission_refunded
            WHEN oc.id IS NOT NULL THEN oc.commission_amount
-           WHEN rate.percentage IS NOT NULL THEN ROUND(o.total * rate.percentage / 100, 2)
+           WHEN quote.commission_amount IS NOT NULL THEN quote.commission_amount
            ELSE 0::numeric
          END AS commission_amount,
          CASE
@@ -31,20 +33,14 @@ export async function GET() {
            WHEN oc.id IS NOT NULL THEN oc.seller_earnings
            ELSE o.total - CASE
              WHEN o.status = 'cancelled' THEN 0::numeric
-             WHEN rate.percentage IS NOT NULL THEN ROUND(o.total * rate.percentage / 100, 2)
+             WHEN quote.commission_amount IS NOT NULL THEN quote.commission_amount
              ELSE 0::numeric
            END
          END AS seller_earnings
        FROM orders AS o
        LEFT JOIN order_commissions AS oc ON oc.order_id = o.id
        LEFT JOIN payment_allocations AS a ON a.order_id = o.id
-       LEFT JOIN LATERAL (
-         SELECT percentage
-         FROM bao_commission_rates
-         WHERE effective_at <= (o.created_at AT TIME ZONE current_setting('TimeZone'))
-         ORDER BY effective_at DESC, created_at DESC, id DESC
-         LIMIT 1
-       ) AS rate ON true
+       ${orderCommissionQuoteSql}
        WHERE o.seller_id = $1
           OR EXISTS (
             SELECT 1

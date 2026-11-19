@@ -15,7 +15,7 @@ export async function GET(req) {
       if (!access.session) return Response.json({ error: "Staff access is required." }, { status: access.status, headers });
       const [rows] = await db.query("SELECT id,role,status FROM users WHERE id=$1", [access.session.user.id]);
       user = rows[0];
-      if (!user || user.status !== "active" || !["bao", "admin"].includes(user.role)) {
+      if (!user || user.status !== "active" || user.role !== "bao") {
         return Response.json({ error: "Forbidden." }, { status: 403, headers });
       }
     } else {

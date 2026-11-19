@@ -163,10 +163,10 @@ export default function HeroSection({ productCount = 0 }) {
       <div className="w-full rounded-2xl overflow-visible flex flex-col lg:flex-row" style={{ minHeight:500, boxShadow:"0 0 0 1.5px rgba(250,187,0,0.25), 0 28px 70px rgba(0,0,0,0.6)" }}>
 
         {/* ── LEFT: hero panel ─────────────────────────────────────── */}
-        <div className="relative lg:w-1/2 flex-shrink-0 flex flex-col justify-center px-8 sm:px-12 py-12 lg:py-10" style={{ minHeight:500, background:"linear-gradient(140deg,#112060 0%,#0c1840 45%,#080f25 100%)" }}>
+        <div className="relative rounded-t-2xl lg:rounded-tr-none lg:rounded-l-2xl lg:w-1/2 flex-shrink-0 flex flex-col justify-center px-8 sm:px-12 py-12 lg:py-10" style={{ minHeight:500, background:"linear-gradient(140deg,#112060 0%,#0c1840 45%,#080f25 100%)" }}>
 
           {/* blue glow */}
-          <div className="absolute inset-0 pointer-events-none"
+          <div className="absolute inset-0 rounded-[inherit] pointer-events-none"
             style={{ background:"radial-gradient(ellipse 70% 60% at 15% 50%,rgba(30,55,140,0.4) 0%,transparent 70%)" }} />
 
           {/* orbs */}
@@ -232,7 +232,7 @@ export default function HeroSection({ productCount = 0 }) {
         </div>
 
         {/* ── RIGHT: slider ────────────────────────────────────────── */}
-        <div className="relative lg:flex-1 overflow-visible bg-[#080d1e]" style={{ minHeight: 280 }}>
+        <div className="relative lg:flex-1 overflow-hidden rounded-b-2xl lg:rounded-bl-none lg:rounded-r-2xl bg-[#080d1e]" style={{ minHeight: 280 }}>
 
           {/* image */}
           {visible && imgSrc && (

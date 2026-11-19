@@ -104,7 +104,7 @@ export async function GET(req) {
     const [assignees] = await db.query(
       `SELECT id, name, last_name, role
        FROM users
-       WHERE role IN ('admin', 'bao') AND status = 'active'
+       WHERE role = 'bao' AND status = 'active'
        ORDER BY role ASC, name ASC, last_name ASC, id ASC`
     );
 

@@ -6,6 +6,7 @@ import { readFile } from "node:fs/promises";
 import pg from "pg";
 import dotenv from "dotenv";
 import { loadFinanceModule } from "./helpers/load-finance-module.mjs";
+import { proofPhoto, withProofStorage } from "./helpers/proof-photo.mjs";
 
 test("BAO reports combine cash and verified online transactions", {
   skip: process.env.PIYUMART_FINANCE_DB_TEST !== "1",
@@ -24,6 +25,9 @@ test("BAO reports combine cash and verified online transactions", {
     const migration = (await readFile("migrations/add_marketplace_payments.sql", "utf8"))
       .replaceAll("public.", `${schema}.`).replaceAll("search_path=public", `search_path=${schema}`);
     await pool.query(migration);
+    const tierMigration = (await readFile("migrations/add_bao_item_price_tiers.sql", "utf8"))
+      .replaceAll("public.", `${schema}.`).replaceAll("search_path=public", `search_path=${schema}`);
+    await pool.query(tierMigration);
     const db = {
       query: async (sql, values) => [(await pool.query(sql, values)).rows],
       transaction: async (callback) => {
@@ -49,7 +53,7 @@ test("BAO reports combine cash and verified online transactions", {
       if (path.endsWith("/expire")) session.attributes.status = "expired";
       return Response.json({ data: session });
     };
-    const options = { db, env, fetch: provider, staff: { id: 3, role: "bao", status: "active" } };
+    const options = withProofStorage({ db, env, fetch: provider, staff: { id: 3, role: "bao", status: "active" } });
     const checkout = await loadFinanceModule("lib/payments/checkout.js", options);
     const lifecycle = await loadFinanceModule("lib/payments/events.js", options);
     const commission = await loadFinanceModule("lib/bao-commission.js", options);
@@ -77,7 +81,7 @@ test("BAO reports combine cash and verified online transactions", {
       for (const id of order.orderIds) {
         const [row] = await query("SELECT seller_id FROM orders WHERE id=$1", [id]);
         for (const status of ["confirmed", "processing", "shipped"]) await lifecycle.transitionOnlineOrder(row.seller_id, id, { status });
-        await lifecycle.transitionOnlineOrder(1, id, { action: "confirm_delivery" });
+        await lifecycle.transitionOnlineOrder(1, id, { action: "confirm_delivery" }, proofPhoto());
       }
     };
     const refund = async (order, amount) => {
@@ -93,7 +97,7 @@ test("BAO reports combine cash and verified online transactions", {
       await query("INSERT INTO bao_commission_rates(percentage,effective_at,changed_by,notes) VALUES(7,'2000-01-01',3,'Synthetic cash rate')");
       cash = await checkout.createMarketplaceOrders(1, { ...input, payment_method: "cod" }, randomUUID());
       await db.transaction(async (client) => {
-        await client.query("UPDATE orders SET status='completed',completed_at=now() WHERE id=$1", [cash.orderIds[0]]);
+        await client.query("UPDATE orders SET status='completed',completed_at=now(),bao_commission_amount=NULL WHERE id=$1", [cash.orderIds[0]]);
         await commission.recordOrderCommission(client, cash.orderIds[0]);
       });
       online = await makeOnline();
@@ -203,6 +207,93 @@ test("BAO reports combine cash and verified online transactions", {
       for (const search of ["from=2026-02-30", "page=-1", "page=1.5", "from=2030-01-01&to=2000-01-01"]) {
         assert.equal((await api.GET(new Request(`http://localhost/api/bao/commissions?${search}`))).status, 400);
       }
+    });
+
+    await t.test("tier migration replays without altering historical allocations or commissions", async () => {
+      const snapshot = async () => query(`SELECT
+        (SELECT jsonb_agg(a ORDER BY order_id) FROM payment_allocations a) AS allocations,
+        (SELECT jsonb_agg(c ORDER BY order_id) FROM order_commissions c) AS commissions,
+        (SELECT jsonb_agg(w ORDER BY id) FROM wallet_transactions w) AS ledger`);
+      const before = await snapshot();
+      await pool.query(tierMigration);
+      assert.deepEqual(await snapshot(), before);
+    });
+
+    await t.test("new cash and online orders snapshot each price tier independently of quantity", async () => {
+      const cases = [["499.99", 3, "0.00"], ["500.00", 3, "0.00"],
+        ["500.01", 1, "15.00"], ["5000.00", 1, "150.00"],
+        ["5000.01", 1, "250.00"], ["10000.00", 1, "500.00"],
+        ["10000.01", 1, "500.00"]];
+      for (const [price, quantity, expected] of cases) {
+        const [product] = await query("INSERT INTO products(seller_id,name,price,stock,status,is_visible) VALUES(2,'Tier fixture',$1,100,'approved',true) RETURNING id", [price]);
+        const items = [{ product_id: product.id, quantity }];
+        for (const payment_method of ["cod", "paymongo"]) {
+          const key = randomUUID();
+          const order = await checkout.createMarketplaceOrders(1, { ...input, payment_method, items }, key);
+          const retry = await checkout.createMarketplaceOrders(1, { ...input, payment_method, items }, key);
+          assert.deepEqual([...retry.orderIds], [...order.orderIds]);
+          const [quote] = await query("SELECT bao_commission_amount,total FROM orders WHERE id=$1", [order.orderIds[0]]);
+          assert.equal(quote.bao_commission_amount, expected, `${payment_method}: ${price} x ${quantity}`);
+          if (payment_method === "cod") {
+            await db.transaction(async client => {
+              await client.query("UPDATE orders SET status='completed',completed_at=now() WHERE id=$1", [order.orderIds[0]]);
+              const record = await commission.recordOrderCommission(client, order.orderIds[0]);
+              assert.equal(record.commission_amount, expected);
+              assert.equal(record.commission_rate_id, null);
+              assert.equal(await commission.recordOrderCommission(client, order.orderIds[0]), null);
+            });
+          } else {
+            const [allocation] = await query("SELECT * FROM payment_allocations WHERE order_id=$1", [order.orderIds[0]]);
+            assert.equal(allocation.commission_amount, expected);
+            assert.equal(Number(allocation.seller_amount) + Number(expected), Number(quote.total));
+          }
+        }
+      }
+    });
+
+    await t.test("mixed items and variant prices flow through seller reports and refunded online earnings", async () => {
+      const ids = [];
+      for (const price of [400, 1000, 6000]) {
+        const [product] = await query("INSERT INTO products(seller_id,name,price,stock,status,is_visible) VALUES(2,'Mixed tier fixture',$1,100,'approved',true) RETURNING id", [price]);
+        ids.push(product.id);
+      }
+      await query("INSERT INTO product_variants(product_id,label,price_override) VALUES($1,'Premium',6000)", [ids[0]]);
+      const items = [{ product_id: ids[0], quantity: 4 }, { product_id: ids[1], quantity: 2 }, { product_id: ids[2], quantity: 1 }];
+      const cashOrder = await checkout.createMarketplaceOrders(1, { ...input, payment_method: "cod", items }, randomUUID());
+      const sellerOptions = { ...options, account: { id: 2, role: "seller", status: "active" } };
+      const sellerApi = await loadFinanceModule("app/api/seller/orders/route.js", sellerOptions);
+      const sellerRows = await (await sellerApi.GET(new Request("http://localhost/api/seller/orders?pageSize=48"))).json();
+      const estimate = sellerRows.find(row => row.id === cashOrder.orderIds[0]);
+      assert.equal(Number(estimate.commission_amount), 360); assert.equal(Number(estimate.commission_rate), 3.75);
+      assert.equal(Number(estimate.seller_earnings), 9240);
+      await query("UPDATE products SET price=100 WHERE id=ANY($1::integer[])", [ids]);
+      await db.transaction(async client => {
+        await client.query("UPDATE orders SET status='completed',completed_at=now() WHERE id=$1", [cashOrder.orderIds[0]]);
+        assert.equal(Number((await commission.recordOrderCommission(client, cashOrder.orderIds[0])).commission_amount), 360);
+      });
+      const statsApi = await loadFinanceModule("app/api/my-listings/stats/route.js", sellerOptions);
+      const stats = await (await statsApi.GET()).json();
+      assert.ok(Number(stats.commission) >= 360); assert.equal(stats.unrecordedCompletedOrders, 0);
+
+      const order = await makeOnline([{ product_id: ids[0], quantity: 1, variant: "Premium" }]);
+      await assert.rejects(query("UPDATE payment_allocations SET commission_amount=180,seller_amount=5820 WHERE order_id=$1", [order.orderIds[0]]), error => error.code === "23514");
+      await pay(order); await complete(order);
+      let row = (await report()).history.records.find(r => r.order_id === order.orderIds[0]);
+      assert.equal(Number(row.commission_amount), 300); assert.equal(Number(row.commission_rate), 5);
+      await refund(order, 200000);
+      row = (await report()).history.records.find(r => r.order_id === order.orderIds[0]);
+      assert.equal(Number(row.order_amount), 4000); assert.equal(Number(row.commission_amount), 200);
+      assert.equal(Number(row.commission_rate), 5); assert.equal(Number(row.seller_earnings), 3800);
+    });
+
+    await t.test("flat-rate updates cannot override the item tiers", async () => {
+      const before = await query("SELECT count(*)::int AS n FROM bao_commission_rates");
+      assert.equal((await api.POST(new Request("http://localhost/api/bao/commissions", {
+        method: "POST", body: JSON.stringify({ percentage: 20, reason: "Fixture" }),
+      }))).status, 409);
+      assert.deepEqual(await query("SELECT count(*)::int AS n FROM bao_commission_rates"), before);
+      const unauthorized = await loadFinanceModule("app/api/bao/commissions/route.js", { db });
+      assert.equal((await unauthorized.POST()).status, 401);
     });
   } finally {
     if (pool) await pool.end();

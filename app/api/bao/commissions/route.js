@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import { getBaoAccess } from "@/lib/bao-access";
-import { db } from "@/lib/db";
-import { lockCommissionSchedule } from "@/lib/bao-commission";
+import { BAO_COMMISSION_TIERS } from "@/lib/commission-policy";
 import { readCommissionReport } from "@/lib/bao-commission-report";
 
 const PAGE_SIZE = 50;
-const PROPOSED_INITIAL_RATE = 3;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function formatDate(date) {
@@ -64,7 +62,7 @@ export async function GET(req) {
 
     const report = await readCommissionReport({ from, to, requestedPage, pageSize: PAGE_SIZE });
     return NextResponse.json(
-      { proposedInitialRate: PROPOSED_INITIAL_RATE, ...report },
+      { commissionTiers: BAO_COMMISSION_TIERS, ...report },
       { headers: { "Cache-Control": "private, no-store" } }
     );
   } catch (error) {
@@ -76,7 +74,7 @@ export async function GET(req) {
   }
 }
 
-export async function POST(req) {
+export async function POST() {
   try {
     const access = await getBaoAccess();
     if (!access.session) {
@@ -86,94 +84,9 @@ export async function POST(req) {
       );
     }
 
-    let body;
-    try {
-      body = await req.json();
-    } catch {
-      return NextResponse.json({ error: "Invalid commission rate request." }, { status: 400 });
-    }
-
-    const percentageInput = body?.percentage;
-    const percentage =
-      typeof percentageInput === "number" ||
-      (typeof percentageInput === "string" && percentageInput.trim() !== "")
-        ? Number(percentageInput)
-        : Number.NaN;
-    const reason = typeof body?.reason === "string" ? body.reason.trim() : "";
-
-    if (!Number.isFinite(percentage) || percentage <= 0 || percentage > 100) {
-      return NextResponse.json(
-        { error: "Commission rate must be greater than 0% and no more than 100%." },
-        { status: 400 }
-      );
-    }
-    if (!reason) {
-      return NextResponse.json(
-        { error: "A reason is required to set or change the commission rate." },
-        { status: 400 }
-      );
-    }
-    if (reason.length > 1000) {
-      return NextResponse.json(
-        { error: "Reason must be 1,000 characters or fewer." },
-        { status: 400 }
-      );
-    }
-
-    const result = await db.transaction(async (client) => {
-      await lockCommissionSchedule(client);
-      const { rows: currentRows } = await client.query(
-        `SELECT id, percentage, effective_at
-         FROM bao_commission_rates
-         WHERE effective_at <= clock_timestamp()
-         ORDER BY effective_at DESC, created_at DESC, id DESC
-         LIMIT 1`
-      );
-      const currentRate = currentRows[0] || null;
-
-      if (currentRate && Number(currentRate.percentage) === percentage) {
-        return { error: "The requested rate is already current.", status: 409 };
-      }
-
-      const { rows: insertedRows } = await client.query(
-        `INSERT INTO bao_commission_rates (percentage, effective_at, changed_by, notes)
-         VALUES ($1, clock_timestamp(), $2, $3)
-         RETURNING id, percentage, effective_at, changed_by, notes, created_at`,
-        [percentage, access.session.user.id, reason]
-      );
-      const rate = insertedRows[0];
-
-      await client.query(
-        `INSERT INTO bao_audit_logs
-           (actor_id, action, entity_type, entity_id, reason, metadata)
-         VALUES (
-           $1, 'commission_rate_updated', 'commission_rate', $2, $3,
-           jsonb_build_object(
-             'previous_percentage', $4::numeric,
-             'new_percentage', $5::numeric,
-             'effective_at', $6::timestamptz
-           )
-         )`,
-        [
-          access.session.user.id,
-          rate.id,
-          reason,
-          currentRate?.percentage ?? null,
-          rate.percentage,
-          rate.effective_at,
-        ]
-      );
-
-      return { rate };
-    });
-
-    if (result.error) {
-      return NextResponse.json({ error: result.error }, { status: result.status });
-    }
-
     return NextResponse.json(
-      { success: true, rate: result.rate },
-      { headers: { "Cache-Control": "private, no-store" } }
+      { error: "BAO commission now follows item price tiers. A flat commission rate can no longer be set." },
+      { status: 409 }
     );
   } catch (error) {
     console.error("BAO commission rate update failed:", error);

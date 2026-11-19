@@ -24,6 +24,7 @@ test("user deletion works through direct SQL and the admin API", { skip: process
     };
     await install("tests/fixtures/finance-base.sql");
     await install("migrations/add_marketplace_payments.sql");
+    await install("migrations/add_bao_item_price_tiers.sql");
     await install("migrations/add_bao_commission_cashouts.sql");
     await install("migrations/add_reviews_and_sold_count.sql");
     await install("migrations/add_marketplace_realtime.sql");

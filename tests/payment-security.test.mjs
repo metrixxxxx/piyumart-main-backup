@@ -3,12 +3,28 @@ import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { loadFinanceModule } from "./helpers/load-finance-module.mjs";
 
-test("PHP arithmetic preserves centavos and exact 97/3 allocation",async()=>{
+test("PHP arithmetic preserves centavos with item price commission tiers",async()=>{
   const m=await loadFinanceModule("lib/payments/money.js");
   assert.equal(m.cents("1000.00"),100000);assert.equal(m.splitAmount(100000).seller,97000);assert.equal(m.splitAmount(100000).commission,3000);
-  for(let value=1;value<10000;value++){const split=m.splitAmount(value);assert.equal(split.seller+split.commission,value);}
+  for(let value=1;value<1200000;value+=137){const split=m.splitAmount(value);assert.equal(split.seller+split.commission,value);}
   for(const invalid of ["-1","NaN","1e3","1.001","Infinity"])assert.throws(()=>m.cents(invalid));
   assert.equal(m.proportional(7,[1,2,3]).reduce((sum,value)=>sum+value,0),7);
+});
+
+test("BAO tier boundaries use unit prices before quantity, including above PHP 10,000",async()=>{
+  const m=await loadFinanceModule("lib/payments/money.js");
+  for(const [price,commission] of [[0,0],[49999,0],[50000,0],[50001,1500],
+    [500000,15000],[500001,25000],[1000000,50000],[1000001,50000],[2000000,100000]]) {
+    const split=m.splitAmount(price);assert.equal(split.commission,commission,`price ${price}`);
+    assert.equal(split.seller,price-commission);
+  }
+  assert.equal(m.splitAmount(40000,300).commission,0);
+  assert.equal(m.splitAmount(100000,10).commission,30000);
+  assert.equal(m.splitAmount(50050,3).commission,4505,"round each line once to the nearest centavo");
+  const mixed=m.splitOrderItems([{price:40000,quantity:4},{price:100000,quantity:2},{price:600000,quantity:1}]);
+  assert.equal(mixed.gross,960000);assert.equal(mixed.commission,36000);assert.equal(mixed.seller,924000);
+  for(const invalid of [-1,1.5,NaN,Infinity])assert.throws(()=>m.splitAmount(invalid));
+  for(const invalid of [0,-1,1.5,NaN])assert.throws(()=>m.splitAmount(100000,invalid));
 });
 test("webhooks require the raw body, test signature, matching HMAC and a recent timestamp",async()=>{
   const secret="fixture-webhook-secret",now=Date.now(),timestamp=String(Math.floor(now/1000)),raw=JSON.stringify({data:{id:"evt_fixture",attributes:{livemode:false}}});

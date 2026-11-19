@@ -67,12 +67,12 @@ const HIDDEN_CATEGORY_NAMES = new Set(["toys", "home & living", "food & drinks"]
 
 function SkeletonCard() {
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 animate-pulse dark:border-white/10 dark:bg-slate-900">
-      <div className="aspect-[3/2] rounded-xl bg-slate-200 dark:bg-slate-700" />
-      <div className="space-y-2 pt-3">
+    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white p-1.5 animate-pulse dark:border-white/10 dark:bg-slate-900 sm:rounded-2xl sm:p-3">
+      <div className="aspect-square rounded-md bg-slate-200 dark:bg-slate-700 sm:aspect-[3/2] sm:rounded-xl" />
+      <div className="space-y-1 pt-1.5 sm:space-y-2 sm:pt-3">
         <div className="h-4 w-3/4 rounded bg-slate-200 dark:bg-slate-700" />
         <div className="h-4 w-1/2 rounded bg-slate-200 dark:bg-slate-700" />
-        <div className="mt-3 h-8 rounded bg-slate-200 dark:bg-slate-700" />
+        <div className="mt-1 h-4 rounded bg-slate-200 dark:bg-slate-700 sm:mt-3 sm:h-8" />
       </div>
     </div>
   );
@@ -115,7 +115,7 @@ export default function HomePage() {
   );
 
   return (
-    <main className="min-h-screen scroll-smooth bg-[#f0eeff] transition-colors duration-300 dark:bg-[#070b14]">
+    <main className="isolate min-h-screen scroll-smooth bg-[#f0eeff] transition-colors duration-300 dark:bg-[#070b14]">
 
       {/* ── HERO ── */}
       <section className="mx-auto max-w-7xl border-b border-[#c5cfe8] px-3 pb-8 pt-4 sm:px-5 sm:pb-10 sm:pt-6 dark:border-white/10">
@@ -126,7 +126,7 @@ export default function HomePage() {
       <section className="mx-auto max-w-7xl px-3 pb-10 pt-7 sm:px-5 sm:pt-9">
 
         {/* category tabs */}
-        <div className="sticky top-[76px] z-40 -mx-3 mb-7 bg-[#f0eeff]/95 px-3 py-3 backdrop-blur-md dark:bg-[#070b14]/95 sm:-mx-5 sm:px-5 md:top-[84px]">
+        <div className="sticky top-16 z-30 -mx-3 mb-7 bg-[#f0eeff]/95 px-3 py-3 backdrop-blur-md dark:bg-[#070b14]/95 sm:-mx-5 sm:px-5 md:top-[84px]">
           <div className="flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-none sm:flex-wrap">
           <button
             onClick={() => { setCategory("all");setPage(1); }}
@@ -178,7 +178,7 @@ export default function HomePage() {
         </div>
 
         {/* product grid */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-[repeat(auto-fill,minmax(190px,1fr))] lg:grid-cols-[repeat(auto-fill,minmax(190px,1fr))]">
+        <div className="grid grid-cols-4 gap-1.5 sm:gap-4 sm:grid-cols-[repeat(auto-fill,minmax(190px,1fr))] lg:grid-cols-[repeat(auto-fill,minmax(190px,1fr))]">
           {loading
             ? Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={i} />)
             : displayed.length === 0

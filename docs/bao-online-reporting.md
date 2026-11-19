@@ -30,7 +30,9 @@ online test-mode badge, disabled state, keyboard focus and dark styling are kept
 
 ## Deployment and verification
 
-No database migration or financial backfill is needed. Restart the local app or
+The reporting fix alone needs no database migration or financial backfill.
+The newer [item price tier policy](bao-item-price-tiers.md) requires its migration
+before deploying the updated checkout. Restart the local app or
 redeploy the application after the repository cleanup. Existing online allocations
 are picked up automatically; the read-only validation included both existing
 completed online orders. No production orders, wallet entries or balances were
@@ -53,7 +55,8 @@ changed for this fix.
    commission decrease correctly; the historical transaction remains visible.
    Cancelling an unpaid checkout should not add a commission transaction.
 6. Complete a cash order. Its original scheduled rate should remain unchanged,
-   alongside the online 3% records. Check date filters and history pagination.
+   alongside the online allocation records. New orders use the
+   [item price tiers](bao-item-price-tiers.md). Check date filters and history pagination.
 7. Anonymous and ordinary buyer/seller sessions must be denied access to both
    BAO report endpoints.
 

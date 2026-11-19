@@ -21,7 +21,7 @@ export default function ChatMessage({ role, content }) {
       )}
 
       <div
-        className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed max-w-[80%] break-words
+        className={`min-w-0 px-4 py-2.5 rounded-2xl text-sm leading-relaxed max-w-[80%] [overflow-wrap:anywhere]
           ${isUser
             ? 'bg-blue-900 text-white rounded-br-sm'
             : 'bg-gray-100 dark:bg-[#1e1e2e] text-gray-800 dark:text-[#e2e2f0] rounded-bl-sm'

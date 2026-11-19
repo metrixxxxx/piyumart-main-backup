@@ -6,6 +6,7 @@ import {readFile} from "node:fs/promises";
 import pg from "pg";
 import dotenv from "dotenv";
 import {loadFinanceModule} from "./helpers/load-finance-module.mjs";
+import {proofPhoto,withProofStorage} from "./helpers/proof-photo.mjs";
 
 test("BAO commission withdrawal lifecycle",{skip:process.env.PIYUMART_FINANCE_DB_TEST!=="1"},async t=>{
   dotenv.config({path:".env.local",quiet:true});
@@ -19,6 +20,7 @@ test("BAO commission withdrawal lifecycle",{skip:process.env.PIYUMART_FINANCE_DB
     const query=async(sql,values)=>(await pool.query(sql,values)).rows;
     const migrate=async path=>pool.query((await readFile(path,"utf8")).replaceAll("public.",`${schema}.`).replaceAll("search_path=public",`search_path=${schema}`));
     await pool.query(await readFile("tests/fixtures/finance-base.sql","utf8"));await migrate("migrations/add_marketplace_payments.sql");
+    await migrate("migrations/add_bao_item_price_tiers.sql");
     const legacyDestination=randomUUID(),legacyCashout=randomUUID();
     await query("INSERT INTO wallet_destinations(id,seller_id,institution,account_name,account_number_encrypted,account_last_four,fingerprint,status) VALUES($1,2,'TESTPHMM','Legacy fixture','original-ciphertext','4567','legacy-fixture','approved')",[legacyDestination]);
     await query("INSERT INTO cashout_requests(id,wallet_id,seller_id,destination_id,amount,idempotency_key,status) SELECT $1,id,2,$2,100,$3,'rejected' FROM wallets WHERE owner_id=2",[legacyCashout,legacyDestination,randomUUID()]);
@@ -44,7 +46,7 @@ test("BAO commission withdrawal lifecycle",{skip:process.env.PIYUMART_FINANCE_DB
       throw new Error("Unexpected fixture provider request");
     };
     const env={WALLET_ENCRYPTION_KEY:"ab".repeat(32),PAYMONGO_SECRET_KEY:"sk_test_fixture",PAYMONGO_PAYOUTS_ENABLED:"true",APP_URL:"http://localhost:3000"};
-    const options={db,env,fetch:provider,notificationFailure:()=>notificationFailure};
+    const options=withProofStorage({db,env,fetch:provider,notificationFailure:()=>notificationFailure});
     const wallet=await loadFinanceModule("lib/payments/wallet.js",options),checkout=await loadFinanceModule("lib/payments/checkout.js",options),lifecycle=await loadFinanceModule("lib/payments/events.js",options);
     const destinationInput={institution:"TESTPHMM",account_name:"Demo BAO",account_number:"09171234567"};
     const event=(type,resource)=>({id:`evt_bao${++eventNumber}`,attributes:{type,livemode:false,data:resource}});
@@ -54,7 +56,7 @@ test("BAO commission withdrawal lifecycle",{skip:process.env.PIYUMART_FINANCE_DB
       session.attributes.payments=[{id:`pay_bao${sessions.size}`,attributes:{status:"paid",currency:"PHP",amount:100000*quantity,livemode:false}}];
       const payload=event("checkout_session.payment.paid",session);await lifecycle.processPaymentEvent(payload,JSON.stringify(payload));return {...order,session};
     }
-    async function complete(order){for(const status of ["confirmed","processing","shipped"])await lifecycle.transitionOnlineOrder(2,order.orderIds[0],{status});await lifecycle.transitionOnlineOrder(1,order.orderIds[0],{action:"confirm_delivery"});}
+    async function complete(order){for(const status of ["confirmed","processing","shipped"])await lifecycle.transitionOnlineOrder(2,order.orderIds[0],{status});await lifecycle.transitionOnlineOrder(1,order.orderIds[0],{action:"confirm_delivery"},proofPhoto());}
     const balance=async()=>(await wallet.financeDashboard()).balances;
     const transfer=(id,status,amount=10000)=>({id,attributes:{livemode:false,status,currency:"PHP",amount,destination_account:{bic:"TESTPHMM",name:"Demo BAO",number:"09171234567"}}});
     let destination,funded,request,key;

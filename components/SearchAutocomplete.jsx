@@ -10,7 +10,9 @@ const CATEGORIES = [
   "Food & Drinks", "Home & Living", "Sports", "Beauty", "Toys"
 ];
 
-export default function SearchAutocomplete() {
+export default function SearchAutocomplete({ variant = "default" }) {
+  const header = variant === "header";
+  const InputContainer = header ? "form" : "div";
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -112,6 +114,14 @@ export default function SearchAutocomplete() {
     setNotFound(false);
   }
 
+  function handleSearchSubmit(event) {
+    event.preventDefault();
+    if (!query.trim()) { inputRef.current?.focus(); return; }
+    router.push(`/?q=${encodeURIComponent(query.trim())}`);
+    setIsOpen(false);
+    setActiveIndex(-1);
+  }
+
   function handleKeyDown(e) {
     if (!isOpen) return;
     if (e.key === "ArrowDown") {
@@ -137,30 +147,34 @@ export default function SearchAutocomplete() {
   return (
     <div ref={containerRef} className="relative w-full">
       {/* SEARCH INPUT */}
-      <div className="relative">
-        <svg
+      <InputContainer role={header ? "search" : undefined} aria-label={header ? "Marketplace search" : undefined}
+        action={header ? "/" : undefined} onSubmit={header ? handleSearchSubmit : undefined}
+        className={header ? "relative flex h-11 w-full rounded-sm border border-[#1a2a6c] bg-white focus-within:ring-2 focus-within:ring-[#FABB00] dark:border-[#FABB00]/70 dark:bg-[#101a30]" : "relative"}>
+        {!header && <svg
           className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#0f1f5c] dark:text-[#FABB00] pointer-events-none"
           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-        </svg>
+        </svg>}
 
         <input
                 maxLength={100}
           ref={inputRef}
           type="text"
-          placeholder="Search by keyword, category, or price..."
+          name={header ? "q" : undefined}
+          aria-label="Search products"
+          placeholder={header ? "Search products..." : "Search by keyword, category, or price..."}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => {
             if (query.trim() && (suggestions.length > 0 || notFound)) setIsOpen(true);
           }}
           onKeyDown={handleKeyDown}
-          className="h-11 w-full rounded-xl border-[1.5px] border-[#c5cfe8] bg-white py-2 pl-10 pr-10 text-sm text-[#0e1a3d] outline-none placeholder:text-slate-600 transition-colors focus:border-[#FABB00] focus:ring-2 focus:ring-[#FABB00] dark:border-white/15 dark:bg-slate-900 dark:text-[#e8edf8] dark:placeholder:text-slate-300"
+          className={header ? "min-w-0 flex-1 rounded-l-sm bg-transparent py-2 pl-3 pr-10 text-sm text-[#0e1a3d] outline-none placeholder:text-slate-500 dark:text-[#e8edf8] dark:placeholder:text-slate-400" : "h-11 w-full rounded-xl border-[1.5px] border-[#c5cfe8] bg-white py-2 pl-10 pr-10 text-sm text-[#0e1a3d] outline-none placeholder:text-slate-600 transition-colors focus:border-[#FABB00] focus:ring-2 focus:ring-[#FABB00] dark:border-white/15 dark:bg-slate-900 dark:text-[#e8edf8] dark:placeholder:text-slate-300"}
         />
 
         {loading && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+          <div className={`absolute top-1/2 -translate-y-1/2 ${header ? "right-[4.25rem]" : "right-3"}`}>
             <div className="w-4 h-4 border-2 border-[#1a2a6c]/20 dark:border-[#FABB00]/20 border-t-[#1a2a6c] dark:border-t-[#FABB00] rounded-full animate-spin" />
           </div>
         )}
@@ -177,12 +191,17 @@ export default function SearchAutocomplete() {
               setActiveIndex(-1);
               inputRef.current?.focus();
             }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#0e1a3d]/40 dark:text-[#e8edf8]/40 hover:text-[#0e1a3d] dark:hover:text-[#e8edf8] transition-colors"
+            className={`absolute top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center text-sm text-[#0e1a3d]/40 transition-colors hover:text-[#0e1a3d] dark:text-[#e8edf8]/40 dark:hover:text-[#e8edf8] ${header ? "right-[4.25rem]" : "right-3"}`}
           >
             ✕
           </button>
         )}
-      </div>
+        {header && <button type="submit" aria-label="Submit product search" className="flex w-14 shrink-0 items-center justify-center rounded-r-[1px] bg-[#1a2a6c] text-[#FABB00] transition-colors hover:bg-[#13214c] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FABB00]">
+          <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+          </svg>
+        </button>}
+      </InputContainer>
 
       {/* DROPDOWN */}
       {isOpen && (
@@ -249,7 +268,7 @@ export default function SearchAutocomplete() {
                     <p className="text-sm font-semibold text-[#0e1a3d] dark:text-[#e8edf8] truncate">
                       {highlightMatch(product.name, query)}
                     </p>
-                    <div className="flex items-center gap-2 text-xs text-[#0e1a3d]/50 dark:text-[#e8edf8]/50 mt-0.5">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[#0e1a3d]/50 dark:text-[#e8edf8]/50">
                       <span className="font-bold text-[#1a2a6c] dark:text-[#FABB00]">
                         ₱{Number(product.price || 0).toLocaleString()}
                       </span>

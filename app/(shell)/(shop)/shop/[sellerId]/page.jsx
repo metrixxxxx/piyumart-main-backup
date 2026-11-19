@@ -1,0 +1,268 @@
+// app/(shop)/shop/[sellerId]/page.jsx
+"use client";
+import Pagination from "@/components/ui/Pagination";
+import { usePagedResource } from "@/lib/usePagedResource";
+import { getCategories } from "@/lib/client-catalog";
+import { useCatalogRealtime } from "@/lib/realtime/useCatalogRealtime";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import Image from "next/image";
+import ProductCard from "@/components/products/ProductCard";
+
+const SORT_OPTIONS = [
+  { value: "newest", label: "Newest" },
+  { value: "best_rated", label: "Top Rated" },
+  { value: "most_sold", label: "Most Sold" },
+  { value: "price_low", label: "Price ↑" },
+  { value: "price_high", label: "Price ↓" },
+];
+
+export default function ShopPage() {
+  const { sellerId } = useParams();
+  const router = useRouter();
+  const { data: session } = useSession();
+
+  const [sellerInfo, setSellerInfo] = useState(null);
+  const [sortBy, setSortBy] = useState("newest");
+
+  useEffect(() => {
+    async function fetchSellerInfo() {
+      try {
+        const res = await fetch(`/api/seller/${sellerId}`);
+        if (res.ok) setSellerInfo(await res.json());
+      } catch (err) {
+        console.error("Seller info error:", err);
+      }
+    }
+
+    fetchSellerInfo();
+  }, [sellerId]);
+
+  const [page,setPage]=useState(1);
+  const query=new URLSearchParams({page:String(page),sortBy,seller_id:String(sellerId)});
+  const catalog=usePagedResource("/api/products?"+query,{enabled:!!sellerId,identity:session?.user?.id,onPageChange:setPage});
+  const products=catalog.items,displayed=products,loading=!catalog.loaded;
+  useCatalogRealtime(catalog.reload);
+  useEffect(()=>{setPage(1);},[sellerId,sortBy]);
+
+  const displayName = sellerInfo?.seller_name || "Shop";
+  const sellerImage = typeof sellerInfo?.seller_image === "string"
+    ? sellerInfo.seller_image.trim()
+    : "";
+  const sellerImageSrc = sellerImage && !sellerImage.startsWith("http") && !sellerImage.startsWith("/")
+    ? `/${sellerImage}`
+    : sellerImage;
+
+  const initials = displayName
+    .split(" ")
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  const memberSince = sellerInfo?.member_since
+    ? new Date(sellerInfo.member_since).toLocaleDateString("en-PH", {
+        year: "numeric",
+        month: "short",
+      })
+    : null;
+
+  return (
+    <main className="min-h-screen bg-[#f0eeff] dark:bg-[#070b14] transition-colors duration-300">
+      {/* Seller Header */}
+      <section className="bg-[#1a2a6c] dark:bg-[#0a0e1f] relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -top-10 -right-10 w-52 h-52 rounded-full bg-white/[0.04]" />
+          <div className="absolute bottom-0 left-1/4 w-32 h-32 rounded-full bg-[#c9a028]/10" />
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-8">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-1.5 text-white/50 hover:text-white text-xs font-semibold mb-6 transition-colors group"
+          >
+            <svg
+              className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2.5}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+            Back
+          </button>
+
+          <div className="flex items-start gap-4 sm:gap-6">
+            {/* Avatar */}
+            <div className="relative shrink-0">
+              <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white text-xl font-extrabold text-[#1a2a6c] shadow-lg shadow-black/30 ring-2 ring-white/50 sm:h-20 sm:w-20 sm:text-2xl">
+                {initials}
+                {sellerImage && (
+                  <Image
+                    key={sellerImageSrc}
+                    src={sellerImageSrc}
+                    alt={`${displayName} profile`}
+                    fill
+                    sizes="80px"
+                    unoptimized
+                    onError={(event) => { event.currentTarget.hidden = true; }}
+                    className="object-cover"
+                  />
+                )}
+              </div>
+
+              <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-[#1a2a6c]" />
+            </div>
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">
+                {displayName}
+              </h1>
+
+              {memberSince && (
+                <p className="text-white/40 text-[11px] mt-0.5">
+                  Member since {memberSince}
+                </p>
+              )}
+
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-3 mt-4 max-w-xs sm:max-w-sm">
+                <div className="text-center">
+                  <p className="text-white font-extrabold text-base leading-tight">
+                    {sellerInfo
+                      ? Number(sellerInfo.avg_rating) > 0
+                        ? sellerInfo.avg_rating
+                        : "—"
+                      : "—"}
+                  </p>
+
+                  <p className="text-white/40 text-[10px] mt-0.5 flex items-center justify-center gap-0.5">
+                    <svg
+                      className="w-2.5 h-2.5 text-[#c9a028]"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    Rating
+                  </p>
+                </div>
+
+                <div className="text-center border-x border-white/10">
+                  <p className="text-white font-extrabold text-base leading-tight">
+                    {sellerInfo
+                      ? Number(sellerInfo.total_sold).toLocaleString()
+                      : "—"}
+                  </p>
+
+                  <p className="text-white/40 text-[10px] mt-0.5">Sold</p>
+                </div>
+
+                <div className="text-center">
+                  <p className="text-white font-extrabold text-base leading-tight">
+                    {sellerInfo
+                      ? Number(sellerInfo.total_products).toLocaleString()
+                      : "—"}
+                  </p>
+
+                  <p className="text-white/40 text-[10px] mt-0.5">
+                    Products
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            
+          </div>
+        </div>
+      </section>
+
+      {/* Sort Bar */}
+      <div className="bg-white dark:bg-[#0e1520] border-b border-[#c5cfe8] dark:border-white/[0.07] sticky top-0 z-10 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5">
+            <span className="text-[10px] font-bold text-[#0e1a3d]/40 dark:text-[#e8edf8]/30 uppercase tracking-wider pr-3 shrink-0">
+              Sort:
+            </span>
+
+            {SORT_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setSortBy(opt.value)}
+                className={`shrink-0 px-4 py-3 text-xs font-semibold whitespace-nowrap border-b-2 transition-colors
+                  ${
+                    sortBy === opt.value
+                      ? "border-[#1a2a6c] dark:border-[#c9a028] text-[#1a2a6c] dark:text-[#c9a028]"
+                      : "border-transparent text-[#0e1a3d]/50 dark:text-[#e8edf8]/40 hover:text-[#0e1a3d] dark:hover:text-[#e8edf8]"
+                  }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+
+            <div className="ml-auto shrink-0 pl-4">
+              <span className="text-[11px] font-semibold text-[#0e1a3d]/40 dark:text-[#e8edf8]/30">
+                {catalog.pagination.total} result
+                {catalog.pagination.total !== 1 ? "s" : ""}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Products */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-5">
+        {loading ? (
+          <div className="flex items-center justify-center py-24">
+            <div className="text-center">
+              <div className="w-10 h-10 border-[3px] border-[#c5cfe8] dark:border-white/10 border-t-[#1a2a6c] dark:border-t-[#c9a028] rounded-full mx-auto mb-4 animate-spin" />
+
+              <p className="text-sm text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">
+                Loading products...
+              </p>
+            </div>
+          </div>
+        ) : displayed.length === 0 ? (
+          <div className="text-center py-24 bg-white dark:bg-[#0e1520] border border-[#c5cfe8] dark:border-white/[0.07] rounded-sm">
+            <div className="text-5xl mb-4">🛍️</div>
+
+            <h2 className="text-base font-bold text-[#0e1a3d] dark:text-[#e8edf8] mb-2">
+              No products yet
+            </h2>
+
+            <p className="text-sm text-[#0e1a3d]/50 dark:text-[#e8edf8]/40 mb-6">
+              This seller has no active listings.
+            </p>
+
+            <button
+              onClick={() => router.push("/")}
+              className="bg-[#1a2a6c] text-white px-6 py-2.5 rounded-sm text-sm font-bold hover:bg-[#142060] transition"
+            >
+              Browse All Products
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-4 gap-1.5 sm:gap-3 sm:grid-cols-[repeat(auto-fill,minmax(190px,1fr))] lg:grid-cols-[repeat(auto-fill,minmax(210px,1fr))]">
+            {displayed.map((product) => (
+              <div
+                key={product.id}
+                className="bg-white dark:bg-white/[0.04] rounded-sm border border-[#c5cfe8] dark:border-white/[0.07] overflow-hidden transition-all duration-200 hover:shadow-[0_4px_20px_rgba(26,42,108,0.12)] dark:hover:shadow-[0_4px_20px_rgba(201,160,40,0.08)] hover:border-[#1a2a6c]/40 dark:hover:border-[#c9a028]/40"
+              >
+                <ProductCard product={product} hideActions />
+              </div>
+            ))}
+          </div>
+        )}
+        {catalog.error&&<p role="alert" className="mt-4 text-sm text-rose-600">{catalog.error}</p>}
+        <Pagination pagination={catalog.pagination} loading={catalog.loading} onPageChange={setPage}/>
+      </section>
+    </main>
+  );
+}

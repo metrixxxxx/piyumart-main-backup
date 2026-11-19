@@ -126,6 +126,8 @@ function ThemeToggle() {
   );
 }
 
+export { HomeIcon, CartIcon, MessagesIcon, SellIcon, ListingsIcon, OrdersIcon, ProfileIcon, LogoutIcon, ThemeToggle };
+
 // ─── Navbar ───────────────────────────────────────────────────────────────────
 
 export default function Navbar() {
@@ -156,6 +158,7 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
 
   // Show search in nav when: not home page, OR home page + hero has scrolled past
   const showSearch = !isSearchHiddenPage && (!isHome || heroPassed);
+  const showMobileSearch = !isSearchHiddenPage;
 
   const isActive = (path) => pathname === path || pathname.startsWith(path + "/");
 
@@ -168,14 +171,12 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
   useEffect(() => {
     if (!isHome) return;
 
-    // Reset when navigating back to home
-    setHeroPassed(false);
-
     const tryObserve = () => {
       const sentinel = document.getElementById("hero-sentinel");
       if (!sentinel) {
         // Fallback: scroll position if sentinel not found yet
         const onScroll = () => setHeroPassed(window.scrollY > 320);
+        onScroll();
         window.addEventListener("scroll", onScroll, { passive: true });
         return () => window.removeEventListener("scroll", onScroll);
       }
@@ -189,12 +190,10 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
     };
 
     // Small delay to ensure hero has mounted and sentinel exists in DOM
-    const timer = setTimeout(() => {
-      const cleanup = tryObserve();
-      return cleanup;
-    }, 100);
+    let cleanup;
+    const timer = setTimeout(() => { cleanup = tryObserve(); }, 100);
 
-    return () => clearTimeout(timer);
+    return () => { clearTimeout(timer); cleanup?.(); };
   }, [isHome, pathname]);
 
   // ── Unread messages ─────────────────────────────────────────────────────────
@@ -313,12 +312,12 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
       `}</style>
 
       {/* ── NAVBAR — sticky so it stays at top on scroll ── */}
-      <nav className="piyu-nav sticky top-0 z-50 bg-[#131f50] dark:bg-[#0b1230] px-8 md:px-12 py-5 flex items-center gap-6 shadow-[0_2px_24px_rgba(0,0,0,0.4)] backdrop-blur-md">
+      <nav className="piyu-nav sticky top-0 z-50 min-h-16 bg-[#131f50] dark:bg-[#0b1230] px-3 sm:px-4 md:px-12 py-3 md:py-5 flex items-center gap-2 sm:gap-4 md:gap-6 shadow-[0_2px_24px_rgba(0,0,0,0.4)] backdrop-blur-md">
 
         {/* LOGO */}
-        <Link href="/" className="flex items-center gap-2.5 shrink-0">
-          <span aria-hidden="true" className="h-9 w-9 shrink-0 rounded-full bg-white ring-1 ring-white/40" style={{ backgroundImage: 'url("/img/lspu%20logo%20malupit.png")', backgroundPosition: "center", backgroundRepeat: "no-repeat", backgroundSize: "138px 77px" }} />
-          <h1 className="text-lg font-extrabold tracking-tight text-white">
+        <Link href="/" className="flex items-center gap-1.5 shrink-0 sm:gap-2.5">
+          <span aria-hidden="true" className="h-6 w-6 shrink-0 rounded-full bg-white ring-1 ring-white/40 sm:h-9 sm:w-9" style={{ backgroundImage: 'url("/img/lspu%20logo%20malupit.png")', backgroundPosition: "center", backgroundRepeat: "no-repeat", backgroundSize: "383% 214%" }} />
+          <h1 className="text-base font-extrabold tracking-tight text-white sm:text-lg">
             PIYU<span className="text-[#FABB00]">MART</span>
           </h1>
         </Link>
@@ -439,10 +438,10 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
         </div>
 
         {/* ── MOBILE CONTROLS ── */}
-        <div className="flex md:hidden items-center gap-3 ml-auto">
+        <div className="flex min-w-0 shrink-0 md:hidden items-center gap-1 sm:gap-2 ml-auto">
 
-          {/* Mobile search overlay — shown after hero passes OR on non-home pages */}
-          {showSearch && searchOpen && (
+          {/* Mobile search stays available throughout the page. */}
+          {showMobileSearch && searchOpen && (
             <div
               ref={searchRef}
               className="absolute inset-0 z-20 flex items-center px-4 bg-[#131f50] dark:bg-[#0b1230]"
@@ -461,10 +460,10 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
           )}
 
           {/* Mobile search icon — only when search is applicable */}
-          {showSearch && (
+          {showMobileSearch && (
             <button
               ref={searchButtonRef}
-              className="text-white/70 hover:text-white transition"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FABB00]"
               onClick={() => setSearchOpen((p) => !p)}
               aria-label="Search"
             >
@@ -489,12 +488,12 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
                   <img
                     src={session.user.image}
                     alt="avatar"
-                    className={`w-9 h-9 rounded-full object-cover border-2 transition-all duration-200
+                    className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover border-2 transition-all duration-200
                       ${mobileOpen ? "border-white" : "border-[#FABB00]"}`}
                   />
                 ) : (
                   <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200
+                    className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200
                       ${mobileOpen ? "bg-white text-[#1a2a6c]" : "bg-[#FABB00] text-[#0e1a3d]"}`}
                   >
                     {session.user.name?.charAt(0).toUpperCase()}
@@ -505,7 +504,7 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
                 )}
               </>
             ) : (
-              <div className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition">
                 <ProfileIcon className="w-5 h-5 text-white/80" />
               </div>
             )}
@@ -515,7 +514,7 @@ const isSearchHiddenPage = hideSearchPages.some((path) =>
 
       {/* ── MOBILE MENU ── */}
       <div
-        className={`md:hidden fixed inset-x-0 top-[65px] bottom-0 z-40
+        className={`md:hidden fixed inset-x-0 top-16 bottom-0 z-40
           bg-[#131f50] dark:bg-[#0b1230]
           border-t border-[#FABB00]/20
           flex flex-col px-6 py-7 gap-1 overflow-y-auto overscroll-contain

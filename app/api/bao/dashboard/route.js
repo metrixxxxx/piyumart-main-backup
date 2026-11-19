@@ -16,6 +16,9 @@ export async function GET() {
     const [[stats]] = await db.query(`${commissionRecordsSql}
       SELECT
         (
+          SELECT COUNT(*) FROM products
+        ) AS total_products,
+        (
           SELECT COUNT(*)
           FROM users
           WHERE COALESCE(role, 'user') NOT IN ('admin', 'bao')
@@ -39,6 +42,9 @@ export async function GET() {
         (
           SELECT COUNT(*) FROM orders WHERE status = 'completed'
         ) AS completed_orders,
+        (
+          SELECT COUNT(*) FROM orders
+        ) AS total_orders,
         COALESCE(
           (SELECT SUM(CASE WHEN o.payment_method = 'paymongo' THEN COALESCE(r.order_amount, 0) ELSE o.total END)
            FROM orders o LEFT JOIN commission_records r ON r.order_id = o.id
@@ -57,10 +63,20 @@ export async function GET() {
           SELECT COUNT(*) FROM marketplace_reports WHERE status = 'pending'
         ) AS pending_complaints
     `);
+    const [recentOrders] = await db.query(`
+      SELECT o.id, u.name AS buyer, o.total, o.status
+      FROM orders o
+      LEFT JOIN users u ON u.id = o.user_id
+      ORDER BY o.id DESC
+      LIMIT 5
+    `);
 
     return NextResponse.json(
       {
+        totalProducts: stats.total_products,
         totalRegisteredUsers: stats.total_registered_users,
+        totalOrders: stats.total_orders,
+        recentOrders,
         totalSellers: stats.total_sellers,
         totalApprovedProducts: stats.total_approved_products,
         pendingProductApprovals: stats.pending_product_approvals,

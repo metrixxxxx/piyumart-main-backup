@@ -4,7 +4,8 @@ import { Suspense } from "react";
 import NavigationProgress from "@/components/NavigationProgress";
 import ChatWidget from "@/components/chatbot/ChatWidget";
 import RouteFooter from "@/components/RouteFooter";
-import AdminBaoBackGuard from "@/components/AdminBaoBackGuard";
+import BaoWorkspaceBackGuard from "@/components/BaoWorkspaceBackGuard";
+import FloatingPanelProvider from "@/components/layout/FloatingPanelProvider";
 
 export default function RootLayout({ children }) {
   return (
@@ -14,9 +15,11 @@ export default function RootLayout({ children }) {
           <NavigationProgress />
         </Suspense>
         <SessionWrapper>
-          <AdminBaoBackGuard />
-          {children}
-          <ChatWidget />
+          <FloatingPanelProvider>
+            <BaoWorkspaceBackGuard />
+            {children}
+            <ChatWidget />
+          </FloatingPanelProvider>
         </SessionWrapper>
         <Suspense fallback={null}>
           <RouteFooter />

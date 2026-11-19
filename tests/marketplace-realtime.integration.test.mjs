@@ -8,6 +8,7 @@ import pg from "pg";
 import dotenv from "dotenv";
 import {createClient} from "@supabase/supabase-js";
 import {loadFinanceModule} from "./helpers/load-finance-module.mjs";
+import {proofPhoto,withProofStorage} from "./helpers/proof-photo.mjs";
 
 test("Supabase database-triggered marketplace realtime",{skip:process.env.PIYUMART_REALTIME_DB_TEST!=="1"},async t=>{
   dotenv.config({path:".env.local",quiet:true});
@@ -19,7 +20,7 @@ test("Supabase database-triggered marketplace realtime",{skip:process.env.PIYUMA
     await control.query(`CREATE SCHEMA ${schema}`);created=true;
     pool=new pg.Pool({...config,options:`-c search_path=${schema},public`});
     await pool.query(await readFile("tests/fixtures/finance-base.sql","utf8"));
-    for(const path of ["migrations/add_marketplace_payments.sql","migrations/add_bao_commission_cashouts.sql","migrations/auto_approve_bao_cashouts.sql","migrations/add_marketplace_realtime.sql"]){
+    for(const path of ["migrations/add_marketplace_payments.sql","migrations/add_bao_item_price_tiers.sql","migrations/add_bao_commission_cashouts.sql","migrations/auto_approve_bao_cashouts.sql","migrations/add_marketplace_realtime.sql"]){
       const sql=(await readFile(path,"utf8")).replaceAll("public.",`${schema}.`).replaceAll("search_path=public",`search_path=${schema}`);
       await pool.query(sql);
     }
@@ -93,8 +94,9 @@ test("Supabase database-triggered marketplace realtime",{skip:process.env.PIYUMA
         messages.length=0;const response=await seller.PATCH(new Request(`http://localhost/api/seller/orders/${orderId}`,{method:"PATCH",body:JSON.stringify({status})}),{params:Promise.resolve({id:String(orderId)})});
         assert.equal(response.status,200);assert.equal((await response.json()).status,status);await received(["buyer","seller","staff"],"orders");
       }
-      messages.length=0;const buyer=await loadFinanceModule("app/api/orders/[id]/route.js",{db,account:{id:1,role:"user",status:"active"}});
-      const response=await buyer.PATCH(new Request(`http://localhost/api/orders/${orderId}`,{method:"PATCH",body:JSON.stringify({action:"confirm_delivery"})}),{params:Promise.resolve({id:String(orderId)})});
+      messages.length=0;const buyer=await loadFinanceModule("app/api/orders/[id]/route.js",withProofStorage({db,account:{id:1,role:"user",status:"active"}}));
+      const form=new FormData();form.set("action","confirm_delivery");form.set("pickup_proof",proofPhoto());
+      const response=await buyer.PATCH(new Request(`http://localhost/api/orders/${orderId}`,{method:"PATCH",body:form}),{params:Promise.resolve({id:String(orderId)})});
       assert.equal(response.status,200);assert.equal((await response.json()).status,"completed");await received(["buyer","seller","staff"],"orders");
     });
     await t.test("BAO commission destination and cashout changes reach staff without notifying sellers",async()=>{

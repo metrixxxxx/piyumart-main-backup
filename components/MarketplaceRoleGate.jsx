@@ -8,7 +8,7 @@ export default function MarketplaceRoleGate({ children }) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const role = session?.user?.role;
-  const destination = role === "admin" ? "/dashboard" : null;
+  const destination = role === "admin" ? "/bao/dashboard" : null;
 
   useEffect(() => {
     if (destination) router.replace(destination);
@@ -29,7 +29,7 @@ export default function MarketplaceRoleGate({ children }) {
   if (status === "authenticated" && destination) {
     return (
       <main className="flex min-h-dvh items-center justify-center bg-[#eef2f7] text-sm text-[#1a2a6c]">
-        Redirecting to your administration workspace...
+        Redirecting to your staff workspace...
       </main>
     );
   }
