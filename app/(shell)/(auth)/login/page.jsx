@@ -233,7 +233,7 @@ export default function LoginPage() {
               <div className="mb-1 flex items-center justify-between">
                 <label htmlFor="login-pw" className="text-[13px] font-medium">Password</label>
                 <Link href="/forgotpass" className="text-[13px] text-[#9a6800] underline underline-offset-2 hover:text-[#704b00]">
-                  Forgot password?
+                   
                 </Link>
               </div>
               <PasswordInput
