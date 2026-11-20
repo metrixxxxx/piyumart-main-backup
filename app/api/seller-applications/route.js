@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { getMarketplaceAccount } from "@/lib/seller-access";
-import { LSPU_DEPARTMENTS } from "@/lib/campus";
+import { LSPU_DEPARTMENTS, SELLER_DOCUMENTS } from "@/lib/campus";
 import { getProofStorage, readProof, SELLER_PROOF_BUCKET } from "@/lib/seller-proof";
 import { applicationError } from "@/lib/seller-applications";
 
@@ -24,7 +24,7 @@ export async function GET() {
 }
 
 export async function POST(req) {
-  let uploadedPath;
+  const uploaded = {};
   let bucket;
   try {
     const user = await getMarketplaceAccount();
@@ -35,8 +35,11 @@ export async function POST(req) {
     const note = typeof form.get("note") === "string" ? form.get("note").trim() : "";
     if (!LSPU_DEPARTMENTS.includes(department)) return Response.json({ error: "Choose a valid department." }, { status: 400 });
     if (note.length > 1000) return Response.json({ error: "Note must be 1,000 characters or fewer." }, { status: 400 });
-    const file = form.get("id_proof");
-    const { bytes, extension } = await readProof(file);
+    const documents = await Promise.all(SELLER_DOCUMENTS.map(async ({ field, label }) => {
+      const file = form.get(field);
+      const { bytes, extension } = await readProof(file, label);
+      return { field, label, bytes, extension, contentType: file.type };
+    }));
     bucket = getProofStorage().from(SELLER_PROOF_BUCKET);
     const application = await db.transaction(async (client) => {
       // Serializes simultaneous submissions even before the unique index is checked.
@@ -44,21 +47,27 @@ export async function POST(req) {
       if (accounts[0]?.role !== "user" || accounts[0]?.status !== "active") throw applicationError("Forbidden", 403);
       const { rows: pending } = await client.query("SELECT id FROM seller_applications WHERE user_id = $1 AND status = 'pending'", [user.id]);
       if (pending.length) throw applicationError("Your application is already under review.", 409);
-      const path = `${user.id}/${randomUUID()}.${extension}`;
-      const { error } = await bucket.upload(path, bytes, { contentType: file.type, upsert: false, cacheControl: "0" });
-      if (error) throw new Error("Unable to upload your proof document.", { cause: error });
-      uploadedPath = path;
+      for (const { field, label, bytes, extension, contentType } of documents) {
+        const path = `${user.id}/${randomUUID()}.${extension}`;
+        const { error } = await bucket.upload(path, bytes, { contentType, upsert: false, cacheControl: "0" });
+        if (error) throw new Error(`Unable to upload ${label}.`, { cause: error });
+        uploaded[field] = path;
+      }
       const { rows } = await client.query(
-        `INSERT INTO seller_applications (user_id, department, id_proof_url, note, status, submitted_at)
-         VALUES ($1, $2, $3, $4, 'pending', NOW()) RETURNING id, department, status, submitted_at`,
-        [user.id, department, path, note || null]
+        `INSERT INTO seller_applications (user_id, department, id_proof_url, cor_proof_url, note, status, submitted_at)
+         VALUES ($1, $2, $3, $4, $5, 'pending', NOW()) RETURNING id, department, status, submitted_at`,
+        [user.id, department, uploaded.id_proof, uploaded.cor_proof, note || null]
       );
       return rows[0];
     });
     return Response.json({ application }, { status: 201 });
   } catch (error) {
-    if (uploadedPath && bucket) {
-      try { await bucket.remove([uploadedPath]); } catch (cleanupError) { console.error("Proof cleanup failed:", cleanupError); }
+    const paths = Object.values(uploaded);
+    if (paths.length && bucket) {
+      try {
+        const { error: cleanupError } = await bucket.remove(paths);
+        if (cleanupError) console.error("Proof cleanup failed:", cleanupError);
+      } catch (cleanupError) { console.error("Proof cleanup failed:", cleanupError); }
     }
     console.error("Seller application submission failed:", error);
     const status = error.code === "23505" ? 409 : error.status || 500;

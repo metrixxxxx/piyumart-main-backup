@@ -55,12 +55,13 @@ test("Postgres marketplace payment lifecycle",{skip:process.env.PIYUMART_FINANCE
     };
     const options=withProofStorage({db,env,fetch:provider,notificationFailure:()=>notificationFailure});
     const checkout=await loadFinanceModule("lib/payments/checkout.js",options),wallet=await loadFinanceModule("lib/payments/wallet.js",options),lifecycle=await loadFinanceModule("lib/payments/events.js",options);
+    const { transitionOrder } = await loadFinanceModule("lib/orders/fulfillment.js", options);
     const input={name:"Fixture buyer",address:"Library",payment_method:"paymongo",items:[{product_id:1,quantity:1,price:0.01}],total:0.01};
     const query=async(sql,values)=>(await pool.query(sql,values)).rows;
     const makeCheckout=async()=>{const result=await checkout.createMarketplaceOrders(1,input,randomUUID());const payment=await checkout.startCheckout(result.paymentId,1);return {...result,payment};};
     const event=(type,resource)=>({id:`evt_fixture${++events}`,attributes:{type,livemode:false,data:resource}});
     async function pay(order){const session=sessions.get(order.payment.checkout_session_id);session.attributes.payments=[{id:`pay_${session.id.slice(3)}`,attributes:{status:"paid",currency:"PHP",amount:100000,fee:100,livemode:false}}];const payload=event("checkout_session.payment.paid",session);await lifecycle.processPaymentEvent(payload,JSON.stringify(payload));return payload;}
-    async function complete(order){for(const status of ["confirmed","processing","shipped"])await lifecycle.transitionOnlineOrder(2,order.orderIds[0],{status});await lifecycle.transitionOnlineOrder(1,order.orderIds[0],{action:"confirm_delivery"},proofPhoto());}
+    async function complete(order){for(const status of ["preparing","ready_for_pickup"])await transitionOrder(2,order.orderIds[0],{status});await transitionOrder(1,order.orderIds[0],{action:"confirm_receipt"},proofPhoto());}
     let first,destination,cashout;
     await t.test("client amounts are ignored; concurrent checkout creation and provider starts are idempotent",async()=>{
       const key=randomUUID(),results=await Promise.all([checkout.createMarketplaceOrders(1,input,key),checkout.createMarketplaceOrders(1,input,key)]);
@@ -83,8 +84,8 @@ test("Postgres marketplace payment lifecycle",{skip:process.env.PIYUMART_FINANCE
       assert.equal((await wallet.financeDashboard()).balances.pending,"30.00");
     });
     await t.test("seller and unrelated buyer cannot confirm receipt; buyer confirmation releases balances once",async()=>{
-      await assert.rejects(lifecycle.transitionOnlineOrder(2,first.orderIds[0],{status:"completed"}));await assert.rejects(lifecycle.transitionOnlineOrder(5,first.orderIds[0],{status:"confirmed"}));
-      await complete(first);await assert.rejects(lifecycle.transitionOnlineOrder(1,first.orderIds[0],{status:"completed"}));
+      await assert.rejects(transitionOrder(2,first.orderIds[0],{status:"completed"}));await assert.rejects(transitionOrder(5,first.orderIds[0],{status:"preparing"}));
+      await complete(first);await assert.rejects(transitionOrder(1,first.orderIds[0],{status:"completed"}));
       const balance=await wallet.sellerWallet(2);assert.equal(balance.balances.available,"970.00");assert.equal(balance.balances.pending,"0.00");assert.equal((await query("SELECT stock FROM products WHERE id=1"))[0].stock,99);
     });
     await t.test("destinations require BAO approval and private account numbers are never returned",async()=>{
@@ -158,7 +159,7 @@ test("Postgres marketplace payment lifecycle",{skip:process.env.PIYUMART_FINANCE
     });
     await t.test("unpaid fulfillment is denied and definite provider rejection releases stock",async()=>{
       const created=await checkout.createMarketplaceOrders(1,input,randomUUID()),stock=(await query("SELECT stock FROM products WHERE id=1"))[0].stock;
-      await assert.rejects(lifecycle.transitionOnlineOrder(2,created.orderIds[0],{status:"confirmed"}),err=>err.status===409);
+      await assert.rejects(transitionOrder(2,created.orderIds[0],{status:"preparing"}),err=>err.status===409);
       const rejecting=await loadFinanceModule("lib/payments/checkout.js",{...options,fetch:async()=>Response.json({errors:[{code:"payment_method_not_allowed"}]},{status:400})});
       assert.equal((await rejecting.startCheckout(created.paymentId,1)).status,"failed");assert.equal((await query("SELECT stock FROM products WHERE id=1"))[0].stock,stock+1);
     });
@@ -185,22 +186,22 @@ test("Postgres marketplace payment lifecycle",{skip:process.env.PIYUMART_FINANCE
       assert.equal(column.udt_name,"varchar");
       const order=await makeCheckout();await pay(order);const id=order.orderIds[0];
       notificationFailure=true;
-      try{await assert.rejects(lifecycle.transitionOnlineOrder(2,id,{status:"confirmed"}),error=>error.message==="Injected notification failure");}finally{notificationFailure=false;}
+      try{await assert.rejects(transitionOrder(2,id,{status:"preparing"}),error=>error.message==="Injected notification failure");}finally{notificationFailure=false;}
       const [unchanged]=await query("SELECT status,confirmed_at FROM orders WHERE id=$1",[id]);
       assert.equal(unchanged.status,"pending");assert.equal(unchanged.confirmed_at,null);
       const before=(await query("SELECT count(*)::int AS count FROM wallet_transactions WHERE order_id=$1",[id]))[0].count;
-      for(const status of ["confirmed","processing","shipped"]){
-        const result=await lifecycle.transitionOnlineOrder(2,id,{status});
+      for(const status of ["preparing","ready_for_pickup"]){
+        const result=await transitionOrder(2,id,{status});
         assert.equal(result.success,true);assert.equal(result.status,status);
         assert.equal((await query("SELECT status FROM orders WHERE id=$1",[id]))[0].status,status);
       }
       assert.equal((await query("SELECT count(*)::int AS count FROM wallet_transactions WHERE order_id=$1",[id]))[0].count,before);
-      for(const actor of [2,5])await assert.rejects(lifecycle.transitionOnlineOrder(actor,id,{status:"completed"}),error=>error.status===403);
-      const result=await lifecycle.transitionOnlineOrder(1,id,{action:"confirm_delivery"},proofPhoto());assert.equal(result.status,"completed");
+      for(const actor of [2,5])await assert.rejects(transitionOrder(actor,id,{status:"completed"}),error=>error.status===403);
+      const result=await transitionOrder(1,id,{action:"confirm_receipt"},proofPhoto());assert.equal(result.status,"completed");
       const [completed]=await query("SELECT status,confirmed_at,shipped_at,completed_at FROM orders WHERE id=$1",[id]);
       assert.equal(completed.status,"completed");assert.ok(completed.confirmed_at);assert.ok(completed.shipped_at);assert.ok(completed.completed_at);
       const after=(await query("SELECT count(*)::int AS count FROM wallet_transactions WHERE order_id=$1",[id]))[0].count;
-      assert.ok(after>before);await assert.rejects(lifecycle.transitionOnlineOrder(1,id,{action:"confirm_delivery"}),error=>error.status===409);
+      assert.ok(after>before);await assert.rejects(transitionOrder(1,id,{action:"confirm_receipt"}),error=>error.status===409);
       assert.equal((await query("SELECT count(*)::int AS count FROM wallet_transactions WHERE order_id=$1",[id]))[0].count,after);
     });
   }finally{

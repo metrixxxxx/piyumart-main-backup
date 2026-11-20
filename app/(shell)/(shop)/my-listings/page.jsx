@@ -10,6 +10,7 @@ import Image from "next/image";
 import { useMarketplaceRealtime } from "@/lib/realtime/useMarketplaceRealtime";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import PageShell from "@/components/layout/PageShell";
+import { orderStatusLabel } from "@/lib/orders/status";
 
 function StatCard({ label, value, accent, description }) {
   return (
@@ -93,7 +94,7 @@ export default function MyListingsPage() {
       const res = await fetch(`/api/seller/orders/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify(status === "quick_confirm" ? { action: "quick_confirm" } : { status }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error || "Unable to update order.");
@@ -104,7 +105,7 @@ export default function MyListingsPage() {
         prev.map((o) => (Number(o.id) === Number(id) ? { ...o, status: data.status } : o))
       );
       orderList.reload();
-      setActionNotice(`Order #${id} is now ${data.status}.`);
+      setActionNotice(`Order #${id} updated to “${orderStatusLabel(data.status)}”.`);
     } catch (error) {
       setActionError(error.message || "Unable to update order.");
     } finally {
@@ -310,6 +311,8 @@ export default function MyListingsPage() {
                         o.commission_rate !== null && o.commission_rate !== undefined;
                       const commissionRecorded = o.commission_recorded === true;
                       const isCancelled = o.status === "cancelled";
+                      const online = o.payment_method === "paymongo";
+                      const awaitingPayment = online && !["paid", "partially_refunded"].includes(o.payment_status);
                       const commissionNote = isCancelled
                         ? "Not charged on cancelled orders"
                         : commissionRecorded
@@ -328,33 +331,32 @@ export default function MyListingsPage() {
                               {o.created_at ? new Date(o.created_at).toLocaleString("en-PH") : "—"}
                             </p>
                             <div className="mt-3 flex flex-wrap gap-1.5">
-                              {o.status === "pending" && (<>
-                                <button disabled={o._loading} onClick={() => handleOrderStatus(o.id, "confirmed")}
-                                  className="rounded-lg bg-green-600 px-2.5 py-1.5 text-[11px] font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">
-                                  {o._loading ? "..." : "Confirm order"}
-                                </button>
-                                <button disabled={o._loading} onClick={() => handleOrderStatus(o.id, "cancelled")}
-                                  className="rounded-lg bg-red-50 px-2 py-1.5 text-[11px] font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-red-500/10 dark:text-red-400">
-                                  Cancel
-                                </button>
-                              </>)}
-                              {o.status === "confirmed" && (<>
-                                <button disabled={o._loading} onClick={() => handleOrderStatus(o.id, "processing")}
-                                  className="rounded-lg bg-blue-600 px-2.5 py-1.5 text-[11px] font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
-                                  {o._loading ? "..." : "Process"}
-                                </button>
-                                <button disabled={o._loading} onClick={() => handleOrderStatus(o.id, "cancelled")}
-                                  className="rounded-lg bg-red-50 px-2 py-1.5 text-[11px] font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-red-500/10 dark:text-red-400">
-                                  Cancel
-                                </button>
-                              </>)}
-                              {o.status === "processing" && (
-                                <button disabled={o._loading} onClick={() => handleOrderStatus(o.id, "shipped")}
+                              {o.status === "pending" && (awaitingPayment ? <span className="text-xs">Awaiting payment confirmation</span> :
+                                <>
+                                  <button disabled={o._loading} onClick={() => handleOrderStatus(o.id, "preparing")}
+                                    className="rounded-lg bg-green-600 px-2.5 py-1.5 text-[11px] font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">
+                                    {o._loading ? "..." : "Approve order"}
+                                  </button>
+                                  <button disabled={o._loading} title="Use when you and the buyer are already on campus and can meet now."
+                                    onClick={() => handleOrderStatus(o.id, "quick_confirm")}
+                                    className="rounded-lg bg-[#1a2a6c] px-2.5 py-1.5 text-[11px] font-bold text-white transition hover:bg-[#243987] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#c9a028] dark:text-[#070b14]">
+                                    {o._loading ? "..." : "Quick confirm & meetup"}
+                                  </button>
+                                </>
+                              )}
+                              {o.status === "preparing" && (
+                                <button disabled={o._loading || awaitingPayment} onClick={() => handleOrderStatus(o.id, "ready_for_pickup")}
                                   className="rounded-lg bg-[#1a2a6c] px-2.5 py-1.5 text-[11px] font-bold text-white transition hover:bg-[#243987] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#c9a028] dark:text-[#070b14]">
-                                  {o._loading ? "..." : "Mark shipped"}
+                                  {o._loading ? "..." : "Mark ready for pickup"}
                                 </button>
                               )}
-                              {o.status === "shipped" && (
+                              {!online && ["pending", "preparing"].includes(o.status) && (
+                                <button disabled={o._loading} onClick={() => handleOrderStatus(o.id, "cancelled")}
+                                  className="rounded-lg bg-red-50 px-2 py-1.5 text-[11px] font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-red-500/10 dark:text-red-400">
+                                  Cancel
+                                </button>
+                              )}
+                              {o.status === "ready_for_pickup" && (
                                 <span className="text-[10px] italic text-[#0e1a3d]/40 dark:text-[#e8edf8]/40">
                                   Awaiting buyer confirmation
                                 </span>
@@ -411,12 +413,11 @@ export default function MyListingsPage() {
                           <td className="px-4 py-4">
                             <span className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold
                               ${o.status === "pending" ? "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400"
-                              : o.status === "confirmed" ? "bg-[#e8edf8] text-[#1a2a6c] dark:bg-[#1a2a6c]/10 dark:text-[#c9a028]"
-                              : o.status === "processing" ? "bg-blue-50 text-blue-500 dark:bg-blue-500/10"
-                              : o.status === "shipped" ? "bg-[#e8edf8] text-[#1a2a6c] dark:bg-[#c9a028]/10 dark:text-[#c9a028]"
+                              : o.status === "preparing" ? "bg-blue-50 text-blue-500 dark:bg-blue-500/10"
+                              : o.status === "ready_for_pickup" ? "bg-[#e8edf8] text-[#1a2a6c] dark:bg-[#c9a028]/10 dark:text-[#c9a028]"
                               : o.status === "cancelled" ? "bg-red-50 text-red-500 dark:bg-red-500/10"
                               : "bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400"}`}>
-                              {o.status}
+                              {orderStatusLabel(o.status)}
                             </span>
                           </td>
                         </tr>

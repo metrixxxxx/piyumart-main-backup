@@ -349,18 +349,6 @@ const soldCount = product.sold_count || 0;
               {/* Details section */}
               <div className="px-5 sm:px-6 py-4 flex flex-col gap-4 border-b border-[#f3f4f6] dark:border-white/[0.06]">
 
-                {/* Shipping row */}
-                <div className="flex items-start gap-4">
-                  <span className="text-[13px] text-[#1a1060]/40 dark:text-[#f0ede8]/35 min-w-[80px] pt-0.5 font-medium">Shipping</span>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <svg className="w-4 h-4 text-[#6d4aff] dark:text-[#c9a96e] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                    </svg>
-                    <span className="text-[13px] text-[#1a1060]/70 dark:text-[#f0ede8]/60 font-medium">Standard Delivery</span>
-                    <span className="text-[11px] text-[#1a1060]/40 dark:text-[#f0ede8]/30">· Ships within 1-3 days</span>
-                  </div>
-                </div>
-
                 {/* Stock row */}
                 <div className="flex items-center gap-4">
                   <span className="text-[13px] text-[#1a1060]/40 dark:text-[#f0ede8]/35 min-w-[80px] font-medium">Stock</span>

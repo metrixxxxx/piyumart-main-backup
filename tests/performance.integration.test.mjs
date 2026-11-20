@@ -20,6 +20,7 @@ test("paginated marketplace read performance and isolation",{skip:process.env.PI
     const migrate=async path=>pool.query((await readFile(path,"utf8")).replaceAll("public.",`${schema}.`).replaceAll("search_path=public",`search_path=${schema}`));
     await pool.query(await readFile("tests/fixtures/finance-base.sql","utf8"));
     await pool.query(await readFile("tests/fixtures/performance.sql","utf8"));
+    await migrate("migrations/add_seller_application_cor.sql");
     for(const path of ["migrations/add_marketplace_payments.sql","migrations/add_bao_item_price_tiers.sql","migrations/add_bao_commission_cashouts.sql","migrations/add_marketplace_realtime.sql","migrations/add_marketplace_performance.sql"])await migrate(path);
     let queries=[];
     const db={query:async(text,values)=>{queries.push(text);return [await sql(text,values)];}};

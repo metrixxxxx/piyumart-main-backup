@@ -63,16 +63,28 @@ test("cash and online order completion require private photo proof", {
     const options = { db, env, fetch: provider, notificationFailure: () => failNotice,
       moduleMocks: { "@supabase/supabase-js": { createClient: () => ({ storage }) } } };
     const buyer = { id: 1, role: "user", status: "active" };
+    const seller = { id: 2, role: "seller", status: "active" };
     const checkout = await loadFinanceModule("lib/payments/checkout.js", options);
     const completion = await loadFinanceModule("app/api/orders/[id]/route.js", { ...options, account: buyer });
+    const sellerUpdates = await loadFinanceModule("app/api/seller/orders/[id]/route.js", { ...options, account: seller });
+    const changeStatus = (id, status, api = sellerUpdates) => api.PATCH(
+      new Request(`http://localhost/api/seller/orders/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }), params(id));
+    const changeAction = (id, action, api = sellerUpdates) => api.PATCH(
+      new Request(`http://localhost/api/seller/orders/${id}`, { method: "PATCH", body: JSON.stringify({ action }) }), params(id));
     const input = { name: "Synthetic buyer", address: "Library", payment_method: "cod", items: [{ product_id: 1, quantity: 1 }] };
     const makeCash = async (overrides = {}) => {
       const order = await checkout.createMarketplaceOrders(1, { ...input, ...overrides }, randomUUID());
-      const id = order.orderIds[0]; await query("UPDATE orders SET status='shipped' WHERE id=$1", [id]); return id;
+      const id = order.orderIds[0];
+      for (const status of ["preparing", "ready_for_pickup"]) {
+        const response = await changeStatus(id, status);
+        assert.equal(response.status, 200);
+        assert.equal((await response.json()).status, status);
+      }
+      return id;
     };
     const params = id => ({ params: Promise.resolve({ id: String(id) }) });
     const request = (id, file = photo()) => {
-      const form = new FormData(); form.set("action", "confirm_delivery"); if (file !== null) form.set("pickup_proof", file);
+      const form = new FormData(); form.set("action", "confirm_receipt"); if (file !== null) form.set("pickup_proof", file);
       return new Request(`http://localhost/api/orders/${id}`, { method: "PATCH", body: form });
     };
     const snapshot = async id => query(`SELECT o.status,o.completed_at,o.pickup_proof_path,o.pickup_proof_uploaded_at,
@@ -80,6 +92,77 @@ test("cash and online order completion require private photo proof", {
       (SELECT count(*)::int FROM notifications) AS notifications,p.stock,p.sold_count
       FROM orders o JOIN order_items oi ON oi.order_id=o.id JOIN products p ON p.id=oi.product_id WHERE o.id=$1`, [id]);
     let completedId;
+
+    await t.test("checkout uses the listing pickup point and only the order's seller can advance the two pickup steps", async () => {
+      await query("UPDATE products SET meetup_point='Main Gate' WHERE id=1");
+      const { orderIds: [id] } = await checkout.createMarketplaceOrders(1, { ...input, address: undefined }, randomUUID());
+      assert.deepEqual((await query("SELECT status,address FROM orders WHERE id=$1", [id]))[0], { status: "pending", address: "Main Gate" });
+      const generic = await loadFinanceModule("app/api/orders/[id]/route.js", { ...options, account: seller });
+      assert.equal((await changeStatus(id, "preparing", completion)).status, 403);
+      for (const api of [sellerUpdates, generic]) assert.equal((await changeStatus(id, "ready_for_pickup", api)).status, 409);
+      const approvals = await Promise.all([changeStatus(id, "preparing"), changeStatus(id, "preparing", generic)]);
+      assert.deepEqual(approvals.map(r => r.status).sort(), [200, 409]);
+      assert.equal((await completion.PATCH(request(id), params(id))).status, 409);
+      assert.equal((await changeStatus(id, "ready_for_pickup")).status, 200);
+      assert.equal((await changeStatus(id, "completed")).status, 403);
+      assert.equal((await changeStatus(id, "preparing")).status, 409);
+      assert.equal((await completion.PATCH(request(id), params(id))).status, 200);
+    });
+
+    await t.test("seller quick confirmation skips preparation for pending orders and respects online payment", async () => {
+      const { orderIds: [id] } = await checkout.createMarketplaceOrders(1, { ...input, address: undefined }, randomUUID());
+      const genericSellerRoute = await loadFinanceModule("app/api/orders/[id]/route.js", { ...options, account: seller });
+
+      assert.equal((await changeAction(id, "quick_confirm", genericSellerRoute)).status, 403);
+      const response = await changeAction(id, "quick_confirm");
+      assert.equal(response.status, 200);
+      assert.deepEqual((await query("SELECT status,confirmed_at,shipped_at FROM orders WHERE id=$1", [id])).map(
+        ({ status, confirmed_at, shipped_at }) => ({ status, hasConfirmedAt: Boolean(confirmed_at), hasShippedAt: Boolean(shipped_at) })
+      ), [{ status: "ready_for_pickup", hasConfirmedAt: true, hasShippedAt: true }]);
+      assert.equal((await changeAction(id, "quick_confirm")).status, 409);
+
+      const { orderIds: [unpaidId] } = await checkout.createMarketplaceOrders(1, {
+        ...input, address: undefined, payment_method: "paymongo",
+      }, randomUUID());
+      assert.equal((await changeAction(unpaidId, "quick_confirm")).status, 409);
+    });
+
+    await t.test("older confirmed, processing and shipped orders appear in the new filters and can finish pickup", async () => {
+      const orders = await loadFinanceModule("app/api/orders/route.js", { ...options, account: buyer });
+      const sellerList = await loadFinanceModule("app/api/seller/orders/route.js", { ...options, account: seller });
+      const ids = [];
+      for (const oldStatus of ["confirmed", "processing", "shipped"]) {
+        const { orderIds: [id] } = await checkout.createMarketplaceOrders(1, input, randomUUID());
+        await query("UPDATE orders SET status=$1 WHERE id=$2", [oldStatus, id]);
+        ids.push(id);
+      }
+      for (const api of [orders, sellerList]) {
+        for (const [stage, expected] of [["preparing", ids.slice(0, 2)], ["ready_for_pickup", ids.slice(2)]]) {
+          const response = await api.GET(new Request(`http://localhost/api/orders?status=${stage}`));
+          const rows = await response.json();
+          assert.equal(response.status, 200);
+          assert.equal(JSON.parse(response.headers.get("x-status-counts"))[stage], expected.length);
+          assert.deepEqual(rows.map(row => row.id).sort(), [...expected].sort());
+          assert.ok(rows.every(row => row.status === stage));
+        }
+      }
+      for (const id of ids.slice(0, 2)) assert.equal((await changeStatus(id, "ready_for_pickup")).status, 200);
+      assert.equal((await completion.PATCH(request(ids[2]), params(ids[2]))).status, 200);
+    });
+
+    await t.test("expiration leaves approved orders alone and returns an expired reservation once", async () => {
+      const { autoExpireOrders } = await loadFinanceModule("lib/orders/orderService.js", options);
+      const { orderIds: [approved] } = await checkout.createMarketplaceOrders(1, input, randomUUID());
+      const { orderIds: [expired] } = await checkout.createMarketplaceOrders(1, input, randomUUID());
+      await query("UPDATE orders SET created_at=now()-interval '2 minutes' WHERE id=ANY($1::int[])", [[approved, expired]]);
+      assert.equal((await changeStatus(approved, "preparing")).status, 200);
+      const [before] = await query("SELECT stock FROM products WHERE id=1");
+      const results = await Promise.all([autoExpireOrders(), autoExpireOrders()]);
+      assert.equal(results[0].count + results[1].count, 1);
+      assert.equal((await query("SELECT status FROM orders WHERE id=$1", [approved]))[0].status, "preparing");
+      assert.equal((await changeStatus(expired, "preparing")).status, 409);
+      assert.equal((await query("SELECT stock FROM products WHERE id=1"))[0].stock, before.stock + 1);
+    });
 
     await t.test("migration preserves old completed orders and can be replayed", async () => {
       await migrate("migrations/add_online_order_photo_proof.sql");
@@ -89,7 +172,7 @@ test("cash and online order completion require private photo proof", {
     });
     await t.test("missing photos, forged client paths, and invalid files cannot complete or charge an order", async () => {
       const id = await makeCash(), before = await snapshot(id), uploadCount = uploads.length;
-      for (const body of [{ action: "confirm_delivery" }, { status: "completed", pickup_proof_path: "forged.png", has_pickup_proof: true }]) {
+      for (const body of [{ action: "confirm_receipt" }, { status: "completed", pickup_proof_path: "forged.png", has_pickup_proof: true }]) {
         const response = await completion.PATCH(new Request(`http://localhost/api/orders/${id}`, { method: "PATCH", body: JSON.stringify(body) }), params(id));
         assert.equal(response.status, 400); assert.match((await response.json()).error, /photo/i);
       }
@@ -107,7 +190,7 @@ test("cash and online order completion require private photo proof", {
         assert.equal((await api.PATCH(request(id), params(id))).status, 403);
       }
       await query("UPDATE orders SET status='confirmed' WHERE id=$1", [id]);
-      assert.equal((await completion.PATCH(request(id), params(id))).status, 403);
+      assert.equal((await completion.PATCH(request(id), params(id))).status, 409);
       assert.equal(uploads.length, before);
     });
     await t.test("upload and database failures leave the order open and clean up the photo", async () => {
@@ -172,24 +255,25 @@ test("cash and online order completion require private photo proof", {
       assert.equal(uploads.length, initialUploads, "A photo cannot confirm an unpaid online order");
       session.attributes.payments = [{ id: "pay_pickupfixture", attributes: { status: "paid", currency: "PHP", amount: 100000, livemode: false } }];
       const lifecycle = await loadFinanceModule("lib/payments/events.js", options);
+      const { transitionOrder } = await loadFinanceModule("lib/orders/fulfillment.js", options);
       const event = { id: "evt_pickuponline", attributes: { type: "checkout_session.payment.paid", livemode: false, data: session } };
       await lifecycle.processPaymentEvent(event, JSON.stringify(event));
       const id = order.orderIds[0];
-      for (const status of ["confirmed", "processing", "shipped"]) await lifecycle.transitionOnlineOrder(2, id, { status });
+      for (const status of ["preparing", "ready_for_pickup"]) await transitionOrder(2, id, { status });
       const before = await snapshot(id), initialObjects = objects.size;
       const ledger = () => query("SELECT * FROM wallet_transactions ORDER BY id");
       const pendingLedger = await ledger();
-      for (const body of [{ action: "confirm_delivery" }, { status: "completed", pickup_proof_path: "forged.png", has_pickup_proof: true }]) {
+      for (const body of [{ action: "confirm_receipt" }, { status: "completed", pickup_proof_path: "forged.png", has_pickup_proof: true }]) {
         const response = await completion.PATCH(new Request(`http://localhost/api/orders/${id}`, { method: "PATCH", body: JSON.stringify(body) }), params(id));
         assert.equal(response.status, 400); assert.match((await response.json()).error, /photo/i);
       }
-      await assert.rejects(lifecycle.transitionOnlineOrder(1, id, { action: "confirm_delivery", pickup_proof_path: "forged.png" }), error => error.status === 400);
+      await assert.rejects(transitionOrder(1, id, { action: "confirm_receipt", pickup_proof_path: "forged.png" }), error => error.status === 400);
       await assert.rejects(query("UPDATE orders SET status='completed',completed_at=now() WHERE id=$1", [id]), error => error.code === "23514");
       await assert.rejects(query("INSERT INTO orders(user_id,total,status,payment_method) VALUES(1,100,'completed','paymongo')"), error => error.code === "23514");
       for (const file of [null, "https://example.com/photo.png", new File(["fake"], "fake.png", { type: "image/png" })]) {
         assert.equal((await completion.PATCH(request(id, file), params(id))).status, 400);
       }
-      for (const actor of [2, 5]) await assert.rejects(lifecycle.transitionOnlineOrder(actor, id, { status: "completed" }, photo()), error => error.status === 403);
+      for (const actor of [2, 5]) await assert.rejects(transitionOrder(actor, id, { status: "completed" }, photo()), error => error.status === 403);
       assert.equal(uploads.length, initialUploads);
       failUpload = true;
       try { assert.equal((await completion.PATCH(request(id), params(id))).status, 503); }

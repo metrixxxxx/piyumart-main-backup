@@ -107,29 +107,53 @@ for (const denied of [401, 403]) {
   });
 }
 
-test("proof links use the stored key, expire in 60 seconds, and are not cached", async () => {
-  let signed;
+test("BAO can reopen each private document using the same review URL", async () => {
+  const row = { user_id: "7", id_proof_url: "7/student.png", cor_proof_url: "7/registration.pdf" };
+  const downloads = [];
+  let authorized = true;
   const api = await load("app/api/bao/seller-applications/[id]/proof/route.js", {
-    "@/lib/bao-access": { getBaoAccess: async () => ({ session: { user: { id: "1", role: "bao" } } }) },
-    "@/lib/db": { db: { query: async () => [[{ user_id: "7", id_proof_url: "7/random.png" }]] } },
-    "@/lib/seller-proof": { SELLER_PROOF_BUCKET: "seller-proofs", getProofStorage: () => ({ from: (bucket) => ({ createSignedUrl: async (key, expiry) => { signed = { bucket, key, expiry }; return { data: { signedUrl: "https://storage.example/signed" } }; } }) }) },
+    "@/lib/bao-access": { getBaoAccess: async () => authorized ? { session: { user: { role: "bao" } } } : { status: 401 } },
+    "@/lib/db": { db: { query: async () => [[row]] } },
+    "@/lib/seller-proof": { SELLER_PROOF_BUCKET: "seller-proofs", getProofStorage: () => ({ from: (bucket) => {
+      assert.equal(bucket, "seller-proofs");
+      return { download: async (key) => { downloads.push(key); return { data: new Blob([key]) }; } };
+    } }) },
   });
-  const response = await api.GET(noBody, { params: Promise.resolve({ id: "82bfb230-0597-4bf5-9ead-ae37e562b34f" }) });
-  assert.equal(response.status, 200);
-  assert.deepEqual(signed, { bucket: "seller-proofs", key: "7/random.png", expiry: 60 });
-  assert.match(response.headers.get("Cache-Control"), /no-store/);
+  const id = "82bfb230-0597-4bf5-9ead-ae37e562b34f";
+  const url = `http://localhost/api/bao/seller-applications/${id}/proof`;
+  const open = (query = "") => api.GET(new Request(url + query), { params: Promise.resolve({ id }) });
+  for (const [document, type, content] of [["id", "image/png", row.id_proof_url], ["cor", "application/pdf", row.cor_proof_url]]) {
+    for (let visit = 0; visit < 2; visit++) {
+      const response = await open(`?document=${document}`);
+      assert.equal(response.status, 200);
+      assert.match(response.headers.get("Cache-Control"), /private, no-store/);
+      assert.equal(response.headers.get("Content-Type"), type);
+      assert.equal(response.headers.get("Content-Disposition"), "inline");
+      assert.equal(await response.text(), content);
+    }
+  }
+  row.cor_proof_url = null;
+  assert.equal((await (await open()).json()).url, `/api/bao/seller-applications/${id}/proof?document=id`);
+  assert.equal((await open("?document=id")).status, 200);
+  assert.equal((await open("?document=cor")).status, 404);
+  assert.equal((await open("?document=other")).status, 400);
+  row.cor_proof_url = "8/registration.pdf";
+  assert.equal((await open("?document=cor")).status, 409);
+  authorized = false;
+  assert.equal((await open("?document=id")).status, 401);
+  assert.deepEqual(downloads, [row.id_proof_url, row.id_proof_url, "7/registration.pdf", "7/registration.pdf", row.id_proof_url]);
 });
 
 test("the buyer's application status query is scoped to the session and omits private proof keys", async () => {
   const api = await load("app/api/seller-applications/route.js", {
     "@/lib/seller-access": { getMarketplaceAccount: async () => ({ id: "7", role: "user", status: "active" }) },
-    "@/lib/db": { db: { query: async (sql, values) => { assert.deepEqual([...values], ["7"]); assert.ok(!sql.includes("id_proof_url")); return [[{ id: "4", status: "pending" }]]; } } },
+    "@/lib/db": { db: { query: async (sql, values) => { assert.deepEqual([...values], ["7"]); assert.doesNotMatch(sql, /(?:id|cor)_proof_url/); return [[{ id: "4", status: "pending" }]]; } } },
     "@/lib/seller-applications": { applicationError() {} },
     "@/lib/seller-proof": { getProofStorage() {}, readProof() {}, SELLER_PROOF_BUCKET: "seller-proofs" },
   });
   const response = await api.GET();
   assert.equal(response.status, 200);
-  assert.ok(!JSON.stringify(await response.json()).includes("id_proof_url"));
+  assert.doesNotMatch(JSON.stringify(await response.json()), /(?:id|cor)_proof_url/);
 });
 
 test("the review route rejects a blank rejection reason before running a transaction", async () => {
@@ -141,36 +165,92 @@ test("the review route rejects a blank rejection reason before running a transac
   assert.equal(response.status, 400);
 });
 
-test("concurrent submissions allow one pending application and one private upload", async () => {
+async function submissionHarness(failAt) {
   const applications = [];
   const uploads = [];
+  const removed = [];
   let serial = Promise.resolve();
   const db = { transaction: (callback) => {
     const next = serial.then(() => callback({ query: async (sql, values) => {
       if (sql.startsWith("SELECT role")) return { rows: [{ role: "user", status: "active" }] };
       if (sql.startsWith("SELECT id")) return { rows: [...applications] };
-      if (sql.includes("INSERT INTO seller_applications")) { const row = { id: "4", status: "pending", department: values[1] }; applications.push(row); return { rows: [row] }; }
+      if (sql.includes("INSERT INTO seller_applications")) {
+        if (failAt === "insert") throw new Error("Insert failed");
+        assert.match(sql, /id_proof_url, cor_proof_url/);
+        assert.deepEqual([...values].slice(2), [...uploads, "Optional note"]);
+        const row = { id: "4", status: "pending", department: values[1] };
+        applications.push(row);
+        return { rows: [row] };
+      }
       throw new Error("Unexpected query");
     } }));
     serial = next.catch(() => {});
     return next;
   } };
   const campus = await load("lib/campus.js");
+  const { readProof } = await load("lib/seller-proof.js", { "@supabase/supabase-js": { createClient() {} } });
+  const bucket = {
+    async upload(key) {
+      if (failAt === "cor" && uploads.length) return { error: new Error("Storage unavailable") };
+      uploads.push(key);
+      return {};
+    },
+    async remove(keys) { removed.push(...keys); return {}; },
+  };
   const api = await load("app/api/seller-applications/route.js", {
     "@/lib/db": { db },
     "@/lib/seller-access": { getMarketplaceAccount: async () => ({ id: "7", role: "user", status: "active" }) },
     "@/lib/seller-applications": { applicationError: (message, status) => Object.assign(new Error(message), { status }) },
-    "@/lib/seller-proof": { SELLER_PROOF_BUCKET: "seller-proofs", readProof: async () => ({ bytes: Buffer.from("proof"), extension: "png" }), getProofStorage: () => ({ from: () => ({ upload: async (key) => { uploads.push(key); return {}; } }) }) },
+    "@/lib/seller-proof": { SELLER_PROOF_BUCKET: "seller-proofs", readProof, getProofStorage: () => ({ from: () => bucket }) },
   });
-  const req = () => { const form = new FormData(); form.set("department", campus.LSPU_DEPARTMENTS[0]); form.set("note", "Optional note"); form.set("id_proof", new File(["proof"], "id.png", { type: "image/png" })); return { formData: async () => form }; };
-  const responses = await Promise.all([api.POST(req()), api.POST(req())]);
+  function form() {
+    const data = new FormData();
+    data.set("department", campus.LSPU_DEPARTMENTS[0]);
+    data.set("note", "Optional note");
+    data.set("id_proof", new File([Buffer.from([137,80,78,71,13,10,26,10])], "id.png", { type: "image/png" }));
+    data.set("cor_proof", new File(["%PDF-1.4"], "cor.pdf", { type: "application/pdf" }));
+    return data;
+  }
+  return { form, submit: (data) => api.POST({ formData: async () => data }), uploads, removed, applications };
+}
+
+test("concurrent submissions save one pending application with two distinct private documents", async () => {
+  const { form, submit, uploads, applications, removed } = await submissionHarness();
+  const responses = await Promise.all([submit(form()), submit(form())]);
   assert.deepEqual(responses.map((response) => response.status).sort(), [201, 409]);
-  assert.equal(uploads.length, 1);
+  assert.equal(uploads.length, 2);
   assert.match(uploads[0], /^7\/.+\.png$/);
+  assert.match(uploads[1], /^7\/.+\.pdf$/);
   assert.equal(applications.length, 1);
+  assert.deepEqual(removed, []);
 });
 
-function reviewHarness({ failAt, actorRole = "bao", status = "pending" } = {}) {
+test("a missing or invalid student ID or COR is rejected before either file is uploaded", async () => {
+  const { form, submit, uploads, applications } = await submissionHarness();
+  for (const [field, label] of [["id_proof", /student ID/i], ["cor_proof", /COR/]]) {
+    const data = form();
+    data.delete(field);
+    const response = await submit(data);
+    assert.equal(response.status, 400);
+    assert.match((await response.json()).error, label);
+    data.set(field, new File(["invalid"], "file.pdf", { type: "application/pdf" }));
+    assert.equal((await submit(data)).status, 400);
+  }
+  assert.deepEqual(uploads, []);
+  assert.deepEqual(applications, []);
+});
+
+test("a failed COR upload or database insert removes files saved by that submission", async () => {
+  for (const failAt of ["cor", "insert"]) {
+    const { form, submit, uploads, removed, applications } = await submissionHarness(failAt);
+    assert.equal((await submit(form())).status, 500);
+    assert.equal(uploads.length, failAt === "cor" ? 1 : 2);
+    assert.deepEqual(removed, uploads);
+    assert.deepEqual(applications, []);
+  }
+});
+
+function reviewHarness({ failAt, actorRole = "bao", status = "pending", cor = "7/cor.pdf" } = {}) {
   let state = { role: "user", department: null, status, notifications: [], audits: [] };
   let before;
   let released = false;
@@ -182,7 +262,7 @@ function reviewHarness({ failAt, actorRole = "bao", status = "pending" } = {}) {
     if (sql === "ROLLBACK") state = before;
     if (failAt && sql.includes(failAt)) throw new Error("Injected failure");
     if (sql.includes("FOR SHARE")) return { rows: [{ role: actorRole, status: "active" }] };
-    if (sql.includes("FROM seller_applications")) return { rows: [{ user_id: "7", department: "CCS", status: state.status }] };
+    if (sql.includes("FROM seller_applications")) return { rows: [{ user_id: "7", department: "CCS", status: state.status, id_proof_url: "7/id.png", cor_proof_url: cor }] };
     if (sql.includes("FROM users")) return { rows: [{ role: state.role, status: "active" }] };
     if (sql.includes("UPDATE seller_applications")) state.status = values[0];
     if (sql.includes("UPDATE users")) { state.role = "seller"; state.department = values[0]; }
@@ -233,6 +313,15 @@ test("rejection requires remarks, retains buyer role, and records a notification
   assert.equal(harness.state().status, "rejected");
   assert.match(harness.state().notifications[0].message, /Unclear ID/);
   assert.equal(harness.state().audits[0][3], "Unclear ID");
+});
+
+test("a pending single-file application can be returned for re-application and needs both documents for approval", async () => {
+  const harness = reviewHarness({ cor: null });
+  const service = await load("lib/seller-applications.js", harness.overrides);
+  await assert.rejects(service.reviewSellerApplication({ id: "4", actorId: "1", action: "approve" }), err => err.status === 409);
+  assert.equal(harness.state().role, "user");
+  await service.reviewSellerApplication({ id: "4", actorId: "1", action: "reject", reason: "Please submit your ID and COR." });
+  assert.equal(harness.state().status, "rejected");
 });
 
 test("already reviewed applications and a reviewer whose role changed are denied", async () => {

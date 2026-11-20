@@ -19,7 +19,7 @@ export function ModalSymbol({ type = "info" }) {
 
 export function ModalSpinner() {
   return <div aria-hidden="true" className="relative mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#1a2a6c]/5 dark:bg-[#c9a028]/8">
-    <svg className="absolute inset-0 h-full w-full animate-spin motion-reduce:animate-none" viewBox="0 0 80 80" fill="none">
+    <svg className="absolute inset-0 h-full w-full animate-spin" viewBox="0 0 80 80" fill="none">
       <circle cx="40" cy="40" r="34" stroke="currentColor" strokeWidth="3" className="text-[#1a2a6c]/10 dark:text-white/10" />
       <path d="M40 6a34 34 0 0 1 34 34" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="text-[#c9a028]" />
     </svg>
@@ -83,7 +83,7 @@ export default function ModalShell({ open, title, description, icon, children, o
     <div className="h-1.5 bg-gradient-to-r from-[#1a2a6c] via-[#c9a028] to-[#f2ce65]" />
     <div className={`p-6 sm:p-8 ${centered ? "text-center" : "text-left"}`}>
       <p className="mb-6 text-center text-[10px] font-extrabold tracking-[0.28em] text-[#6f7890] dark:text-slate-400">PIYU<span className="text-[#aa8118] dark:text-[#f2ce65]">MART</span></p>
-      {icon && <div className="mb-5">{icon}</div>}
+      {(busy || icon) && <div className="mb-5">{busy ? <ModalSpinner /> : icon}</div>}
       <h2 id={titleId} className="text-xl font-extrabold tracking-tight">{title}</h2>
       {description && <p id={descriptionId} className="mt-3 break-words text-sm leading-relaxed text-[#58657e] dark:text-slate-300">{description}</p>}
       {children}

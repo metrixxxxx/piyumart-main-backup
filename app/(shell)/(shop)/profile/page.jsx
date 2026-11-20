@@ -162,7 +162,7 @@ export default function ProfilePage() {
 
   const [form, setForm] = useState({
     firstName: "", lastName: "", email: "",
-    contactNumber: "", address: "",
+    contactNumber: "",
     currentPassword: "", newPassword: "",
   });
   const [savedForm, setSavedForm] = useState(null);
@@ -175,7 +175,6 @@ export default function ProfilePage() {
       firstName, lastName,
       email: session.user.email || "",
       contactNumber: session.user.contactNumber || "",
-      address: session.user.address || "",
       currentPassword: "", newPassword: "",
     };
     const t = setTimeout(() => {
@@ -246,7 +245,6 @@ export default function ProfilePage() {
     fd.append("firstName",       form.firstName);
     fd.append("lastName",        form.lastName);
     fd.append("contactNumber",   form.contactNumber);
-    fd.append("address",         form.address);
     if (form.currentPassword) fd.append("currentPassword", form.currentPassword);
     if (form.newPassword)     fd.append("newPassword",     form.newPassword);
     if (imageFile)            fd.append("image",           imageFile);
@@ -454,26 +452,6 @@ export default function ProfilePage() {
 
                       <Field label="Contact Number" type="tel" value={form.contactNumber}
                         onChange={set("contactNumber")} placeholder="09XX XXX XXXX" editing={editing} />
-
-                      {/* Address */}
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-[11px] font-semibold uppercase tracking-wider text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">
-                          Address
-                        </label>
-                        {editing ? (
-                          <textarea
-                            value={form.address}
-                            onChange={set("address")}
-                            placeholder="Your full address"
-                            rows={3}
-                            className="w-full resize-none rounded-lg border border-[#c5cfe8] dark:border-white/10 bg-[#f0f4ff] dark:bg-[#101a30] px-3 py-2.5 text-sm text-[#0e1a3d] dark:text-[#e8edf8] placeholder:text-[#0e1a3d]/40 dark:placeholder:text-[#e8edf8]/40 outline-none transition focus:border-[#1a2a6c] dark:focus:border-[#c9a028] focus:ring-2 focus:ring-[#1a2a6c]/20 dark:focus:ring-[#c9a028]/20"
-                          />
-                        ) : (
-                          <div className="min-h-[5rem] rounded-lg border border-[#c5cfe8] dark:border-white/[0.07] bg-white dark:bg-[#0e1520] px-3 py-2.5 text-sm text-[#0e1a3d] dark:text-[#e8edf8]">
-                            {form.address || <span className="italic text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">Not set</span>}
-                          </div>
-                        )}
-                      </div>
 
                       {/* Alerts */}
                       {error   && <Alert type="error"   message={error}   onClose={() => setError("")} />}

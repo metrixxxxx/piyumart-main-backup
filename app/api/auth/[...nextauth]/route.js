@@ -54,7 +54,6 @@ export const authOptions = {
           role: user.role,
           image: user.image || null,
           contactNumber: user.contact_number || null,
-          address: user.address || null,
           hasPassword: !!user.password,
         };
       },
@@ -123,7 +122,6 @@ export const authOptions = {
         token.lastName = user.lastName;
         token.image = user.image;
         token.contactNumber = user.contactNumber;
-        token.address = user.address;
         token.hasPassword = user.hasPassword;
         token.isFirstGoogleSignIn = user.isFirstGoogleSignIn;
       }
@@ -143,7 +141,6 @@ export const authOptions = {
           token.lastName = u.last_name;
           token.image = u.image;
           token.contactNumber = u.contact_number;
-          token.address = u.address;
           token.hasPassword = !!u.password;
         }
       }
@@ -157,7 +154,6 @@ export const authOptions = {
       session.user.lastName = token.lastName;
       session.user.image = token.image;
       session.user.contactNumber = token.contactNumber;
-      session.user.address = token.address;
       session.user.hasPassword = token.hasPassword;
       session.user.isFirstGoogleSignIn = Boolean(token.isFirstGoogleSignIn);
 

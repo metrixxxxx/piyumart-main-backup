@@ -28,7 +28,6 @@ function CheckoutContent() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [address, setAddress] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [onlinePayments, setOnlinePayments] = useState({enabled:false,methods:[]});
 
@@ -126,7 +125,7 @@ function CheckoutContent() {
   async function handleSubmit() {
     if (submitting) return;
     setActionError("");
-    if (!name || !email || !address) return setActionError("Please fill in all fields!");
+    if (!name.trim() || !email.trim()) return setActionError("Enter your name and LSPU email.");
     if (!email.endsWith("@lspu.edu.ph")) return setActionError("Please use your LSPU email!");
     if (items.length === 0) return setActionError("No items to checkout!");
     if (invalidItems.length > 0)
@@ -145,7 +144,6 @@ function CheckoutContent() {
         body: JSON.stringify({
           name,
           email,
-          address,
           payment_method: paymentMethod,
           total,
           // BUG FIX: include name, image_url, seller_name so my-orders can display them
@@ -268,33 +266,11 @@ setOrderDone(true);
               </div>
             </div>
 
-            {/* Delivery */}
-            <div className="bg-white dark:bg-[#0e1520] rounded-2xl border border-[#c5cfe8] dark:border-white/[0.07] p-5 sm:p-6">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-7 h-7 rounded-lg bg-[#1a2a6c] dark:bg-[#c9a028] flex items-center justify-center text-xs font-bold text-white dark:text-[#0a0e1f]">
-                  2
-                </div>
-                <h2 className="text-sm font-bold text-[#0e1a3d] dark:text-[#e8edf8]">Pick-up point</h2>
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-[#0e1a3d]/50 dark:text-[#e8edf8]/40 uppercase tracking-wider block mb-1.5">
-                  fill up pick-up point
-                </label>
-                <textarea
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Deprtment, Room, Canteen, etc."
-                  rows={3}
-                  className={`${inputClass} resize-y font-[inherit]`}
-                />
-              </div>
-            </div>
-
             {/* Payment */}
             <div className="bg-white dark:bg-[#0e1520] rounded-2xl border border-[#c5cfe8] dark:border-white/[0.07] p-5 sm:p-6">
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-7 h-7 rounded-lg bg-[#1a2a6c] dark:bg-[#c9a028] flex items-center justify-center text-xs font-bold text-white dark:text-[#0a0e1f]">
-                  3
+                  2
                 </div>
                 <h2 className="text-sm font-bold text-[#0e1a3d] dark:text-[#e8edf8]">Payment Method</h2>
               </div>
@@ -306,7 +282,7 @@ setOrderDone(true);
             <div className="bg-white dark:bg-[#0e1520] rounded-2xl border border-[#c5cfe8] dark:border-white/[0.07] p-5 sm:p-6">
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-7 h-7 rounded-lg bg-[#1a2a6c] dark:bg-[#c9a028] flex items-center justify-center text-xs font-bold text-white dark:text-[#0a0e1f]">
-                  4
+                  3
                 </div>
                 <h2 className="text-sm font-bold text-[#0e1a3d] dark:text-[#e8edf8]">Order Items</h2>
               </div>
@@ -423,7 +399,7 @@ setOrderDone(true);
                   <span>₱{total.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">Shipping</span>
+                  <span className="text-[#0e1a3d]/50 dark:text-[#e8edf8]/40">Pickup</span>
                   <span className="text-green-500 font-semibold">Free</span>
                 </div>
                 <div className="flex justify-between text-sm font-bold text-[#0e1a3d] dark:text-[#e8edf8] mt-1">
@@ -444,7 +420,7 @@ setOrderDone(true);
               </button>
 
               <p className="text-[11px] text-[#0e1a3d]/40 dark:text-[#e8edf8]/30 text-center mt-3 leading-relaxed">
-                🔒 Secured checkout · Cash on Pick-up only
+                Campus pickup
               </p>
             </div>
 

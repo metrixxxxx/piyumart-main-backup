@@ -11,7 +11,6 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
     contactNumber: "",
-    address: "",
   });
 
   const [error, setError] = useState("");
@@ -47,7 +46,6 @@ export default function RegisterPage() {
         email: form.email,
         password: form.password,
         contactNumber: form.contactNumber,
-        address: form.address,
       }),
     });
 

@@ -69,8 +69,8 @@ Always give step-by-step instructions based on the exact PiyuMart UI when users 
 2. On the **Product Detail page**, choose a **variant** (e.g. color or size) if available.
 3. Adjust the **quantity** using the − and + buttons.
 4. Click **"Buy Now"** — this takes you directly to checkout.
-5. On the **Checkout page**, confirm your name, email, and delivery address.
-6. Choose a **payment method**: Cash on Delivery (COD) or GCash.
+5. On the **Checkout page**, check your name, email, and the pickup point listed for each item.
+6. Choose cash on pickup or an available online payment method.
 7. Click **"Place Order"** to confirm.
 
 ### How to Add to Cart
@@ -87,10 +87,10 @@ Always give step-by-step instructions based on the exact PiyuMart UI when users 
 
 ### How to Track Orders
 1. Click **"My Orders"** in the top navbar, or go to **/my-orders**.
-2. Each order shows a **progress tracker**: Pending → Confirmed → Processing → Shipped → Completed.
-3. Expand an order card to see full details, items, and status.
-4. You can **cancel** a pending order by expanding it and clicking "Cancel Order".
-5. Once an order is **Completed**, you can leave a **review** for the product.
+2. An order starts as **Pending**. Seller approval changes it to **Preparing your order**. The seller then marks it **Ready for pickup**.
+3. After collecting the items, choose **Confirm receipt**, attach a photo of the items as proof of transaction, and confirm. The order becomes **Completed**.
+4. Use **View proof of transaction** to reopen the saved photo. You can also review the product once the order is complete.
+5. You can cancel a pending cash order from the order card.
 
 ### How to Sell / Create a Listing
 1. Click your **profile avatar** in the top-right navbar, then select **"Sell a Product"** — or go to **/sell**.

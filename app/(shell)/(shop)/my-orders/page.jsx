@@ -11,20 +11,17 @@ import { useMarketplaceRealtime } from "@/lib/realtime/useMarketplaceRealtime";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import OrderItemReviewBtn from "@/components/orders/OrderItemReviewBtn";
 import PickupCompletionModal from "@/components/orders/PickupCompletionModal";
-import PickupProofLink from "@/components/orders/PickupProofLink";
+import PickupProofLink, { PickupProofDialog } from "@/components/orders/PickupProofLink";
 import PageShell from "@/components/layout/PageShell";
+import { ORDER_STEPS, orderStatusLabel } from "@/lib/orders/status";
 
 const STATUS_CONFIG = {
-  pending:    { label: "Pending",    color: "text-amber-600 dark:text-amber-400",    bg: "bg-amber-50 dark:bg-amber-500/10",    dot: "bg-amber-400",                              pulse: true  },
-  confirmed:  { label: "Confirmed",  color: "text-[#1a2a6c] dark:text-[#c9a028]",   bg: "bg-[#e8edf8] dark:bg-[#c9a028]/10",   dot: "bg-[#1a2a6c] dark:bg-[#c9a028]",           pulse: false },
-  processing: { label: "Processing", color: "text-blue-600 dark:text-blue-400",      bg: "bg-blue-50 dark:bg-blue-500/10",       dot: "bg-blue-500",                               pulse: true  },
-  shipped:    { label: "To Receive", color: "text-[#1a2a6c] dark:text-[#c9a028]",   bg: "bg-[#e8edf8] dark:bg-[#c9a028]/10",   dot: "bg-[#c9a028]",                              pulse: true  },
-  completed:  { label: "Completed",  color: "text-green-600 dark:text-green-400",    bg: "bg-green-50 dark:bg-green-500/10",     dot: "bg-green-500",                              pulse: false },
-  cancelled:  { label: "Cancelled",  color: "text-red-500",                          bg: "bg-red-50 dark:bg-red-500/10",         dot: "bg-red-400",                                pulse: false },
+  pending: { color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-500/10", dot: "bg-amber-400", pulse: true },
+  preparing: { color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-500/10", dot: "bg-blue-500", pulse: true },
+  ready_for_pickup: { color: "text-[#1a2a6c] dark:text-[#c9a028]", bg: "bg-[#e8edf8] dark:bg-[#c9a028]/10", dot: "bg-[#c9a028]", pulse: true },
+  completed: { color: "text-green-600 dark:text-green-400", bg: "bg-green-50 dark:bg-green-500/10", dot: "bg-green-500" },
+  cancelled: { color: "text-red-500", bg: "bg-red-50 dark:bg-red-500/10", dot: "bg-red-400" },
 };
-
-const ORDER_STEPS = ["pending", "confirmed", "processing", "shipped", "completed"];
-const STEP_LABELS = ["Pending", "Confirmed", "Processing", "Shipped", "Completed"];
 
 const DELETABLE_STATUSES = ["cancelled", "completed"];
 
@@ -36,7 +33,7 @@ function StatusBadge({ status }) {
         {cfg.pulse && <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${cfg.dot}`} />}
         <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${cfg.dot}`} />
       </span>
-      {cfg.label}
+      {orderStatusLabel(status)}
     </span>
   );
 }
@@ -49,34 +46,17 @@ function OrderProgress({ status }) {
   );
   const current = ORDER_STEPS.indexOf(status);
   return (
-    <div className="py-1">
-      <div className="flex items-center">
-        {ORDER_STEPS.map((step, i) => (
-          <div key={step} className="flex items-center flex-1 last:flex-none">
-            <div className="flex flex-col items-center">
-              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-colors
-                ${i < current  ? "bg-[#1a2a6c] dark:bg-[#c9a028] text-white dark:text-[#070b14]"
-                : i === current ? "bg-[#1a2a6c] dark:bg-[#c9a028] text-white dark:text-[#070b14] ring-4 ring-[#1a2a6c]/15 dark:ring-[#c9a028]/20"
-                : "bg-[#e8edf8] dark:bg-white/[0.07] text-[#0e1a3d]/30 dark:text-[#e8edf8]/30"}`}>
-                {i < current ? "✓" : i + 1}
-              </div>
-            </div>
-            {i < ORDER_STEPS.length - 1 && (
-              <div className={`flex-1 h-0.5 mx-1 transition-colors ${i < current ? "bg-[#1a2a6c] dark:bg-[#c9a028]" : "bg-[#e8edf8] dark:bg-white/[0.07]"}`} />
-            )}
-          </div>
-        ))}
-      </div>
-      <div className="flex mt-1.5">
-        {STEP_LABELS.map((label, i) => (
-          <div key={label} className="flex-1 text-center last:flex-none">
-            <p className={`text-[9px] capitalize leading-tight ${i <= current ? "text-[#0e1a3d] dark:text-[#e8edf8] font-semibold" : "text-[#0e1a3d]/30 dark:text-[#e8edf8]/30"}`}>
-              {label}
-            </p>
-          </div>
-        ))}
-      </div>
-    </div>
+    <ol aria-label="Order progress" className="grid grid-cols-4 py-1">
+      {ORDER_STEPS.map((step, i) => (
+        <li key={step} aria-current={i === current ? "step" : undefined} className="relative flex flex-col items-center gap-2 text-center">
+          {i < ORDER_STEPS.length - 1 && <span aria-hidden="true" className={`absolute left-1/2 top-3.5 h-0.5 w-full ${i < current ? "bg-[#1a2a6c] dark:bg-[#c9a028]" : "bg-slate-200 dark:bg-slate-700"}`} />}
+          <span aria-hidden="true" className={`relative grid h-7 w-7 place-items-center rounded-full text-xs font-bold ${i <= current ? "bg-[#1a2a6c] text-white dark:bg-[#c9a028] dark:text-[#070b14]" : "bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-300"}`}>
+            {i < current ? "✓" : i + 1}
+          </span>
+          <span className={`px-1 text-[11px] leading-tight ${i === current ? "font-bold" : ""}`}>{orderStatusLabel(step)}</span>
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -127,8 +107,8 @@ function OrderCard({ order, onUpdate, onDelete }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      onUpdate(order.id, data.status);
-      setActionNotice(action === "confirm_delivery" ? "Receipt confirmed. Thank you for your purchase." : "The order was cancelled.");
+      onUpdate(order.id, data);
+      if (action === "cancel") setActionNotice("The order was cancelled.");
       return true;
     } catch (err) {
       setActionError(err.message || "Unable to update the order.");
@@ -282,15 +262,16 @@ function OrderCard({ order, onUpdate, onDelete }) {
                 {actionLoading ? "..." : "Cancel Order"}
               </button>
             )}
-            {order.status === "shipped" && (
+            {order.status === "ready_for_pickup" && (
               <button
                 disabled={actionLoading}
                 onClick={() => { setActionError(""); setConfirmReceiptOpen(true); }}
                 className="px-4 py-1.5 text-[11px] font-bold bg-[#1a2a6c] dark:bg-[#c9a028] text-white dark:text-[#070b14] hover:opacity-90 transition rounded-sm disabled:opacity-50"
               >
-                {actionLoading ? "..." : "Upload proof & complete"}
+                {actionLoading ? "Saving…" : "Confirm receipt"}
               </button>
             )}
+            {order.has_pickup_proof && <PickupProofLink orderId={order.id} />}
             {order.status === "completed" && (
               <button
                 onClick={() => setExpanded(true)}
@@ -321,7 +302,7 @@ function OrderCard({ order, onUpdate, onDelete }) {
               { label: "Recipient", value: order.name },
               { label: "Email", value: order.email },
               { label: "Payment", value: onlinePayment ? "Paid online" : "Cash on Pick-up" },
-              { label: "Address", value: order.address },
+              { label: "Pickup point", value: order.address },
               { label: "Date", value: date },
             ].map(({ label, value }) => (
               <div key={label} className="bg-white dark:bg-[#0e1520] border border-[#e8edf8] dark:border-white/[0.07] rounded-sm p-2.5">
@@ -330,10 +311,6 @@ function OrderCard({ order, onUpdate, onDelete }) {
               </div>
             ))}
           </div>
-          {order.has_pickup_proof && <div className="rounded-sm border border-[#c5cfe8] bg-white p-3 dark:border-white/10 dark:bg-[#0e1520]">
-            <p className="mb-1 text-xs font-semibold">Proof photo saved</p>
-            <PickupProofLink orderId={order.id} />
-          </div>}
           {order.tracking_number && (
             <div className="bg-[#e8edf8] dark:bg-[#c9a028]/10 border border-[#c5cfe8] dark:border-[#c9a028]/20 rounded-sm p-3">
               <p className="text-[10px] font-semibold text-[#1a2a6c] dark:text-[#c9a028] uppercase tracking-wider mb-1">Shipping Info</p>
@@ -398,7 +375,7 @@ function OrderCard({ order, onUpdate, onDelete }) {
       />
       {confirmReceiptOpen && <PickupCompletionModal orderId={order.id} onlinePayment={onlinePayment} busy={actionLoading} error={actionError}
         onCancel={() => setConfirmReceiptOpen(false)} onConfirm={async file => {
-          if (await handleAction("confirm_delivery", file)) setConfirmReceiptOpen(false);
+          if (await handleAction("confirm_receipt", file)) setConfirmReceiptOpen(false);
         }} />}
     <ActionFeedback pending={actionLoading || deleteLoading} error={confirmReceiptOpen ? "" : actionError} success={actionNotice} showLoading={false} pendingTitle="Updating your order" successTitle="Order updated" />
       </div>
@@ -409,6 +386,7 @@ export default function OrdersPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [filter, setFilter] = useState("all");
+  const [receiptOrderId, setReceiptOrderId] = useState(null);
   const [refresh, setRefresh] = useState(0);
   const [page,setPage]=useState(1);
   const orderList=usePagedResource(`/api/orders?page=${page}&status=${filter}`,{enabled:status==="authenticated",identity:session?.user?.id,refresh,onPageChange:setPage});
@@ -421,10 +399,11 @@ export default function OrdersPage() {
     onChange: () => setRefresh((value) => value + 1),
   });
 
-  function handleOrderUpdate(id, newStatus) {
+  function handleOrderUpdate(id, update) {
+    if (update.status === "completed" && update.has_pickup_proof) setReceiptOrderId(id);
     orderList.reload();
     setOrders((prev) =>
-      prev.map((o) => Number(o.id) === Number(id) ? { ...o, status: newStatus } : o)
+      prev.map((o) => Number(o.id) === Number(id) ? { ...o, status: update.status, has_pickup_proof: update.has_pickup_proof } : o)
     );
   }
 
@@ -451,12 +430,7 @@ export default function OrdersPage() {
 
   const TABS = [
     { key: "all", label: "All" },
-    { key: "pending", label: "To Pay" },
-    { key: "confirmed", label: "Confirmed" },
-    { key: "processing", label: "Processing" },
-    { key: "shipped", label: "To Receive" },
-    { key: "completed", label: "Completed" },
-    { key: "cancelled", label: "Cancelled" },
+    ...[...ORDER_STEPS, "cancelled"].map(key => ({ key, label: orderStatusLabel(key) })),
   ];
 
   return (
@@ -495,7 +469,7 @@ export default function OrdersPage() {
       }
     >
 
-        {orders.length === 0 ? (
+        {orders.length === 0 && totalOrders === 0 ? (
           <div className="text-center py-20 bg-white dark:bg-[#0e1520] border border-[#c5cfe8] dark:border-white/[0.07]">
             <div className="text-5xl mb-4">📦</div>
             <h2 className="text-base font-bold text-[#0e1a3d] dark:text-[#e8edf8] mb-2">No orders yet</h2>
@@ -524,6 +498,7 @@ export default function OrdersPage() {
           </div>
         )}
       <div className="mt-6">{orderList.error&&<p role="alert" className="text-sm text-rose-600">{orderList.error}</p>}<Pagination pagination={orderList.pagination} loading={orderList.loading} onPageChange={setPage}/></div>
+      {receiptOrderId && <PickupProofDialog key={receiptOrderId} orderId={receiptOrderId} description="Receipt confirmed. Your order is complete." onClose={() => setReceiptOrderId(null)} />}
     </PageShell>
   );
 }

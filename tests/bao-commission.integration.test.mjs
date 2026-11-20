@@ -48,6 +48,7 @@ test("BAO commission withdrawal lifecycle",{skip:process.env.PIYUMART_FINANCE_DB
     const env={WALLET_ENCRYPTION_KEY:"ab".repeat(32),PAYMONGO_SECRET_KEY:"sk_test_fixture",PAYMONGO_PAYOUTS_ENABLED:"true",APP_URL:"http://localhost:3000"};
     const options=withProofStorage({db,env,fetch:provider,notificationFailure:()=>notificationFailure});
     const wallet=await loadFinanceModule("lib/payments/wallet.js",options),checkout=await loadFinanceModule("lib/payments/checkout.js",options),lifecycle=await loadFinanceModule("lib/payments/events.js",options);
+    const { transitionOrder } = await loadFinanceModule("lib/orders/fulfillment.js", options);
     const destinationInput={institution:"TESTPHMM",account_name:"Demo BAO",account_number:"09171234567"};
     const event=(type,resource)=>({id:`evt_bao${++eventNumber}`,attributes:{type,livemode:false,data:resource}});
     async function paidOrder(quantity){
@@ -56,7 +57,7 @@ test("BAO commission withdrawal lifecycle",{skip:process.env.PIYUMART_FINANCE_DB
       session.attributes.payments=[{id:`pay_bao${sessions.size}`,attributes:{status:"paid",currency:"PHP",amount:100000*quantity,livemode:false}}];
       const payload=event("checkout_session.payment.paid",session);await lifecycle.processPaymentEvent(payload,JSON.stringify(payload));return {...order,session};
     }
-    async function complete(order){for(const status of ["confirmed","processing","shipped"])await lifecycle.transitionOnlineOrder(2,order.orderIds[0],{status});await lifecycle.transitionOnlineOrder(1,order.orderIds[0],{action:"confirm_delivery"},proofPhoto());}
+    async function complete(order){for(const status of ["preparing","ready_for_pickup"])await transitionOrder(2,order.orderIds[0],{status});await transitionOrder(1,order.orderIds[0],{action:"confirm_receipt"},proofPhoto());}
     const balance=async()=>(await wallet.financeDashboard()).balances;
     const transfer=(id,status,amount=10000)=>({id,attributes:{livemode:false,status,currency:"PHP",amount,destination_account:{bic:"TESTPHMM",name:"Demo BAO",number:"09171234567"}}});
     let destination,funded,request,key;

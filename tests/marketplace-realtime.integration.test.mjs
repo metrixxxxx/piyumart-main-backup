@@ -90,12 +90,12 @@ test("Supabase database-triggered marketplace realtime",{skip:process.env.PIYUMA
     await t.test("online seller and buyer API actions broadcast automatically after commit",async()=>{
       messages.length=0;await query("UPDATE orders SET payment_method='paymongo',payment_status='paid' WHERE id=$1",[orderId]);await received(["buyer","seller","staff"],"orders");
       const seller=await loadFinanceModule("app/api/seller/orders/[id]/route.js",{db,account:{id:2,role:"seller",status:"active"}});
-      for(const status of ["confirmed","processing","shipped"]){
+      for(const status of ["preparing","ready_for_pickup"]){
         messages.length=0;const response=await seller.PATCH(new Request(`http://localhost/api/seller/orders/${orderId}`,{method:"PATCH",body:JSON.stringify({status})}),{params:Promise.resolve({id:String(orderId)})});
         assert.equal(response.status,200);assert.equal((await response.json()).status,status);await received(["buyer","seller","staff"],"orders");
       }
       messages.length=0;const buyer=await loadFinanceModule("app/api/orders/[id]/route.js",withProofStorage({db,account:{id:1,role:"user",status:"active"}}));
-      const form=new FormData();form.set("action","confirm_delivery");form.set("pickup_proof",proofPhoto());
+      const form=new FormData();form.set("action","confirm_receipt");form.set("pickup_proof",proofPhoto());
       const response=await buyer.PATCH(new Request(`http://localhost/api/orders/${orderId}`,{method:"PATCH",body:form}),{params:Promise.resolve({id:String(orderId)})});
       assert.equal(response.status,200);assert.equal((await response.json()).status,"completed");await received(["buyer","seller","staff"],"orders");
     });

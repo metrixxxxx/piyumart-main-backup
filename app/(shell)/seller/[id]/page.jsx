@@ -11,7 +11,7 @@ export default async function SellerPage({ params }) {
   }
 
   const [sellerRows] = await db.query(
-    `SELECT id, name, last_name, email, contact_number, address, image, role, status, created_at
+    `SELECT id, name, last_name, email, contact_number, image, role, status, created_at
      FROM users
      WHERE id = $1`,
     [sellerId]
@@ -76,7 +76,6 @@ export default async function SellerPage({ params }) {
                   <div className="space-y-3 text-sm text-[#1a1060]/70 dark:text-[#f0ede8]/70">
                     <p><span className="font-semibold">Email:</span> {seller.email || "Not shared"}</p>
                     <p><span className="font-semibold">Contact:</span> {seller.contact_number || "Not available"}</p>
-                    <p><span className="font-semibold">Address:</span> {seller.address || "Not available"}</p>
                     <p><span className="font-semibold">Joined:</span> {new Date(seller.created_at).toLocaleDateString()}</p>
                   </div>
                 </div>

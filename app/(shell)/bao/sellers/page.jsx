@@ -1,4 +1,5 @@
 "use client";
+import { orderStatusLabel } from "@/lib/orders/status";
 
 import ModalShell from "@/components/ui/ModalShell";
 import ActionFeedback from "@/components/ui/ActionFeedback";
@@ -26,7 +27,7 @@ function formatDate(value) {
   return value ? new Date(value).toLocaleString("en-PH") : "—";
 }
 
-function StatusBadge({ status }) {
+function StatusBadge({ status, label = status }) {
   const styles = {
     active: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200",
     pending: "bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200",
@@ -36,7 +37,7 @@ function StatusBadge({ status }) {
 
   return (
     <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold capitalize ${styles[status] || "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200"}`}>
-      {status || "unknown"}
+      {label || "unknown"}
     </span>
   );
 }
@@ -440,7 +441,7 @@ export default function BaoSellersPage() {
                               <td className="py-3 pr-4 font-semibold">#{order.id}</td>
                               <td className="py-3 pr-4 text-slate-500 dark:text-slate-400">{formatDate(order.created_at)}</td>
                               <td className="py-3 pr-4">{formatCount(order.item_count)}</td>
-                              <td className="py-3 pr-4"><StatusBadge status={order.status} /></td>
+                              <td className="py-3 pr-4"><StatusBadge status={order.status} label={orderStatusLabel(order.status)} /></td>
                               <td className="py-3 text-right font-semibold">{formatCurrency(order.total)}</td>
                             </tr>
                           ))}

@@ -94,9 +94,9 @@ order per seller in a transaction. One PayMongo payment can cover those orders.
 
 Only signed test webhooks or authenticated server-side provider retrieval can
 confirm payment. Visiting a success redirect does not mark anything paid. Payment
-confirmation leaves delivery status pending. Seller fulfillment uses the existing
-confirmed → processing → shipped flow; only the buyer can confirm receipt, with
-a required photo of the received items. See [photo proof setup](cash-pickup-proof.md).
+confirmation leaves the order pending. The seller approves the order to begin
+preparation, then marks it ready for pickup. The buyer confirms receipt with
+a required photo of the collected items. See [photo proof setup](cash-pickup-proof.md).
 
 Successful payments post each allocation into pending wallets. By default, buyer
 confirmation moves funds to available. Admin can select payment-confirmed release
@@ -232,7 +232,7 @@ For a real sandbox walkthrough:
 3. Replay a paid event and verify balances do not change. Change the signature or
    amount and verify rejection. A direct success URL must not confirm a charge.
 4. Confirm the seller sees pending 97% and BAO pending 3%. Have the seller confirm,
-   process and ship; then have the buyer confirm receipt. Verify available balances.
+   mark it ready for pickup, then have the buyer confirm receipt with a photo. Verify available balances.
 5. Add a payout destination as seller; approve it as BAO. Request more than the
    available amount (must fail), then submit a valid cashout. Duplicate requests
    cannot reserve funds twice. Reject it and verify the reserve is returned.

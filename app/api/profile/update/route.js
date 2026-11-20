@@ -26,7 +26,6 @@ export async function POST(req) {
   const firstName      = formData.get("firstName")?.trim();
   const lastName       = formData.get("lastName")?.trim();
   const contactNumber  = formData.get("contactNumber")?.trim() || null;
-  const address        = formData.get("address")?.trim() || null;
   const currentPassword = formData.get("currentPassword") || null;
   const newPassword    = formData.get("newPassword") || null;
   const imageFile      = formData.get("image");
@@ -106,9 +105,8 @@ export async function POST(req) {
       "name = $1",
       "last_name = $2",
       "contact_number = $3",
-      "address = $4",
     ];
-    const values = [firstName, lastName, contactNumber, address];
+    const values = [firstName, lastName, contactNumber];
 
     if (imagePath) {
       values.push(imagePath);

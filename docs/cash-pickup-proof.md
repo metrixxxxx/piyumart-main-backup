@@ -1,8 +1,10 @@
 # Order completion photo proof
 
 The buyer must upload a photo of the received items before marking a cash-on-pickup
-or online transaction completed. In **My orders**, an order that is ready to receive shows **Upload proof
-& complete**. The dialog previews a JPG, PNG, or WebP photo (maximum 5 MB) and asks
+or online transaction completed. New orders start as **Pending**. The seller selects
+**Approve order** to start **Preparing your order**, then **Mark ready for pickup**.
+After pickup the buyer selects **Confirm receipt** in **My orders**.
+The dialog previews a JPG, PNG, or WebP photo (maximum 5 MB) and asks
 the buyer to confirm receipt. Cash buyers also confirm that they paid the seller;
 online buyers are reminded that payment was made online. A photo does not confirm
 or replace PayMongo payment verification.
@@ -16,7 +18,8 @@ allocations, and recording the notification share one database transaction.
 Upload or transaction failures leave the order open and
 attempt to remove the unused object. Concurrent confirmations complete only once.
 
-**View proof photo** is available to the buyer, the order's seller, and authorized
+The saved proof opens for the buyer after confirmation.
+**View proof of transaction** is available to the buyer, the order's seller, and authorized
 BAO staff. Access checks happen before issuing a signed URL that expires after 60
 seconds. Listing APIs return a proof-presence flag instead of the storage key.
 The photo remains private even if other buckets have broad Storage policies.

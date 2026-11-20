@@ -5,13 +5,12 @@ import PageShell from "@/components/layout/PageShell";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { LSPU_DEPARTMENTS, validateProofFile } from "@/lib/campus";
+import { LSPU_DEPARTMENTS, SELLER_DOCUMENTS, validateProofFile } from "@/lib/campus";
 
 export default function BecomeSeller({ initialApplication }) {
   const [application, setApplication] = useState(initialApplication);
   const [department, setDepartment] = useState(initialApplication?.department || "");
   const [note, setNote] = useState("");
-  const [file, setFile] = useState(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [working, setWorking] = useState(false);
@@ -37,20 +36,18 @@ export default function BecomeSeller({ initialApplication }) {
     event.preventDefault();
     if (working) return;
     setNotice("");
-    const fileError = validateProofFile(file);
-    if (fileError) { setError(fileError); return; }
+    const form = new FormData(event.currentTarget);
+    for (const { field, label } of SELLER_DOCUMENTS) {
+      const fileError = validateProofFile(form.get(field), label);
+      if (fileError) { setError(fileError); return; }
+    }
     setWorking(true);
     setError("");
     try {
-      const form = new FormData();
-      form.set("department", department);
-      form.set("note", note);
-      form.set("id_proof", file);
       const response = await fetch("/api/seller-applications", { method: "POST", body: form });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Unable to submit application.");
       setApplication(data.application);
-      setFile(null);
       setNotice("Your seller application has been submitted. You will be notified after it is reviewed.");
     } catch (err) { setError(err.message); }
     finally { setWorking(false); }
@@ -75,22 +72,28 @@ export default function BecomeSeller({ initialApplication }) {
               <div className="mb-5 rounded-xl bg-rose-50 p-4 text-sm text-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
                 <h2 className="font-bold">Your application was rejected</h2>
                 <p className="mt-1 whitespace-pre-wrap">{application.remarks || "Please update your application and try again."}</p>
-                <p className="mt-2">You can re-apply below with a new proof document.</p>
+                <p className="mt-2">You can re-apply below with your student ID and COR.</p>
               </div>
             )}
             <form onSubmit={submit} className="grid gap-5 md:grid-cols-2">
-              <label className="block min-w-0 text-sm font-semibold">Department
-                <select required value={department} onChange={(event) => setDepartment(event.target.value)} className={fieldClass}>
+              <label className="block min-w-0 text-sm font-semibold md:col-span-2">Department
+                <select name="department" required value={department} onChange={(event) => setDepartment(event.target.value)} className={fieldClass}>
                   <option value="">Select your department</option>
                   {LSPU_DEPARTMENTS.map((name) => <option key={name} value={name}>{name}</option>)}
                 </select>
               </label>
-              <label className="block min-w-0 text-sm font-semibold">Student ID / Certificate of Registration
-                <input required type="file" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" onChange={(event) => { const selected = event.target.files?.[0]; setFile(selected); setError(selected ? validateProofFile(selected) || "" : ""); }} className={fieldClass} />
-                <span className="mt-2 block text-xs font-normal text-slate-500 dark:text-slate-400">JPG, PNG, or PDF, up to 5 MB. Only authorized BAO staff and admins can view your document.</span>
-              </label>
+              {SELLER_DOCUMENTS.map(({ field, label }) => (
+                <label key={field} className="block min-w-0 text-sm font-semibold">{label} (required)
+                  <input name={field} required type="file" accept=".jpg,.jpeg,.png,.pdf" aria-describedby="document-help"
+                    onChange={(event) => {
+                      const selected = event.target.files?.[0];
+                      setError(selected ? validateProofFile(selected, label) || "" : "");
+                    }} className={fieldClass} />
+                </label>
+              ))}
+              <p id="document-help" className="text-xs text-slate-500 dark:text-slate-400 md:col-span-2">Upload each document as a JPG, PNG, or PDF, up to 5 MB per file. Only authorized BAO staff can view them.</p>
               <label className="block text-sm font-semibold md:col-span-2">Note (optional)
-                <textarea maxLength={1000} rows={3} value={note} onChange={(event) => setNote(event.target.value)} className={fieldClass} />
+                <textarea name="note" maxLength={1000} rows={3} value={note} onChange={(event) => setNote(event.target.value)} className={fieldClass} />
               </label>
               {error && <p role="alert" className="text-sm text-rose-700 dark:text-rose-300 md:col-span-2">{error}</p>}
               <button disabled={working} className="w-full rounded-xl bg-[#1a2a6c] px-4 py-3 text-sm font-bold text-white hover:bg-[#24377f] disabled:opacity-50 md:col-span-2">{working ? "Submitting..." : application?.status === "rejected" ? "Re-apply to become a seller" : "Submit application"}</button>
@@ -98,7 +101,7 @@ export default function BecomeSeller({ initialApplication }) {
           </>
         )}
       </section>
-    <ActionFeedback pending={working} error={error} success={notice} pendingTitle="Submitting your application" pendingDescription="Uploading your verification document and saving your application." successTitle="Application submitted" />
-      </PageShell>
+      <ActionFeedback pending={working} error={error} success={notice} pendingTitle="Submitting your application" pendingDescription="Uploading your student ID and COR." successTitle="Application submitted" />
+    </PageShell>
   );
 }

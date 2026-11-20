@@ -14,11 +14,14 @@ bucket with a 5 MB limit and JPG/PNG/PDF MIME types. It also restricts direct an
 and Supabase-authenticated access to applications and proof objects: custom auth
 uses server routes instead.
 
+Apply `migrations/add_seller_application_cor.sql` before deploying the two-file
+application form. Earlier applications keep their original upload.
+
 The server needs the existing `DATABASE_URL`, `NEXTAUTH_SECRET`,
 `NEXT_PUBLIC_SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY`. Never put the service
-role key in a `NEXT_PUBLIC_` variable. The proof field stores a private object key,
-not a public URL. Reviewers request fresh signed links lasting 60 seconds, following
-[Supabase's private bucket access model](https://supabase.com/docs/guides/storage/buckets/fundamentals).
+role key in a `NEXT_PUBLIC_` variable. Each document field stores a private object
+key. The BAO review URL stays the same and checks the current staff session each
+time it serves a document from the private bucket.
 
 Edit `LSPU_DEPARTMENTS` and `MEETUP_POINTS` in `lib/campus.js` for your campus.
 The initial college names follow the [LSPU college directory](https://lspu.edu.ph/academic_colleges).
@@ -40,7 +43,7 @@ node --experimental-vm-modules --test tests/seller-verification.test.mjs
 
 The unit tests exercise real route handlers and transaction code with isolated
 database/Storage boundaries. They cover role spoofing, suspended sellers, listing
-validation, file validation, pending submission serialization, signed links,
+validation, both required uploads, partial upload cleanup, pending submission serialization, reusable private review links,
 reviewer revalidation, approval/rejection, and rollback on notification/audit failure.
 They do not apply the migration or write to live Supabase.
 
@@ -80,17 +83,18 @@ for (const [url, method] of [
 
 ### B. Apply and re-apply
 
-1. Choose a department on `/sell`, upload a JPG/PNG/PDF student ID or COR no larger
-   than 5 MB, optionally add a note, and submit. Expect **Your application is under review**.
+1. Choose a department on `/sell` and upload both a student ID and a Certificate of
+   Registration (COR). Each file can be a JPG, PNG, or PDF up to 5 MB. Optionally
+   add a note and submit. Expect **Your application is under review**.
 2. Verify one pending `seller_applications` row with your authenticated user ID,
-   department, optional note, and an object key in `id_proof_url`. The object must
-   be in the private `seller-proofs` bucket and unavailable through a public URL.
-   The application status response must not contain `id_proof_url`.
+   department, optional note, and distinct object keys in `id_proof_url` and
+   `cor_proof_url`. Both objects belong in the private `seller-proofs` bucket.
+   The application status response omits both keys.
 3. Attempt submission in two tabs at once. One succeeds and the other returns
    **409**; there is only one pending row. Try an unsupported file, an oversized
    file, and a text file renamed to `.png`: the server rejects them.
 4. Have BAO reject this application with a reason. Revisit `/sell`: confirm the
-   reason and new application form appear. Re-apply with a new document and
+   reason and new application form appear. Re-apply with both documents and
    confirm the old rejected row remains and one new pending row is inserted.
 
 ### C. BAO/admin reviews
@@ -99,9 +103,11 @@ for (const [url, method] of [
    `/bao/seller-applications`; admin opens it from the dashboard navigation at
    `/dashboard/seller-applications`.
 2. Switch Pending / Approved / Rejected. Check applicant name, email, department,
-   submission date, and optional note. Use **View ID / COR**. Verify its generated
-   signed URL works immediately and a new request to the same link after expiry
-   fails (a previously opened document may remain visible in the browser).
+   submission date, and optional note. Use **Review files** to open the student ID
+   and COR. Reopen each URL after a minute while signed in, then sign out and
+   verify a new request to either URL requires a BAO session. Older applications
+   show the single original upload. For an older pending application, reject it
+   with a reason asking the applicant to re-apply with both files.
 3. Approve a pending application. Verify `status = 'approved'`, `reviewed_by`,
    `reviewed_at`, `users.role = 'seller'`, and `users.department` copied from the
    application. Verify one user notification and one `bao_audit_logs` entry with
@@ -168,6 +174,7 @@ lib/seller-access.js
 lib/seller-applications.js
 lib/seller-proof.js
 migrations/add_seller_verification_support.sql
+migrations/add_seller_application_cor.sql
 tests/seller-verification.test.mjs
 tests/seller-verification-smoke.mjs
 docs/seller-verification.md

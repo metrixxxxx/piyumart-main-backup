@@ -5,6 +5,7 @@ CREATE TABLE product_variants(id serial PRIMARY KEY,product_id integer,label tex
 CREATE TABLE orders(id serial PRIMARY KEY,user_id integer,seller_id integer,name text,email text,address text,payment_method text,total numeric(14,2),status varchar,created_at timestamp DEFAULT now(),confirmed_at timestamptz,shipped_at timestamptz,completed_at timestamptz,cancelled_at timestamptz,tracking_number text,courier text);
 CREATE TABLE order_items(id serial PRIMARY KEY,order_id integer,product_id integer,quantity integer,price numeric(14,2),variant text,name text,image_url text,seller_name text);
 ALTER TABLE orders ADD COLUMN seller_note text;
+ALTER TABLE orders ADD COLUMN seller_confirm_deadline timestamptz, ADD COLUMN cancel_reason text, ADD COLUMN cancel_note text;
 ALTER TABLE orders ADD COLUMN pickup_proof_path text;
 ALTER TABLE orders ADD COLUMN pickup_proof_uploaded_at timestamptz;
 CREATE TABLE bao_audit_logs(id serial PRIMARY KEY,actor_id integer,action text,entity_type text,entity_id text,reason text,metadata jsonb,created_at timestamptz DEFAULT now());

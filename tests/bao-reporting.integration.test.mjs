@@ -56,6 +56,7 @@ test("BAO reports combine cash and verified online transactions", {
     const options = withProofStorage({ db, env, fetch: provider, staff: { id: 3, role: "bao", status: "active" } });
     const checkout = await loadFinanceModule("lib/payments/checkout.js", options);
     const lifecycle = await loadFinanceModule("lib/payments/events.js", options);
+    const { transitionOrder } = await loadFinanceModule("lib/orders/fulfillment.js", options);
     const commission = await loadFinanceModule("lib/bao-commission.js", options);
     const service = await loadFinanceModule("lib/bao-commission-report.js", options);
     const api = await loadFinanceModule("app/api/bao/commissions/route.js", options);
@@ -80,8 +81,8 @@ test("BAO reports combine cash and verified online transactions", {
     const complete = async (order) => {
       for (const id of order.orderIds) {
         const [row] = await query("SELECT seller_id FROM orders WHERE id=$1", [id]);
-        for (const status of ["confirmed", "processing", "shipped"]) await lifecycle.transitionOnlineOrder(row.seller_id, id, { status });
-        await lifecycle.transitionOnlineOrder(1, id, { action: "confirm_delivery" }, proofPhoto());
+        for (const status of ["preparing", "ready_for_pickup"]) await transitionOrder(row.seller_id, id, { status });
+        await transitionOrder(1, id, { action: "confirm_receipt" }, proofPhoto());
       }
     };
     const refund = async (order, amount) => {

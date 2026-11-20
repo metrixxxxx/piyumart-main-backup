@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import { db } from "@/lib/db";
 
 export async function POST(req) {
-  const { firstName, lastName, email, password, contactNumber, address } = await req.json();
+  const { firstName, lastName, email, password, contactNumber } = await req.json();
 
   if (!email.endsWith("@lspu.edu.ph")) {
     return Response.json({ message: "Only LSPU email allowed" }, { status: 400 });
@@ -12,8 +12,8 @@ export async function POST(req) {
 
  try {
     await db.query(
-      "INSERT INTO users (name, last_name, email, password, contact_number, address) VALUES ($1, $2, $3, $4, $5, $6)",
-      [firstName, lastName, email, hashedPassword, contactNumber, address]
+      "INSERT INTO users (name, last_name, email, password, contact_number) VALUES ($1, $2, $3, $4, $5)",
+      [firstName, lastName, email, hashedPassword, contactNumber]
     );
 
     return Response.json({ message: "User created" });

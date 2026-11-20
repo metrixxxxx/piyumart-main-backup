@@ -1,4 +1,5 @@
 "use client";
+import { orderStatusLabel } from "@/lib/orders/status";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -118,7 +119,7 @@ export default function BaoDashboardPage() {
                   <td className="px-4 py-3 font-medium text-slate-900">{currencyFormatter.format(Number(order.total) || 0)}</td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusClass(order.status)}`}>
-                      {order.status || "unknown"}
+                      {orderStatusLabel(order.status)}
                     </span>
                   </td>
                 </tr>

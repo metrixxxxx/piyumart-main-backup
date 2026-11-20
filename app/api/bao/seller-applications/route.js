@@ -14,6 +14,8 @@ export async function GET(req) {
     if(page.offset>=total)return Response.json({applications:[]},{headers:pageHeaders(page,total)});
     const [applications] = await db.query(
       `SELECT a.id, a.department, a.note, a.status, a.remarks, a.submitted_at, a.reviewed_at,
+              NULLIF(a.id_proof_url, '') IS NOT NULL AS has_id_proof,
+              NULLIF(a.cor_proof_url, '') IS NOT NULL AS has_cor_proof,
               u.name, u.last_name, u.email
        FROM seller_applications a JOIN users u ON u.id = a.user_id
        WHERE a.status = $1 ORDER BY a.submitted_at DESC, a.id DESC LIMIT $2 OFFSET $3`, [status,page.pageSize,page.offset]

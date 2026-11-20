@@ -1,4 +1,5 @@
 "use client";
+import { orderStatusLabel } from "@/lib/orders/status";
 
 import { useEffect, useState } from "react";
 import { BAO_COMMISSION_TIERS, BAO_COMMISSION_DESCRIPTION } from "@/lib/commission-policy";
@@ -308,7 +309,7 @@ export default function BaoCommissionsPage() {
                       {record.payment_reference && <p className="mt-1 break-all text-slate-500 dark:text-slate-400">{record.payment_reference}</p>}
                       {Number(record.refunded_amount) > 0 && <p className="mt-1 text-rose-700 dark:text-rose-300">Refunded {formatCurrency(record.refunded_amount)}</p>}
                     </td>
-                    <td className="px-3 py-3"><FinanceStatus value={record.order_status} /></td>
+                    <td className="px-3 py-3"><FinanceStatus value={orderStatusLabel(record.order_status)} /></td>
                     <td className="px-3 py-3 text-right">{Number(record.commission_rate)}%</td>
                     <td className="px-3 py-3 text-right">{formatCurrency(record.order_amount)}</td>
                     <td className="px-3 py-3 text-right font-bold text-[#1a2a6c] dark:text-[#e9d48f]">{formatCurrency(record.commission_amount)}</td>

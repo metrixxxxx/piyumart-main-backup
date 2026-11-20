@@ -45,7 +45,7 @@ changed for this fix.
    reconciliation confirms payment, open BAO Commissions in another profile.
    The transaction should appear before fulfillment, with 3% pending commission.
    The Online payments page should also contain its payment reference.
-3. Confirm, process and ship as the seller, then confirm receipt as the buyer.
+3. Approve the order and mark it ready for pickup as the seller. Confirm receipt with a photo as the buyer.
    Commission should move from pending report totals to earned totals and appear
    in the BAO overview without a manual browser reload.
 4. Refresh the payment status repeatedly. There should still be one commission

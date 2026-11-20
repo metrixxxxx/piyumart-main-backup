@@ -15,35 +15,31 @@ export default function SellerApplications() {
   const [refresh, setRefresh] = useState(0);
   const [working, setWorking] = useState(false);
   const [decision, setDecision] = useState(null);
+  const [reviewFiles, setReviewFiles] = useState(null);
   const [reason, setReason] = useState("");
   const [page,setPage]=useState(1),[pagination,setPagination]=useState(null);
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
     const controller=new AbortController();
     fetch(`/api/bao/seller-applications?status=${tab}&page=${page}`, { cache: "no-store",signal:controller.signal })
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Unable to load applications.");
-        if (active) {const meta=readPageHeaders(response);if(meta.page>meta.totalPages){setPage(meta.totalPages);return;}setPagination(meta);setApplications(data.applications); setError(""); }
+        if (!active) return;
+        const meta = readPageHeaders(response);
+        if (meta.page > meta.totalPages) {
+          setPage(meta.totalPages);
+          return;
+        }
+        setPagination(meta);
+        setApplications(data.applications);
+        setError("");
+        setLoading(false);
       })
-      .catch((err) => { if (active) { setApplications([]); setError(err.message); } })
-      .finally(() => { if (active) setLoading(false); });
+      .catch((err) => { if (active) { setApplications([]); setError(err.message); setLoading(false); } });
     return () => { active = false;controller.abort(); };
   }, [tab, refresh,page]);
-
-  async function viewProof(id) {
-    const preview = window.open("about:blank", "_blank");
-    if (!preview) { setError("Allow popups to view the proof document."); return; }
-    preview.opener = null;
-    try {
-      const response = await fetch(`/api/bao/seller-applications/${id}/proof`, { cache: "no-store" });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Unable to open document.");
-      preview.location.replace(data.url);
-    } catch (err) { preview.close(); setError(err.message); }
-  }
 
   async function review(event) {
     event.preventDefault();
@@ -80,12 +76,29 @@ export default function SellerApplications() {
           <td className="p-4"><p className="font-bold">{[item.name, item.last_name].filter(Boolean).join(" ")}</p><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{item.email}</p>{item.note && <p className="mt-2 max-w-xs whitespace-pre-wrap text-xs">Note: {item.note}</p>}</td>
           <td className="p-4">{item.department}</td>
           <td className="p-4 whitespace-nowrap">{new Date(item.submitted_at).toLocaleString("en-PH", { timeZone: "Asia/Manila" })}</td>
-          <td className="p-4"><button type="button" onClick={() => viewProof(item.id)} className="font-semibold text-[#1a2a6c] underline dark:text-[#c9a028]">View ID / COR</button><p className="mt-1 text-xs text-slate-500">Link expires in 60 seconds</p></td>
-          <td className="p-4">{tab === "pending" ? <div className="flex gap-2"><button type="button" disabled={working} onClick={() => { setDecision({ id: item.id, action: "approve" }); setReason(""); }} className="rounded-lg bg-emerald-700 px-3 py-2 font-bold text-white">Approve</button><button type="button" disabled={working} onClick={() => { setDecision({ id: item.id, action: "reject" }); setReason(""); }} className="rounded-lg bg-rose-700 px-3 py-2 font-bold text-white">Reject</button></div> : <p className="max-w-xs whitespace-pre-wrap">{item.remarks || (tab === "approved" ? "Approved" : "Rejected")}</p>}</td>
+          <td className="p-4">
+            <button type="button" onClick={() => setReviewFiles(item)} className="whitespace-nowrap rounded-lg border px-3 py-2 font-semibold text-[#1a2a6c] dark:text-[#c9a028]">Review files</button>
+            {tab === "pending" && (!item.has_id_proof || !item.has_cor_proof) && <p className="mt-2 text-xs">Approval requires both files.</p>}
+          </td>
+          <td className="p-4">{tab === "pending" ? <div className="flex gap-2"><button type="button" disabled={working || !item.has_id_proof || !item.has_cor_proof} onClick={() => { setDecision({ id: item.id, action: "approve" }); setReason(""); }} className="rounded-lg bg-emerald-700 px-3 py-2 font-bold text-white disabled:opacity-50">Approve</button><button type="button" disabled={working} onClick={() => { setDecision({ id: item.id, action: "reject" }); setReason(""); }} className="rounded-lg bg-rose-700 px-3 py-2 font-bold text-white">Reject</button></div> : <p className="max-w-xs whitespace-pre-wrap">{item.remarks || (tab === "approved" ? "Approved" : "Rejected")}</p>}</td>
         </tr>)}</tbody>
       </table>}
     </div>
-    <Pagination pagination={pagination} loading={loading} onPageChange={setPage}/>
+    <Pagination pagination={pagination} loading={loading} onPageChange={(nextPage) => { setLoading(true); setPage(nextPage); }} />
+    {reviewFiles && <ModalShell open title="Review uploaded files" description={reviewFiles.email} centered={false} onClose={() => setReviewFiles(null)}>
+      <ul className="my-5 space-y-3 text-sm">
+        {reviewFiles.has_id_proof && <li>
+          <a href={`/api/bao/seller-applications/${reviewFiles.id}/proof?document=id`} target="_blank" rel="noopener noreferrer" className="font-semibold underline">
+            {reviewFiles.has_cor_proof ? "Open student ID" : "Open original upload (student ID or COR)"}
+          </a>
+        </li>}
+        {reviewFiles.has_cor_proof && <li>
+          <a href={`/api/bao/seller-applications/${reviewFiles.id}/proof?document=cor`} target="_blank" rel="noopener noreferrer" className="font-semibold underline">Open Certificate of Registration (COR)</a>
+        </li>}
+        {!reviewFiles.has_id_proof && !reviewFiles.has_cor_proof && <li>No documents were submitted.</li>}
+      </ul>
+      <button type="button" onClick={() => setReviewFiles(null)} className="rounded-xl border px-4 py-2 text-sm font-bold">Close</button>
+    </ModalShell>}
     {decision && <ModalShell open title={decision.action==="approve"?"Approve seller application?":"Reject seller application"} centered={false} busy={working} dismissible={!working} onClose={()=>setDecision(null)}>
       <form onSubmit={review}>
 

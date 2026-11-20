@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { db } from "@/lib/db";
 import { orderPage } from "@/lib/orders/read-model";
+import { normalizeOrderStatus } from "@/lib/orders/status";
 import { isActiveSellerAccount } from "@/lib/seller-access";
 import { orderCommissionQuoteSql } from "@/lib/bao-commission";
 
@@ -16,7 +17,7 @@ export async function GET(req) {
     if(page.paging.offset>=page.total)return NextResponse.json([],{headers:page.headers});
     const [rows] = await db.query(
       `WITH paged_orders AS (
-         SELECT o.id FROM orders o WHERE ${page.ownership} AND ($2::text IS NULL OR o.status=$2::text)
+         SELECT o.id FROM orders o WHERE ${page.ownership} AND ($2::text[] IS NULL OR o.status=ANY($2::text[]))
          ORDER BY o.created_at DESC,o.id DESC LIMIT $3 OFFSET $4
        ) SELECT
          o.id,
@@ -65,10 +66,10 @@ export async function GET(req) {
        ${orderCommissionQuoteSql}
        WHERE (o.seller_id=$1 OR p.seller_id=$1)
        ORDER BY o.created_at DESC,o.id DESC,oi.id ASC`,
-      [session.user.id,page.status,page.paging.pageSize,page.paging.offset]
+      [session.user.id,page.statuses,page.paging.pageSize,page.paging.offset]
     );
 
-    return NextResponse.json(rows,{headers:page.headers});
+    return NextResponse.json(rows.map(row => ({ ...row, status: normalizeOrderStatus(row.status) })), { headers: page.headers });
   } catch (err) {
     console.error("seller/orders error:", err.message);
     return NextResponse.json({ error: err.status?err.message:"Unable to load seller orders." }, { status: err.status||503 });

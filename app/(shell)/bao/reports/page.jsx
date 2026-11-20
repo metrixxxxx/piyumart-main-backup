@@ -1,4 +1,5 @@
 "use client";
+import { orderStatusLabel } from "@/lib/orders/status";
 
 import ActionFeedback from "@/components/ui/ActionFeedback";
 import { useEffect, useState } from "react";
@@ -428,7 +429,7 @@ export default function BaoReportsPage() {
                       {report.related_order_id ? (
                         <>
                           <p className="mt-2 font-semibold">Order #{report.related_order_id}</p>
-                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Status: {report.order_status || "Unavailable"} · Amount: {formatCurrency(report.order_total)}</p>
+                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Status: {orderStatusLabel(report.order_status)} · Amount: {formatCurrency(report.order_total)}</p>
                           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Seller: {[report.order_seller_name, report.order_seller_last_name].filter(Boolean).join(" ") || "Unattributed"}</p>
                           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Order date: {formatDate(report.order_created_at)}</p>
                         </>

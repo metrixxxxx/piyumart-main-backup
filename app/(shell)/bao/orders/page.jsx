@@ -1,4 +1,5 @@
 "use client";
+import { normalizeOrderStatus, orderStatusLabel } from "@/lib/orders/status";
 
 import { useEffect, useState } from "react";
 import { useMarketplaceRealtime } from "@/lib/realtime/useMarketplaceRealtime";
@@ -12,9 +13,8 @@ const currencyFormatter = new Intl.NumberFormat("en-PH", {
 
 function statusClass(status) {
   if (status === "pending") return "bg-yellow-50 text-yellow-700";
-  if (status === "confirmed") return "bg-purple-50 text-purple-700";
-  if (status === "processing") return "bg-blue-50 text-blue-700";
-  if (status === "shipped") return "bg-indigo-50 text-indigo-700";
+  if (status === "preparing") return "bg-blue-50 text-blue-700";
+  if (status === "ready_for_pickup") return "bg-indigo-50 text-indigo-700";
   if (status === "completed") return "bg-green-50 text-green-700";
   return "bg-red-50 text-red-700";
 }
@@ -76,11 +76,11 @@ export default function BaoOrdersPage() {
             <tr>
               <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Order ID</th>
               <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Buyer</th>
-              <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Address</th>
+              <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Pickup point</th>
               <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Total</th>
               <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Payment</th>
               <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Status</th>
-              <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Photo proof</th>
+              <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Proof of transaction</th>
             </tr>
           </thead>
           <tbody>
@@ -98,8 +98,8 @@ export default function BaoOrdersPage() {
                   <td className="px-4 py-3 font-bold text-slate-900">{currencyFormatter.format(Number(order.total) || 0)}</td>
                   <td className="px-4 py-3 text-xs uppercase text-slate-600">{order.payment_method || "—"}</td>
                   <td className="px-4 py-3">
-                    <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusClass(order.status)}`}>
-                      {order.status || "unknown"}
+                    <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusClass(normalizeOrderStatus(order.status))}`}>
+                      {orderStatusLabel(order.status)}
                     </span>
                   </td>
                   <td className="px-4 py-3">
