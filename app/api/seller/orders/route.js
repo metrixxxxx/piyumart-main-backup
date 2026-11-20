@@ -27,6 +27,7 @@ export async function GET(req) {
          o.seller_note,
          o.payment_method,
          o.payment_status,
+         o.cancel_reason,
          (o.pickup_proof_path IS NOT NULL) AS has_pickup_proof,
          o.pickup_proof_uploaded_at,
          u.name                              AS buyer_name,

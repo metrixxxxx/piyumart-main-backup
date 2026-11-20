@@ -2,6 +2,8 @@ import { withCatalogInvalidation } from "@/lib/catalog-cache";
 import { NextResponse } from "next/server";
 import { getBaoAccess } from "@/lib/bao-access";
 import { db } from "@/lib/db";
+import { broadcastNotification } from "@/lib/notify";
+import { suspendProduct } from "@/lib/products/suspension";
 
 const ACTIONS = {
   approve: { status: "approved", auditAction: "product_approved" },
@@ -183,6 +185,19 @@ async function handlePATCH(req, { params }) {
       return NextResponse.json({ error: "Reason must be 1,000 characters or fewer." }, { status: 400 });
     }
 
+    if (body.action === "suspend") {
+      const result = await suspendProduct(productId, access.session.user.id, reason);
+      await Promise.all(result.notifications.map(broadcastNotification));
+      global.io?.emit("products:updated", result.product);
+      return NextResponse.json({
+        success: true,
+        product: result.product,
+        cancelledOrders: result.cancelledOrders,
+        pendingRefunds: result.pendingRefunds,
+        failedRefunds: result.failedRefunds,
+      });
+    }
+
     const [rows] = await db.query(
       `WITH current_product AS (
          SELECT p.id, p.status, u.status AS seller_status
@@ -248,8 +263,8 @@ async function handlePATCH(req, { params }) {
   } catch (error) {
     console.error("BAO product moderation failed:", error);
     return NextResponse.json(
-      { error: "Unable to update product moderation status." },
-      { status: 500 }
+      { error: error.status ? error.message : "Unable to update product moderation status." },
+      { status: error.status || 500 }
     );
   }
 }

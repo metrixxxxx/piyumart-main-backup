@@ -155,7 +155,7 @@ export default function MyListingsPage() {
     revenue: orderStats.revenue,
   };
   const filtered =
-    filter === "all"
+    filter === "all" || filter === "suspended"
       ? products
       : products.filter((p) => (filter === "visible" ? Number(p.is_visible) === 1 : Number(p.is_visible) === 0));
   const pendingOrders = orderList.statusCounts.pending || 0;
@@ -241,12 +241,12 @@ export default function MyListingsPage() {
         {activeTab === "listings" && (
           <>
             <div className="mb-5 flex max-w-full gap-5 overflow-x-auto border-b border-[#c5cfe8] dark:border-white/[0.07]">
-              {["all", "visible", "hidden"].map((f) => (
+              {["all", "visible", "hidden", "suspended"].map((f) => (
                 <button key={f} onClick={() => { setFilter(f); setProductPage(1); }}
                   aria-pressed={filter === f}
                   className={`shrink-0 border-b-2 px-1 py-2 text-xs font-semibold capitalize transition
                     ${filter === f ? "border-[#1a2a6c] text-[#1a2a6c] dark:border-[#c9a028] dark:text-[#c9a028]" : "border-transparent text-[#0e1a3d]/60 dark:text-[#e8edf8]/50 hover:text-[#1a2a6c] dark:hover:text-[#c9a028]"}`}>
-                  {f}
+                  {f === "suspended" ? "Suspended" : f}
                 </button>
               ))}
             </div>
@@ -267,11 +267,17 @@ export default function MyListingsPage() {
                       <h2 className="break-words text-sm font-semibold text-[#0e1a3d] dark:text-[#e8edf8]">{p.name}</h2>
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <p className="text-sm font-bold text-[#1a2a6c] dark:text-[#c9a028]">₱{Number(p.price).toLocaleString()}</p>
-                        <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${p.is_visible ? "bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400" : "bg-[#f0f4ff] dark:bg-white/[0.04] text-[#0e1a3d]/40 dark:text-[#e8edf8]/30"}`}>{p.is_visible ? "Visible" : "Hidden"}</span>
+                        <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                          p.status === "suspended"
+                            ? "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+                            : p.is_visible
+                              ? "bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400"
+                              : "bg-[#f0f4ff] dark:bg-white/[0.04] text-[#0e1a3d]/40 dark:text-[#e8edf8]/30"
+                        }`}>{p.status === "suspended" ? "Suspended by BAO" : p.is_visible ? "Visible" : "Hidden"}</span>
                       </div>
                       <div className="flex flex-wrap justify-between gap-2 text-xs text-[#0e1a3d]/50 dark:text-[#e8edf8]/40"><span>Stock: {p.stock}</span><span>{new Date(p.created_at).toLocaleDateString()}</span></div>
                       <div className="mt-auto flex gap-2 border-t border-[#c5cfe8] pt-3 dark:border-white/[0.07]">
-                        <button onClick={() => toggleVisibility(p.id, p.is_visible)} className="rounded-lg bg-[#f0f4ff] px-3 py-1.5 text-xs font-semibold text-[#1a2a6c] hover:bg-[#e8edf8] dark:bg-white/[0.04] dark:text-[#c9a028] dark:hover:bg-white/[0.08]">{p.is_visible ? "Hide" : "Show"}</button>
+                        <button onClick={() => toggleVisibility(p.id, p.is_visible)} disabled={p.status === "suspended"} className="rounded-lg bg-[#f0f4ff] px-3 py-1.5 text-xs font-semibold text-[#1a2a6c] hover:bg-[#e8edf8] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white/[0.04] dark:text-[#c9a028] dark:hover:bg-white/[0.08]">{p.status === "suspended" ? "Suspended" : p.is_visible ? "Hide" : "Show"}</button>
                         <button onClick={() => handleDelete(p.id)} className="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20">Delete</button>
                       </div>
                     </div>
@@ -313,6 +319,8 @@ export default function MyListingsPage() {
                       const isCancelled = o.status === "cancelled";
                       const online = o.payment_method === "paymongo";
                       const awaitingPayment = online && !["paid", "partially_refunded"].includes(o.payment_status);
+                      const suspensionRefundPending = o.cancel_reason === "product_suspended_refund_pending";
+                      const suspensionRefundFailed = o.cancel_reason === "product_suspended_refund_failed";
                       const commissionNote = isCancelled
                         ? "Not charged on cancelled orders"
                         : commissionRecorded
@@ -331,7 +339,9 @@ export default function MyListingsPage() {
                               {o.created_at ? new Date(o.created_at).toLocaleString("en-PH") : "—"}
                             </p>
                             <div className="mt-3 flex flex-wrap gap-1.5">
-                              {o.status === "pending" && (awaitingPayment ? <span className="text-xs">Awaiting payment confirmation</span> :
+                              {o.status === "pending" && suspensionRefundPending ? <span className="text-xs text-amber-700 dark:text-amber-300">BAO suspended a product; refund is processing.</span> :
+                                o.status === "pending" && suspensionRefundFailed ? <span className="text-xs text-red-600 dark:text-red-400">Refund needs BAO review. This order is blocked.</span> :
+                                o.status === "pending" && (awaitingPayment ? <span className="text-xs">Awaiting payment confirmation</span> :
                                 <>
                                   <button disabled={o._loading} onClick={() => handleOrderStatus(o.id, "preparing")}
                                     className="rounded-lg bg-green-600 px-2.5 py-1.5 text-[11px] font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">

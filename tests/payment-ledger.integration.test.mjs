@@ -30,13 +30,15 @@ test("Postgres marketplace payment lifecycle",{skip:process.env.PIYUMART_FINANCE
     await pool.query(baoPolicy);
     const realtimeMigration=(await readFile("migrations/add_marketplace_realtime.sql","utf8")).replaceAll("public.",`${schema}.`).replaceAll("search_path=public",`search_path=${schema}`);
     await pool.query(realtimeMigration);
+    const refundTracking=(await readFile("migrations/add_order_refund_tracking.sql","utf8")).replaceAll("public.",`${schema}.`);
+    await pool.query(refundTracking);
     for (const filename of ["migrations/add_reviews_and_sold_count.sql", "tests/fixtures/user-deletion.sql", "migrations/add_user_deletion_cleanup.sql"]) {
       const source = (await readFile(filename, "utf8")).replaceAll("public.", `${schema}.`).replaceAll("search_path=public", `search_path=${schema}`);
       await pool.query(source);
     }
     const db={query:async(sql,values)=>[(await pool.query(sql,values)).rows],transaction:async callback=>{const client=await pool.connect();try{await client.query("BEGIN");const result=await callback(client);await client.query("COMMIT");return result;}catch(error){await client.query("ROLLBACK");throw error;}finally{client.release();}}};
     const env={PAYMONGO_SECRET_KEY:"sk_test_fixture_only",PAYMONGO_WEBHOOK_SECRET:"fixture-secret",WALLET_ENCRYPTION_KEY:"ab".repeat(32),PAYMONGO_PAYOUTS_ENABLED:"true",APP_URL:"http://localhost:3000"};
-    const sessions=new Map(),transfers=new Map();let providerCalls=0,notificationFailure=false,events=0;
+    const sessions=new Map(),transfers=new Map(),refunds=new Map();let providerCalls=0,notificationFailure=false,events=0,refundStatus="succeeded";
     const provider=async(url,options={})=>{
       providerCalls++;const path=new URL(url).pathname;
       if(path==="/v2/checkout_sessions"&&options.method==="POST"){
@@ -50,12 +52,18 @@ test("Postgres marketplace payment lifecycle",{skip:process.env.PIYUMART_FINANCE
           resource.attributes.status="expired";
         }return Response.json({data:resource});
       }
+      if(path==="/v1/refunds"&&options.method==="POST"){
+        const input=JSON.parse(options.body).data.attributes,id=`ref_auto_fixture${refunds.size+1}`;
+        const resource={id,type:"refund",attributes:{...input,currency:"PHP",livemode:false,status:refundStatus}};
+        refunds.set(id,resource);return Response.json({data:resource});
+      }
       if(path.startsWith("/v2/transfers/")){const value=transfers.get(path.split("/").at(-1));if(!value)throw new Error("Unknown transfer fixture");return Response.json({data:value});}
       throw new Error(`Undocumented or unexpected provider path: ${path}`);
     };
     const options=withProofStorage({db,env,fetch:provider,notificationFailure:()=>notificationFailure});
     const checkout=await loadFinanceModule("lib/payments/checkout.js",options),wallet=await loadFinanceModule("lib/payments/wallet.js",options),lifecycle=await loadFinanceModule("lib/payments/events.js",options);
     const { transitionOrder } = await loadFinanceModule("lib/orders/fulfillment.js", options);
+    const suspension=await loadFinanceModule("lib/products/suspension.js",options);
     const input={name:"Fixture buyer",address:"Library",payment_method:"paymongo",items:[{product_id:1,quantity:1,price:0.01}],total:0.01};
     const query=async(sql,values)=>(await pool.query(sql,values)).rows;
     const makeCheckout=async()=>{const result=await checkout.createMarketplaceOrders(1,input,randomUUID());const payment=await checkout.startCheckout(result.paymentId,1);return {...result,payment};};
@@ -203,6 +211,83 @@ test("Postgres marketplace payment lifecycle",{skip:process.env.PIYUMART_FINANCE
       const after=(await query("SELECT count(*)::int AS count FROM wallet_transactions WHERE order_id=$1",[id]))[0].count;
       assert.ok(after>before);await assert.rejects(transitionOrder(1,id,{action:"confirm_receipt"}),error=>error.status===409);
       assert.equal((await query("SELECT count(*)::int AS count FROM wallet_transactions WHERE order_id=$1",[id]))[0].count,after);
+    });
+    await t.test("BAO suspension partially refunds only the affected seller order",async()=>{
+      const [{id:targetProduct}]=await query(
+        "INSERT INTO products(seller_id,name,price,stock,status,is_visible) VALUES(2,'Suspension target',1000,5,'approved',true) RETURNING id"
+      );
+      const before=(await query("SELECT stock FROM products WHERE id=$1",[targetProduct]))[0].stock;
+      const created=await checkout.createMarketplaceOrders(1,{...input,items:[{product_id:targetProduct,quantity:1},{product_id:2,quantity:1}]},randomUUID());
+      const payment=await checkout.startCheckout(created.paymentId,1),session=sessions.get(payment.checkout_session_id);
+      session.attributes.payments=[{id:"pay_suspensionfixture",attributes:{status:"paid",currency:"PHP",amount:170000,fee:100,livemode:false}}];
+      const paid=event("checkout_session.payment.paid",session);
+      await lifecycle.processPaymentEvent(paid,JSON.stringify(paid));
+      const [confirmed]=await query("SELECT status,amount,provider_payment_id FROM payments WHERE id=$1",[created.paymentId]);
+      assert.equal(confirmed.status,"paid");assert.equal(confirmed.amount,"1700.00");
+
+      const result=await suspension.suspendProduct(targetProduct,3,"Fixture suspension");
+      assert.equal(result.product.status,"suspended");
+      assert.equal(result.cancelledOrders.length,1);assert.equal(result.cancelledOrders[0],created.orderIds[0]);
+      const orders=await query("SELECT id,status,payment_status FROM orders WHERE id=ANY($1::integer[]) ORDER BY id",[created.orderIds]);
+      assert.equal(orders[0].status,"cancelled");assert.equal(orders[0].payment_status,"refunded");
+      assert.equal(orders[1].status,"pending");
+      const allocations=await query("SELECT order_id,refunded_amount FROM payment_allocations WHERE payment_id=$1 ORDER BY order_id",[created.paymentId]);
+      assert.deepEqual(allocations.map(row=>row.refunded_amount),["1000.00","0.00"]);
+      assert.equal((await query("SELECT status,refunded_amount FROM payments WHERE id=$1",[created.paymentId]))[0].status,"partially_refunded");
+      assert.equal((await query("SELECT stock FROM products WHERE id=$1",[targetProduct]))[0].stock,before);
+      const notices=await query("SELECT user_id,message FROM notifications WHERE user_id IN (1,2) AND message ILIKE '%order #%'");
+      assert.ok(notices.some(row=>row.user_id===1&&row.message.includes("refund was confirmed")));
+      assert.ok(notices.some(row=>row.user_id===2&&row.message.includes("refund was confirmed")));
+    });
+    await t.test("a pending PayMongo refund blocks fulfillment until its success webhook",async()=>{
+      const [{id:productId}]=await query(
+        "INSERT INTO products(seller_id,name,price,stock,status,is_visible) VALUES(2,'Pending-refund item',1000,5,'approved',true) RETURNING id"
+      );
+      const created=await checkout.createMarketplaceOrders(1,{...input,items:[{product_id:productId,quantity:1}]},randomUUID());
+      const payment=await checkout.startCheckout(created.paymentId,1),session=sessions.get(payment.checkout_session_id);
+      session.attributes.payments=[{id:"pay_pendingrefundfixture",attributes:{status:"paid",currency:"PHP",amount:100000,fee:100,livemode:false}}];
+      const paid=event("checkout_session.payment.paid",session);
+      await lifecycle.processPaymentEvent(paid,JSON.stringify(paid));
+
+      refundStatus="pending";
+      const before=(await query("SELECT stock FROM products WHERE id=$1",[productId]))[0].stock;
+      const result=await suspension.suspendProduct(productId,3);
+      assert.equal(result.pendingRefunds.length,1);assert.equal(result.pendingRefunds[0],created.orderIds[0]);
+      const [blocked]=await query("SELECT status,cancel_reason FROM orders WHERE id=$1",[created.orderIds[0]]);
+      assert.equal(blocked.status,"pending");assert.equal(blocked.cancel_reason,"product_suspended_refund_pending");
+      await assert.rejects(transitionOrder(2,created.orderIds[0],{status:"preparing"}),error=>error.status===409);
+      assert.equal((await query("SELECT stock FROM products WHERE id=$1",[productId]))[0].stock,before);
+
+      const [refundId]=await query("SELECT provider_refund_id FROM payment_refunds WHERE order_id=$1",[created.orderIds[0]]);
+      const refund=refunds.get(refundId.provider_refund_id);refund.attributes.status="succeeded";
+      const updated=event("payment.refund.updated",refund);
+      await lifecycle.processPaymentEvent(updated,JSON.stringify(updated));
+      const [cancelled]=await query("SELECT status,payment_status FROM orders WHERE id=$1",[created.orderIds[0]]);
+      assert.equal(cancelled.status,"cancelled");assert.equal(cancelled.payment_status,"refunded");
+      assert.equal((await query("SELECT stock FROM products WHERE id=$1",[productId]))[0].stock,before+1);
+      refundStatus="succeeded";
+    });
+    await t.test("suspension closes unpaid online checkouts and cancels COD orders with notices",async()=>{
+      const [{id:onlineProduct}]=await query(
+        "INSERT INTO products(seller_id,name,price,stock,status,is_visible) VALUES(2,'Unpaid item',1000,5,'approved',true) RETURNING id"
+      );
+      const online=await checkout.createMarketplaceOrders(1,{...input,items:[{product_id:onlineProduct,quantity:1}]},randomUUID());
+      const started=await checkout.startCheckout(online.paymentId,1);
+      const result=await suspension.suspendProduct(onlineProduct,3);
+      assert.equal(result.cancelledOrders.length,1);assert.equal(result.cancelledOrders[0],online.orderIds[0]);
+      assert.equal((await query("SELECT status FROM payments WHERE id=$1",[online.paymentId]))[0].status,"cancelled");
+      assert.equal((await query("SELECT status FROM orders WHERE id=$1",[online.orderIds[0]]))[0].status,"cancelled");
+      assert.equal(sessions.get(started.checkout_session_id).attributes.status,"expired");
+
+      const [{id:codProduct}]=await query(
+        "INSERT INTO products(seller_id,name,price,stock,status,is_visible) VALUES(2,'COD item',1000,5,'approved',true) RETURNING id"
+      );
+      const cod=await checkout.createMarketplaceOrders(1,{...input,payment_method:"cod",items:[{product_id:codProduct,quantity:1}]},randomUUID());
+      const codResult=await suspension.suspendProduct(codProduct,3);
+      assert.equal(codResult.cancelledOrders.length,1);assert.equal(codResult.cancelledOrders[0],cod.orderIds[0]);
+      assert.equal((await query("SELECT status FROM orders WHERE id=$1",[cod.orderIds[0]]))[0].status,"cancelled");
+      const notices=await query("SELECT user_id FROM notifications WHERE user_id IN (1,2) AND message ILIKE '%cancelled because%'");
+      assert.ok(notices.some(row=>row.user_id===1));assert.ok(notices.some(row=>row.user_id===2));
     });
   }finally{
     if(pool)await pool.end();if(created)await control.query(`DROP SCHEMA ${schema} CASCADE`);await control.end();

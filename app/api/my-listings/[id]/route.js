@@ -46,10 +46,16 @@ async function handlePATCH(req, { params }) {
     payload.is_visible === "1" ||
     String(payload.is_visible).toLowerCase() === "true";
 
-  await db.query(
-    "UPDATE products SET is_visible=$1 WHERE id=$2 AND seller_id=$3",
+  const [updated] = await db.query(
+    "UPDATE products SET is_visible=$1 WHERE id=$2 AND seller_id=$3 AND status<>'suspended' RETURNING id",
     [is_visible, id, session.user.id]
   );
+  if (!updated.length) {
+    return NextResponse.json(
+      { error: "This listing is suspended by BAO and cannot be changed." },
+      { status: 409 }
+    );
+  }
   return NextResponse.json({ success: true });
 }
 

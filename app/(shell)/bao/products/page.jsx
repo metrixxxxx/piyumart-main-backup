@@ -151,7 +151,16 @@ export default function BaoProductsPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Unable to update product.");
 
-      setActionNotice(`${product.name} was ${pendingAction === "approve" ? "approved" : pendingAction === "reject" ? "rejected" : "suspended"}.`);
+      let notice = `${product.name} was ${pendingAction === "approve" ? "approved" : pendingAction === "reject" ? "rejected" : "suspended"}.`;
+      if (pendingAction === "suspend") {
+        const cancelled = data.cancelledOrders?.length || 0;
+        const pending = data.pendingRefunds?.length || 0;
+        const failed = data.failedRefunds?.length || 0;
+        if (cancelled) notice += ` ${cancelled} order(s) cancelled.`;
+        if (pending) notice += ` ${pending} PayMongo refund(s) are processing.`;
+        setActionError(failed ? `${failed} PayMongo refund(s) need BAO review.` : "");
+      }
+      setActionNotice(notice);
       setReason("");
       setReasonError("");
       setPendingAction("");
