@@ -1,18 +1,8 @@
 "use client";
 import { getCategories } from "@/lib/client-catalog";
+import CategoryIcon from "@/components/ui/CategoryIcon";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-
-const CATEGORY_ICONS = {
-  "Beauty": "💄",
-  "Books": "📚",
-  "Clothing": "👕",
-  "Electronics": "💻",
-  "Food & Drinks": "🍔",
-  "Home & Living": "🏠",
-  "Sports": "⚽",
-  "Toys": "🧸",
-};
 
 const CATEGORY_DESC = {
   "Beauty": "Skincare & cosmetics",
@@ -163,7 +153,7 @@ export default function Footer() {
               href={`/products?category=${cat.id}`}
               className="group"
             >
-              <p className="text-sm mb-0.5">{CATEGORY_ICONS[cat.name] || "🏷️"}</p>
+              <CategoryIcon name={cat.name} className="mb-1 text-[#c8cdd6] group-hover:text-white" />
               <p className="text-xs font-bold text-[#c8cdd6] group-hover:text-white transition-colors leading-tight">
                 {cat.name}
               </p>

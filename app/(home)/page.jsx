@@ -1,5 +1,6 @@
 "use client";
 import Pagination from "@/components/ui/Pagination";
+import CategoryIcon from "@/components/ui/CategoryIcon";
 import { usePagedResource } from "@/lib/usePagedResource";
 import { getCategories } from "@/lib/client-catalog";
 import { useCatalogRealtime } from "@/lib/realtime/useCatalogRealtime";
@@ -51,17 +52,6 @@ const DEMO_PRODUCTS = DEMO_PRODUCT_TEMPLATES.map((template, index) => ({
   image_url: template.image_url,
   is_demo: true,
 }));
-
-const CATEGORY_ICONS = {
-  "Beauty": "💄",
-  "Books": "📚",
-  "Clothing": "👕",
-  "Electronics": "💻",
-  "Food & Drinks": "🍔",
-  "Home & Living": "🏠",
-  "Sports": "⚽",
-  "Toys": "🧸",
-};
 
 const HIDDEN_CATEGORY_NAMES = new Set(["toys", "home & living", "food & drinks"]);
 
@@ -130,25 +120,25 @@ export default function HomePage() {
           <div className="flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-none sm:flex-wrap">
           <button
             onClick={() => { setCategory("all");setPage(1); }}
-            className={`flex-shrink-0 px-4 py-1.5 rounded-full border text-xs font-medium transition-all duration-150
+            className={`inline-flex flex-shrink-0 items-center gap-1.5 px-4 py-1.5 rounded-full border text-xs font-medium transition-all duration-150
               ${category === "all"
                 ? "bg-[#1a2a6c] dark:bg-[#FABB00] border-[#1a2a6c] dark:border-[#FABB00] text-white dark:text-[#0e1a3d] font-bold"
                 : "bg-white dark:bg-white/4 border-[#c5cfe8] dark:border-white/10 text-[#4a5a7a] dark:text-[#e8edf8]/55 hover:border-[#1a2a6c] dark:hover:border-[#FABB00] hover:text-[#1a2a6c] dark:hover:text-[#FABB00]"
               }`}
           >
-            🛍️ All
+            <CategoryIcon name="All" /> All
           </button>
           {visibleCategories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => { setCategory(String(cat.id));setPage(1); }}
-              className={`flex-shrink-0 px-4 py-1.5 rounded-full border text-xs font-medium transition-all duration-150
+              className={`inline-flex flex-shrink-0 items-center gap-1.5 px-4 py-1.5 rounded-full border text-xs font-medium transition-all duration-150
                 ${category === String(cat.id)
                   ? "bg-[#1a2a6c] dark:bg-[#FABB00] border-[#1a2a6c] dark:border-[#FABB00] text-white dark:text-[#0e1a3d] font-bold"
                   : "bg-white dark:bg-white/4 border-[#c5cfe8] dark:border-white/10 text-[#4a5a7a] dark:text-[#e8edf8]/55 hover:border-[#1a2a6c] dark:hover:border-[#FABB00] hover:text-[#1a2a6c] dark:hover:text-[#FABB00]"
                 }`}
             >
-              {CATEGORY_ICONS[cat.name] || "🏷️"} {cat.name}
+              <CategoryIcon name={cat.name} /> {cat.name}
             </button>
           ))}
           </div>
